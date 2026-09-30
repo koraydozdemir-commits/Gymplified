@@ -1,59 +1,64 @@
 <!doctype html>
-<html lang="en" data-theme="light" data-color="blue" data-contrast="normal" data-motion="normal" data-font="default" data-scale="md">
+<html lang="en" data-theme="dark" data-color="blue" data-contrast="normal" data-motion="normal" data-font="default" data-scale="md">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Gymplified — Training Log & Muscle Tracker</title>
+<title>Gymplified — Training Log & Muscle Diagram</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Space+Grotesk:wght@500;600;700&display=swap');
 
 :root {
-  --bg: #f4f4f2;
-  --panel: #ffffff;
-  --ink: #0f172a;
-  --muted: #64748b;
-  --line: #cbd5e1;
+  --bg: #0b0f17;
+  --panel: #111827;
+  --panel-hover: #1f2937;
+  --ink: #f9fafb;
+  --muted: #9ca3af;
+  --line: #1e293b;
   --brand: #2563eb;
-  --brand-light: #eff6ff;
+  --brand-light: #1e293b;
   --brand-ink: #ffffff;
-  --danger: #dc2626;
-  --success: #16a34a;
-  --max: 1120px;
+  --danger: #ef4444;
+  --success: #10b981;
+  --max: 1160px;
   --radius: 6px;
   --font-base: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: "Space Grotesk", sans-serif;
   --scale: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Color Themes */
-html[data-color="blue"] { --brand: #2563eb; --brand-light: #eff6ff; }
-html[data-color="emerald"] { --brand: #059669; --brand-light: #ecfdf5; }
-html[data-color="slate"] { --brand: #334155; --brand-light: #f1f5f9; }
-html[data-color="crimson"] { --brand: #dc2626; --brand-light: #fef2f2; }
-html[data-color="amber"] { --brand: #d97706; --brand-light: #fffbeb; }
-html[data-color="violet"] { --brand: #7c3aed; --brand-light: #f5f3ff; }
-
-/* Dark Mode Overrides */
-html[data-theme="dark"] {
-  --bg: #090d16;
-  --panel: #131c2e;
-  --ink: #f8fafc;
-  --muted: #94a3b8;
-  --line: #26334d;
-  --brand-light: #1e293b;
+/* Light Theme Overrides */
+html[data-theme="light"] {
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --panel-hover: #f1f5f9;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --brand-light: #eff6ff;
+  --brand-ink: #ffffff;
 }
+
+/* Color Accents */
+html[data-color="blue"] { --brand: #2563eb; }
+html[data-color="emerald"] { --brand: #059669; }
+html[data-color="slate"] { --brand: #475569; }
+html[data-color="crimson"] { --brand: #dc2626; }
+html[data-color="amber"] { --brand: #d97706; }
+html[data-color="violet"] { --brand: #7c3aed; }
 
 /* High Contrast Mode */
 html[data-contrast="high"] {
-  --line: #000000;
-  --muted: #1e293b;
-}
-html[data-theme="dark"][data-contrast="high"] {
-  --line: #ffffff;
+  --line: #334155;
   --muted: #cbd5e1;
 }
+html[data-theme="light"][data-contrast="high"] {
+  --line: #000000;
+  --muted: #334155;
+}
 
-/* Dyslexia / Accessible Font */
+/* Accessible Font */
 html[data-font="accessible"] {
   --font-base: "Comic Sans MS", "Chalkboard SE", sans-serif;
   --font-heading: "Comic Sans MS", "Chalkboard SE", sans-serif;
@@ -66,173 +71,242 @@ html[data-scale="lg"] { --scale: 1.125rem; }
 html[data-scale="xl"] { --scale: 1.25rem; }
 
 /* Reduced Motion */
-html[data-motion="reduced"] * {
-  transition: none !important;
+html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-motion="reduced"] *::after {
   animation: none !important;
+  transition: none !important;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { background: var(--bg); font-size: var(--scale); }
-body { color: var(--ink); font-family: var(--font-base); line-height: 1.45; background: var(--bg); min-height: 100vh; }
+html { background: var(--bg); font-size: var(--scale); transition: background-color 0.25s var(--ease-out); }
+body { color: var(--ink); font-family: var(--font-base); line-height: 1.45; background: var(--bg); min-height: 100vh; -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; color: inherit; }
 
-.app { max-width: var(--max); margin: 0 auto; min-height: 100vh; border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--bg); }
+.app { max-width: var(--max); margin: 0 auto; min-height: 100vh; border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--bg); transition: border-color 0.25s var(--ease-out); }
 
-/* Topbar */
-.topbar { height: 60px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--panel); position: sticky; top: 0; z-index: 30; }
-.brand { font-family: var(--font-heading); font-weight: 700; font-size: 20px; letter-spacing: -0.03em; color: var(--ink); }
-.brand span { color: var(--brand); }
+/* Topbar Header */
+.topbar { height: 62px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--panel); position: sticky; top: 0; z-index: 40; transition: background-color 0.25s var(--ease-out), border-color 0.25s var(--ease-out); }
+.brand { font-family: var(--font-heading); font-weight: 700; font-size: 21px; letter-spacing: -0.04em; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.brand-dot { width: 8px; height: 8px; background: var(--brand); border-radius: 50%; display: inline-block; transition: background-color 0.25s var(--ease-out); }
+
 .top-actions { display: flex; align-items: center; gap: 10px; }
-.date-tag { font-size: 12px; font-weight: 600; color: var(--muted); padding-right: 12px; border-right: 1px solid var(--line); }
-.btn-icon { height: 36px; padding: 0 12px; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
-.btn-icon:hover { border-color: var(--brand); color: var(--brand); }
-.btn-primary { background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); padding: 8px 14px; border-radius: var(--radius); font-weight: 600; font-size: 13px; cursor: pointer; }
-.btn-primary:hover { opacity: 0.9; }
+.date-tag { font-size: 12px; font-weight: 600; color: var(--muted); padding-right: 14px; border-right: 1px solid var(--line); font-family: var(--font-heading); letter-spacing: -0.01em; }
 
-/* Layout */
-.layout { display: grid; grid-template-columns: 200px 1fr; min-height: calc(100vh - 60px); }
-aside { border-right: 1px solid var(--line); padding: 20px 12px; background: var(--panel); position: sticky; top: 60px; height: calc(100vh - 60px); }
-.nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px; padding: 0 8px; }
-nav button { display: block; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; padding: 10px 12px; border-radius: var(--radius); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 4px; }
-nav button:hover { background: var(--bg); color: var(--ink); }
-nav button.active { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+/* Buttons & Micro-interactions */
+.btn { height: 36px; padding: 0 14px; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s var(--ease-out); }
+.btn:hover { border-color: var(--brand); color: var(--brand); background: var(--panel-hover); transform: translateY(-1px); }
+.btn:active { transform: translateY(0) scale(0.98); }
 
-main { padding: 24px 28px 60px; min-width: 0; }
-.screen { display: none; }
-.screen.active { display: block; }
+.btn-primary { background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); }
+.btn-primary:hover { opacity: 0.92; background: var(--brand); color: var(--brand-ink); transform: translateY(-1px); }
+
+.btn-icon-only { width: 36px; padding: 0; }
+
+/* Layout Grid */
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 62px); }
+
+/* Sidebar Navigation */
+aside { border-right: 1px solid var(--line); padding: 20px 12px; background: var(--panel); position: sticky; top: 62px; height: calc(100vh - 62px); transition: background-color 0.25s var(--ease-out), border-color 0.25s var(--ease-out); }
+.nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 12px; padding: 0 10px; }
+
+nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; padding: 10px 12px; border-radius: var(--radius); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 4px; transition: all 0.18s var(--ease-out); position: relative; }
+nav button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.18s var(--ease-out); }
+nav button:hover { background: var(--panel-hover); color: var(--ink); }
+nav button.active { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 700; }
+nav button.active svg { stroke: var(--brand-ink); }
+
+/* Main Screen Transitions */
+main { padding: 28px 32px 60px; min-width: 0; }
+.screen { display: none; opacity: 0; transform: translateY(8px); transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out); }
+.screen.active { display: block; opacity: 1; transform: translateY(0); animation: screenIn 0.3s var(--ease-out) forwards; }
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* Headings */
-.eyebrow { text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--brand); margin-bottom: 4px; }
-h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 4px; }
-.subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+.eyebrow { text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand); margin-bottom: 4px; }
+h1 { font-family: var(--font-heading); font-size: 28px; font-weight: 700; letter-spacing: -0.04em; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
 
 /* Dashboard Grids */
-.grid-2 { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 16px; margin-bottom: 16px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+.grid-2 { display: grid; grid-template-columns: 1.35fr 0.65fr; gap: 16px; margin-bottom: 16px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; transition: border-color 0.2s var(--ease-out), background-color 0.25s var(--ease-out); }
+.panel:hover { border-color: rgba(255, 255, 255, 0.15); }
+html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
 
-/* Cards & Components */
-.metric-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
-.metric-num { font-family: var(--font-heading); font-size: 32px; font-weight: 700; letter-spacing: -0.04em; }
-.metric-unit { font-size: 12px; color: var(--muted); font-weight: 500; }
-.progress-bar { height: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin: 8px 0; }
-.progress-bar i { display: block; height: 100%; background: var(--brand); width: 0%; transition: width 0.3s ease; }
-.meta-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+/* Metrics & Animated Bars */
+.metric-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.metric-num { font-family: var(--font-heading); font-size: 34px; font-weight: 700; letter-spacing: -0.05em; line-height: 1; }
+.metric-unit { font-size: 12px; color: var(--muted); font-weight: 500; font-family: var(--font-base); letter-spacing: 0; }
 
-.macro-pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+.progress-bar { height: 7px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin: 10px 0; }
+.progress-bar i { display: block; height: 100%; background: var(--brand); width: 0%; transition: width 0.6s var(--ease-out); }
+
+.meta-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+.macro-pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
 .macro-pill { text-align: center; }
-.macro-pill strong { display: block; font-size: 16px; font-family: var(--font-heading); }
-.macro-pill span { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+.macro-pill strong { display: block; font-size: 17px; font-family: var(--font-heading); font-weight: 700; }
+.macro-pill span { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 
-/* High Density Table & Rows */
-.section-title { font-family: var(--font-heading); font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
-.data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
-.data-table th { background: var(--bg); padding: 10px 12px; border: 1px solid var(--line); font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
-.data-table td { padding: 10px 12px; border: 1px solid var(--line); vertical-align: middle; }
+/* Direct Table & Interactive List Rows */
+.section-title { font-family: var(--font-heading); font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; letter-spacing: -0.02em; }
 
-.item-row { display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.item-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--line); border-radius: 4px; transition: background 0.15s var(--ease-out); }
 .item-row:last-child { border-bottom: 0; }
+.item-row:hover { background: var(--panel-hover); }
 .row-idx { font-family: var(--font-heading); font-size: 12px; font-weight: 700; color: var(--muted); }
 
-/* Forms & Inputs */
-.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+/* Form Controls */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
 .field { margin-bottom: 12px; }
-.field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-.field input, .field select, .field textarea { width: 100%; height: 38px; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); padding: 0 10px; color: var(--ink); outline: none; }
-.field input:focus, .field select:focus { border-color: var(--brand); }
+.field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.field input, .field select { width: 100%; height: 38px; border: 1px solid var(--line); background: var(--bg); border-radius: var(--radius); padding: 0 12px; color: var(--ink); outline: none; transition: border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out); font-size: 13px; }
+.field input:focus, .field select:focus { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
 
-/* Machine Library & Muscle Diagram */
-.machine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.machine-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--panel); cursor: pointer; transition: border-color 0.2s; }
-.machine-card:hover, .machine-card.active { border-color: var(--brand); }
+/* Animated Checkbox */
+.check-btn { width: 30px; height: 30px; border: 1px solid var(--line); background: var(--panel); border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--brand-ink); transition: all 0.2s var(--ease-spring); }
+.check-btn:hover { border-color: var(--brand); transform: scale(1.05); }
+.check-btn.done { background: var(--brand); border-color: var(--brand); animation: checkBounce 0.3s var(--ease-spring); }
+
+@keyframes checkBounce {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+/* Machine Library & Muscle Diagram Visualizer */
+.machine-grid { display: grid; grid-template-columns: 1fr; gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+.machine-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--panel); cursor: pointer; transition: all 0.2s var(--ease-out); position: relative; }
+.machine-card:hover { border-color: var(--brand); transform: translateX(3px); background: var(--panel-hover); }
+.machine-card.active { border-color: var(--brand); background: var(--brand-light); }
+.machine-card.active::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--brand); border-radius: 3px 0 0 3px; }
 .machine-card h3 { font-size: 14px; margin-bottom: 4px; font-weight: 700; }
-.machine-card p { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
-.tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
-.tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
-.tag.primary { background: var(--brand-light); color: var(--brand); border-color: var(--brand); }
+.machine-card p { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
 
-/* Human Body Muscle Heatmap SVG Visualizer */
-.body-visualizer { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
-.muscle-svg { height: 260px; width: auto; fill: var(--line); stroke: var(--bg); stroke-width: 1.5; }
-.muscle-path { transition: fill 0.3s; cursor: pointer; }
-.muscle-path.active { fill: var(--brand) !important; }
-.muscle-path.secondary { fill: #93c5fd !important; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.tag.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
 
-/* Settings Options */
-.settings-group { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; background: var(--panel); margin-bottom: 16px; }
-.settings-group h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
-.settings-group p { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
-.color-picker { display: flex; gap: 10px; margin-top: 8px; }
-.color-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
-.color-dot.active { border-color: var(--ink); transform: scale(1.1); }
+/* Human Muscle Heatmap SVG Visualizer */
+.body-visualizer { display: flex; justify-content: center; align-items: center; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-height: 380px; position: relative; }
+.muscle-svg { height: 320px; width: auto; fill: var(--line); stroke: var(--bg); stroke-width: 1.5; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2)); }
 
-.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.muscle-path { transition: fill 0.35s var(--ease-out), stroke 0.35s var(--ease-out), opacity 0.35s var(--ease-out); cursor: pointer; opacity: 0.6; }
+.muscle-path:hover { opacity: 0.9; stroke: var(--brand); }
+.muscle-path.active { fill: var(--brand) !important; opacity: 1 !important; stroke: var(--ink); stroke-width: 2; animation: musclePulse 2s infinite ease-in-out; }
+.muscle-path.secondary { fill: #60a5fa !important; opacity: 0.85 !important; }
+
+@keyframes musclePulse {
+  0% { filter: drop-shadow(0 0 0px var(--brand)); }
+  50% { filter: drop-shadow(0 0 8px var(--brand)); }
+  100% { filter: drop-shadow(0 0 0px var(--brand)); }
+}
+
+/* Settings Hub Controls */
+.settings-group { border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; background: var(--panel); margin-bottom: 16px; transition: border-color 0.2s var(--ease-out); }
+.settings-group h3 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.settings-group p { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
 .toggle-row:last-child { border-bottom: 0; }
 .toggle-row label { font-size: 13px; font-weight: 600; }
 
+.color-picker { display: flex; gap: 12px; margin-top: 8px; }
+.color-dot { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.2s var(--ease-spring), border-color 0.2s var(--ease-out); }
+.color-dot:hover { transform: scale(1.12); }
+.color-dot.active { border-color: var(--ink); transform: scale(1.15); box-shadow: 0 0 0 2px var(--bg); }
+
+/* Nutrition Data Table */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.data-table th { background: var(--bg); padding: 10px 14px; border: 1px solid var(--line); font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.06em; }
+.data-table td { padding: 12px 14px; border: 1px solid var(--line); vertical-align: middle; }
+.data-table tr { transition: background 0.15s var(--ease-out); }
+.data-table tbody tr:hover { background: var(--panel-hover); }
+
 /* Empty state banner */
-.empty-box { text-align: center; padding: 32px 16px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--panel); }
-.empty-box p { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+.empty-box { text-align: center; padding: 36px 20px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--panel); }
+.empty-box p { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
 
-/* Checkbox button */
-.check-btn { width: 28px; height: 28px; border: 1px solid var(--line); background: var(--panel); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--brand-ink); }
-.check-btn.done { background: var(--brand); border-color: var(--brand); }
+/* Toast Notifications */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 700; padding: 10px 16px; border-radius: var(--radius); border: 1px solid var(--line); opacity: 0; transform: translateY(12px) scale(0.95); transition: all 0.25s var(--ease-spring); pointer-events: auto; font-family: var(--font-heading); }
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
 
-/* Responsive */
-@media (max-width: 820px) {
+/* Responsive adjustments */
+@media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
-  aside { position: fixed; bottom: 0; top: auto; height: 60px; width: 100%; border-right: 0; border-top: 1px solid var(--line); padding: 6px; z-index: 40; }
+  aside { position: fixed; bottom: 0; top: auto; height: 60px; width: 100%; border-right: 0; border-top: 1px solid var(--line); padding: 6px; z-index: 50; }
   aside .nav-label { display: none; }
   nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
-  nav button { text-align: center; font-size: 10px; padding: 8px 2px; margin: 0; }
-  main { padding: 16px 14px 80px; }
-  .grid-2, .grid-3, .machine-grid { grid-template-columns: 1fr; }
+  nav button { text-align: center; font-size: 10px; padding: 8px 2px; flex-direction: column; gap: 4px; justify-content: center; margin: 0; }
+  nav button svg { width: 18px; height: 18px; }
+  main { padding: 18px 16px 80px; }
+  .grid-2, .machine-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
 <div class="app">
-  <!-- Topbar -->
+  <!-- Topbar Header -->
   <header class="topbar">
-    <div class="brand">Gymplified<span>.</span></div>
+    <div class="brand">
+      <span class="brand-dot"></span> Gymplified
+    </div>
     <div class="top-actions">
       <span class="date-tag" id="currentDate">Today</span>
-      <button class="btn-icon" onclick="openLogModal()">+ Log Exercise</button>
-      <button class="btn-icon" onclick="showScreen('settings')">⚙ Settings</button>
+      <button class="btn btn-primary" onclick="openLogModal()">+ Log Exercise</button>
+      <button class="btn btn-icon-only" title="Quick Theme Switcher" onclick="toggleQuickTheme()">◐</button>
     </div>
   </header>
 
   <div class="layout">
-    <!-- Navigation Sidebar -->
+    <!-- Sidebar Navigation -->
     <aside>
       <div class="nav-label">Workspace</div>
       <nav>
-        <button class="active" onclick="showScreen('dashboard', this)">Dashboard</button>
-        <button onclick="showScreen('training', this)">Training Log</button>
-        <button onclick="showScreen('machines', this)">Gym Machines</button>
-        <button onclick="showScreen('nutrition', this)">Nutrition</button>
-        <button onclick="showScreen('settings', this)">Settings Hub</button>
+        <button class="active" onclick="showScreen('dashboard', this)">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Dashboard
+        </button>
+        <button onclick="showScreen('training', this)">
+          <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M10 12h4"/></svg>
+          Training Log
+        </button>
+        <button onclick="showScreen('machines', this)">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          Gym Machines
+        </button>
+        <button onclick="showScreen('nutrition', this)">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Nutrition
+        </button>
+        <button onclick="showScreen('settings', this)">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings Hub
+        </button>
       </nav>
     </aside>
 
     <!-- Main Screens -->
     <main>
-      <!-- 1. DASHBOARD -->
+      <!-- 1. DASHBOARD SCREEN -->
       <section id="dashboard" class="screen active">
         <div class="eyebrow">Overview</div>
         <h1>Daily Dashboard</h1>
-        <p class="subtitle">Real-time gym metrics, active sessions, and nutrition logs.</p>
+        <p class="subtitle">Real-time metrics, active session logs, and nutrition tracking.</p>
 
         <div class="grid-2">
-          <!-- Calorie Log Panel -->
+          <!-- Calorie Panel -->
           <div class="panel">
             <div class="metric-head">
               <div>
                 <div class="eyebrow">Energy Intake</div>
-                <div class="metric-num"><span id="dashCal">0</span> <span class="metricUnit">/ <span id="dashCalTarget">2500</span> kcal</span></div>
+                <div class="metric-num"><span id="dashCal">0</span> <span class="metric-unit">/ <span id="dashCalTarget">2500</span> kcal</span></div>
               </div>
-              <button class="btn-icon" onclick="openCalorieModal()">+ Add Food</button>
+              <button class="btn" onclick="openCalorieModal()">+ Add Food</button>
             </div>
             <div class="progress-bar"><i id="dashCalBar" style="width: 0%"></i></div>
             <div class="meta-row">
@@ -246,58 +320,58 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
             </div>
           </div>
 
-          <!-- Hydration & Streak -->
+          <!-- Hydration & Active Workout Counter -->
           <div class="panel">
             <div class="metric-head">
               <div>
-                <div class="eyebrow">Hydration Log</div>
-                <div class="metric-num"><span id="dashWater">0.00</span> <span class="metricUnit">/ 2.50 L</span></div>
+                <div class="eyebrow">Hydration Target</div>
+                <div class="metric-num"><span id="dashWater">0.00</span> <span class="metric-unit">/ 2.50 L</span></div>
               </div>
-              <button class="btn-icon" onclick="addWater(0.25)">+ 250ml</button>
+              <button class="btn" onclick="addWater(0.25)">+ 250ml</button>
             </div>
             <div class="progress-bar"><i id="dashWaterBar" style="width: 0%"></i></div>
             <div class="meta-row">
-              <span>Goal: 2.5 Liters</span>
-              <button class="btn-icon" style="padding:0 6px; font-size:10px" onclick="resetWater()">Reset</button>
+              <span>Goal: 2.50 Liters</span>
+              <button class="btn btn-icon-only" style="height:22px; width:22px; font-size:10px" onclick="resetWater()" title="Reset Water">↺</button>
             </div>
-            <div style="margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line);">
-              <div class="eyebrow">Logged Today</div>
-              <div style="font-size: 20px; font-weight: 700; font-family: var(--font-heading);" id="dashWorkoutCount">0 Exercises</div>
+            <div style="margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);">
+              <div class="eyebrow">Logged Exercises</div>
+              <div style="font-size: 22px; font-weight: 700; font-family: var(--font-heading);" id="dashWorkoutCount">0 Exercises</div>
             </div>
           </div>
         </div>
 
-        <!-- Active Exercises Table -->
+        <!-- Exercises List Panel -->
         <div class="panel">
           <div class="section-title">
-            <span>Today's Exercises</span>
-            <button class="btn-primary" onclick="openLogModal()">+ Add Exercise</button>
+            <span>Today's Logged Exercises</span>
+            <button class="btn btn-primary" onclick="openLogModal()">+ Log Exercise</button>
           </div>
           <div id="dashWorkoutsContainer">
-            <!-- Dynamic list -->
+            <!-- Dynamic rows -->
           </div>
         </div>
       </section>
 
-      <!-- 2. TRAINING LOG -->
+      <!-- 2. TRAINING LOG SCREEN -->
       <section id="training" class="screen">
         <div class="eyebrow">Execution</div>
         <h1>Training Session Log</h1>
-        <p class="subtitle">Add exercises, record completed sets, track weights, and write to local storage.</p>
+        <p class="subtitle">Directly record exercises, set goals, loads, and check off completed sets.</p>
 
-        <!-- Dynamic Direct Writer Form -->
+        <!-- Direct Form Writer -->
         <div class="panel" style="margin-bottom: 20px;">
           <div class="section-title">Direct Exercise Recorder</div>
           <div class="form-grid">
             <div class="field">
               <label>Exercise / Machine</label>
-              <input type="text" id="inputExName" placeholder="e.g. Leg Press, Lat Pulldown">
+              <input type="text" id="inputExName" placeholder="e.g. Leg Press, Cable Row">
             </div>
             <div class="field">
-              <label>Muscle Target</label>
+              <label>Primary Muscle</label>
               <select id="inputExMuscle">
                 <option value="Chest">Chest</option>
-                <option value="Lats">Lats / Upper Back</option>
+                <option value="Lats">Lats / Back</option>
                 <option value="Shoulders">Shoulders</option>
                 <option value="Quadriceps">Quadriceps</option>
                 <option value="Hamstrings">Hamstrings</option>
@@ -312,22 +386,22 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
               <input type="number" id="inputExWeight" value="50" min="0" step="2.5">
             </div>
             <div class="field">
-              <label>Target Sets</label>
-              <input type="number" id="inputExSets" value="3" min="1" max="10">
+              <label>Sets</label>
+              <input type="number" id="inputExSets" value="3" min="1" max="15">
             </div>
             <div class="field">
-              <label>Target Reps</label>
+              <label>Reps per Set</label>
               <input type="number" id="inputExReps" value="10" min="1" max="100">
             </div>
           </div>
-          <button class="btn-primary" onclick="saveDirectExercise()">Save Exercise to Log</button>
+          <button class="btn btn-primary" onclick="saveDirectExercise()">Save Exercise to Log</button>
         </div>
 
-        <!-- Training List -->
+        <!-- Interactive Log List -->
         <div class="panel">
           <div class="section-title">
             <span>Logged Session Exercises</span>
-            <button class="btn-icon" onclick="clearAllWorkouts()" style="color:var(--danger)">Clear Session</button>
+            <button class="btn" onclick="clearAllWorkouts()" style="color:var(--danger)">Clear Session</button>
           </div>
           <div id="trainingLogList">
             <!-- Dynamic rendering -->
@@ -335,36 +409,35 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
         </div>
       </section>
 
-      <!-- 3. GYM MACHINES & MUSCLE GRAPH -->
+      <!-- 3. GYM MACHINES & VISUAL MUSCLE DIAGRAM -->
       <section id="machines" class="screen">
         <div class="eyebrow">Anatomy & Equipment</div>
         <h1>Gym Machines & Target Muscles</h1>
-        <p class="subtitle">Select popular gym machines to view targeted muscle groups on the anatomical visual graph.</p>
+        <p class="subtitle">Select popular equipment to highlight target muscle groups on the vector anatomical diagram.</p>
 
         <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px;">
-          <!-- Machine Directory List -->
+          <!-- Machine Directory -->
           <div>
-            <div class="section-title">Popular Gym Machines</div>
-            <div class="machine-grid" id="machineList" style="grid-template-columns: 1fr;">
+            <div class="section-title">Popular Gym Equipment</div>
+            <div class="machine-grid" id="machineList">
               <!-- Dynamic machine cards -->
             </div>
           </div>
 
-          <!-- Visual Muscle Graph / Diagram -->
+          <!-- Anatomical Muscle Visualizer -->
           <div>
             <div class="section-title">Target Muscle Visualizer</div>
             <div class="body-visualizer">
-              <!-- Anatomical Muscle SVG Visual Diagram -->
               <svg class="muscle-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
-                <!-- Head & Outline -->
-                <circle cx="100" cy="25" r="14" fill="none" stroke="var(--line)" stroke-width="2"/>
+                <!-- Head & Torso Silhouette -->
+                <circle cx="100" cy="25" r="13" fill="none" stroke="var(--line)" stroke-width="2"/>
                 <path d="M 85,42 Q 100,48 115,42 L 135,65 L 145,120 L 135,130 L 130,200 L 122,280 L 102,280 L 100,160 L 98,280 L 78,280 L 70,200 L 65,130 L 55,120 L 65,65 Z" fill="none" stroke="var(--line)" stroke-width="1.5"/>
                 
-                <!-- Muscle Groups (Selectable SVG paths) -->
+                <!-- Target Muscle SVG Paths -->
                 <!-- Chest -->
                 <path id="svg-chest" class="muscle-path" d="M 82,65 Q 100,70 118,65 L 120,88 Q 100,98 80,88 Z" title="Chest / Pectorals"/>
                 <!-- Lats / Back -->
-                <path id="svg-lats" class="muscle-path" d="M 72,90 Q 65,115 78,135 Q 100,120 122,135 Q 135,115 128,90 Q 100,102 72,90 Z" title="Lats / Upper Back"/>
+                <path id="svg-lats" class="muscle-path" d="M 72,90 Q 65,115 78,135 Q 100,120 122,135 Q 135,115 128,90 Q 100,102 72,90 Z" title="Lats / Back"/>
                 <!-- Shoulders (Deltoids) -->
                 <path id="svg-shoulders" class="muscle-path" d="M 68,62 L 82,65 L 76,90 L 58,100 Z M 132,62 L 118,65 L 124,90 L 142,100 Z" title="Shoulders / Deltoids"/>
                 <!-- Biceps -->
@@ -382,54 +455,54 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
               </svg>
             </div>
 
-            <!-- Active Machine Info Box -->
+            <!-- Active Equipment Info Box -->
             <div class="panel" style="margin-top: 12px;" id="machineDetailBox">
-              <h3 id="selectedMachineTitle" style="font-size: 15px; margin-bottom: 4px;">Click a machine to inspect</h3>
-              <p id="selectedMachineDesc" style="font-size: 12px; color: var(--muted);">Muscle activation diagram will highlight primary and secondary targeted muscles.</p>
+              <h3 id="selectedMachineTitle" style="font-size: 15px; margin-bottom: 4px;">Click an exercise machine to inspect</h3>
+              <p id="selectedMachineDesc" style="font-size: 12px; color: var(--muted);">Muscle activation heatmaps will highlight primary and secondary targeted areas.</p>
               <div id="selectedMachineTags" class="tag-list" style="margin-top: 10px;"></div>
-              <button id="addMachineToWorkoutBtn" class="btn-primary" style="margin-top: 12px; width: 100%; display: none;" onclick="addSelectedMachineToLog()">+ Add Machine to Workout Log</button>
+              <button id="addMachineToWorkoutBtn" class="btn btn-primary" style="margin-top: 14px; width: 100%; display: none;" onclick="addSelectedMachineToLog()">+ Add Equipment to Training Log</button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- 4. NUTRITION & MEALS -->
+      <!-- 4. NUTRITION SCREEN -->
       <section id="nutrition" class="screen">
         <div class="eyebrow">Fueling</div>
-        <h1>Nutrition & Calories</h1>
-        <p class="subtitle">Record meal macros and track daily caloric balance without preloaded mock entries.</p>
+        <h1>Nutrition & Macro Tracker</h1>
+        <p class="subtitle">Record meal macros and monitor daily caloric balance.</p>
 
         <div class="panel" style="margin-bottom: 20px;">
-          <div class="section-title">Add Custom Food / Meal</div>
+          <div class="section-title">Add Custom Food Item</div>
           <div class="form-grid">
             <div class="field">
-              <label>Food Item</label>
-              <input type="text" id="inputFoodName" placeholder="e.g. Grilled Chicken & Rice">
+              <label>Food Item Name</label>
+              <input type="text" id="inputFoodName" placeholder="e.g. Grilled Salmon & Quinoa">
             </div>
             <div class="field">
               <label>Calories (kcal)</label>
-              <input type="number" id="inputFoodCal" value="450">
+              <input type="number" id="inputFoodCal" value="500">
             </div>
             <div class="field">
               <label>Protein (g)</label>
-              <input type="number" id="inputFoodProtein" value="35">
+              <input type="number" id="inputFoodProtein" value="40">
             </div>
             <div class="field">
               <label>Carbs (g)</label>
-              <input type="number" id="inputFoodCarbs" value="40">
+              <input type="number" id="inputFoodCarbs" value="45">
             </div>
             <div class="field">
               <label>Fat (g)</label>
-              <input type="number" id="inputFoodFat" value="10">
+              <input type="number" id="inputFoodFat" value="12">
             </div>
           </div>
-          <button class="btn-primary" onclick="saveFoodEntry()">Log Meal Intake</button>
+          <button class="btn btn-primary" onclick="saveFoodEntry()">Log Food Intake</button>
         </div>
 
         <div class="panel">
           <div class="section-title">
-            <span>Logged Food Items Today</span>
-            <button class="btn-icon" onclick="clearFoodLogs()" style="color:var(--danger)">Reset Food Logs</button>
+            <span>Logged Meals Today</span>
+            <button class="btn" onclick="clearFoodLogs()" style="color:var(--danger)">Reset Meal Logs</button>
           </div>
           <table class="data-table">
             <thead>
@@ -453,27 +526,27 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
       <section id="settings" class="screen">
         <div class="eyebrow">Preferences</div>
         <h1>Settings & Accessibility Hub</h1>
-        <p class="subtitle">Customize interface contrast, color accents, font scales, motion preferences, and manage local data.</p>
+        <p class="subtitle">Configure dark mode, accent palettes, accessibility contrast, motion toggles, and data persistence.</p>
 
-        <!-- UI Themes & Dark Mode -->
+        <!-- Dark Mode & Appearance -->
         <div class="settings-group">
-          <h3>Interface Appearance & Dark Mode</h3>
-          <p>Choose your base color scheme and accent highlight color.</p>
+          <h3>Interface Theme & Dark Mode</h3>
+          <p>Switch between light and dark display modes or adjust your accent color.</p>
           
           <div class="toggle-row">
-            <label for="themeSelect">Theme Mode</label>
-            <select id="themeSelect" onchange="changeTheme(this.value)" style="width: 160px; height: 34px;">
+            <label for="themeSelect">Display Theme Mode</label>
+            <select id="themeSelect" onchange="changeTheme(this.value)" style="width: 170px;">
+              <option value="dark">Dark Mode (Default)</option>
               <option value="light">Light Mode</option>
-              <option value="dark">Dark Mode</option>
             </select>
           </div>
 
           <div style="margin-top: 14px;">
-            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted);">Accent Color Palette</label>
+            <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">UI Accent Palette</label>
             <div class="color-picker">
               <div class="color-dot active" style="background: #2563eb;" title="Electric Blue" onclick="changeColor('blue', this)"></div>
               <div class="color-dot" style="background: #059669;" title="Emerald Green" onclick="changeColor('emerald', this)"></div>
-              <div class="color-dot" style="background: #334155;" title="Slate Monochrome" onclick="changeColor('slate', this)"></div>
+              <div class="color-dot" style="background: #475569;" title="Slate Gray" onclick="changeColor('slate', this)"></div>
               <div class="color-dot" style="background: #dc2626;" title="Crimson Red" onclick="changeColor('crimson', this)"></div>
               <div class="color-dot" style="background: #d97706;" title="Amber Gold" onclick="changeColor('amber', this)"></div>
               <div class="color-dot" style="background: #7c3aed;" title="Violet Purple" onclick="changeColor('violet', this)"></div>
@@ -484,12 +557,12 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
         <!-- Accessibility Options -->
         <div class="settings-group">
           <h3>Accessibility Options</h3>
-          <p>Adjust text sizing, contrast borders, and motion settings for high readability.</p>
+          <p>Optimize text sizes, structural border contrast, and UI motion settings.</p>
 
           <div class="toggle-row">
-            <label for="scaleSelect">Text Scale</label>
-            <select id="scaleSelect" onchange="changeScale(this.value)" style="width: 160px; height: 34px;">
-              <option value="sm">Small (87.5%)</option>
+            <label for="scaleSelect">Text & UI Scale</label>
+            <select id="scaleSelect" onchange="changeScale(this.value)" style="width: 170px;">
+              <option value="sm">Compact (87.5%)</option>
               <option value="md" selected>Default (100%)</option>
               <option value="lg">Large (112.5%)</option>
               <option value="xl">Extra Large (125%)</option>
@@ -498,24 +571,24 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
 
           <div class="toggle-row">
             <label for="fontSelect">Typography Style</label>
-            <select id="fontSelect" onchange="changeFont(this.value)" style="width: 160px; height: 34px;">
+            <select id="fontSelect" onchange="changeFont(this.value)" style="width: 170px;">
               <option value="default">Standard Sans-Serif</option>
               <option value="accessible">High-Legibility Font</option>
             </select>
           </div>
 
           <div class="toggle-row">
-            <label for="contrastToggle">High Contrast Borders</label>
-            <select id="contrastToggle" onchange="changeContrast(this.value)" style="width: 160px; height: 34px;">
+            <label for="contrastToggle">Sharp Border Contrast</label>
+            <select id="contrastToggle" onchange="changeContrast(this.value)" style="width: 170px;">
               <option value="normal">Normal Contrast</option>
-              <option value="high">High Contrast (1px Solid Sharp)</option>
+              <option value="high">High Sharp Contrast</option>
             </select>
           </div>
 
           <div class="toggle-row">
             <label for="motionToggle">UI Animation / Motion</label>
-            <select id="motionToggle" onchange="changeMotion(this.value)" style="width: 160px; height: 34px;">
-              <option value="normal">Enabled</option>
+            <select id="motionToggle" onchange="changeMotion(this.value)" style="width: 170px;">
+              <option value="normal">Enabled (Smooth Transitions)</option>
               <option value="reduced">Reduced Motion</option>
             </select>
           </div>
@@ -523,11 +596,11 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
 
         <!-- Data Management -->
         <div class="settings-group">
-          <h3>Data Management & Local State</h3>
-          <p>Gymplified starts clean by default. You can seed sample gym data for testing or clear all local browser data.</p>
+          <h3>Data Management & Browser Storage</h3>
+          <p>Gymplified starts clean by default. Seed sample gym logs for testing or reset all browser memory.</p>
           <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <button class="btn-icon" onclick="seedSampleData()">Seed Sample Gym Data</button>
-            <button class="btn-icon" onclick="resetAllData()" style="color: var(--danger); border-color: var(--danger);">Reset All Local Data</button>
+            <button class="btn" onclick="seedSampleData()">Seed Sample Gym Data</button>
+            <button class="btn" onclick="resetAllData()" style="color: var(--danger); border-color: var(--danger);">Clear All Browser Data</button>
           </div>
         </div>
       </section>
@@ -535,11 +608,13 @@ h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter
   </div>
 </div>
 
+<div class="toast-container" id="toastContainer"></div>
+
 <script>
 // --- APP STATE & STORAGE ---
-const STORAGE_KEY = 'gymplified_app_v1';
+const STORAGE_KEY = 'gymplified_app_v2';
 
-// Initial CLEAN state (Starts without prefilled mock data by default)
+// Clean initial state (starts empty by default)
 const cleanState = {
   cal: 0,
   calTarget: 2500,
@@ -550,7 +625,7 @@ const cleanState = {
   workouts: [],
   foods: [],
   settings: {
-    theme: 'light',
+    theme: 'dark',
     color: 'blue',
     scale: 'md',
     font: 'default',
@@ -561,82 +636,82 @@ const cleanState = {
 
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || cleanState;
 
-// Popular Gym Exercise Machines Database
+// Popular Gym Machines Dataset
 const GYM_MACHINES = [
   {
     id: 'leg-press',
     name: 'Leg Press Machine',
-    desc: 'Plate-loaded or pin-selected compound machine targeting quadriceps, glutes, and hamstrings.',
+    desc: 'Plate-loaded compound machine targeting the quadriceps, glutes, and hamstring complex.',
     primary: ['quadriceps'],
     secondary: ['hamstrings']
   },
   {
     id: 'lat-pulldown',
     name: 'Lat Pulldown Machine',
-    desc: 'Cable machine targeting the Latissimus Dorsi and upper back width.',
+    desc: 'Cable machine targeting latissimus dorsi width and upper back thickness.',
     primary: ['lats'],
     secondary: ['biceps']
   },
   {
     id: 'pec-deck',
-    name: 'Pec Deck / Chest Fly Machine',
-    desc: 'Isolated chest machine emphasizing pectoral stretch and contraction.',
+    name: 'Pec Deck Fly Machine',
+    desc: 'Chest isolation equipment providing constant tension across pectoralis major.',
     primary: ['chest'],
     secondary: ['shoulders']
   },
   {
     id: 'seated-row',
     name: 'Seated Cable Row',
-    desc: 'Horizontal pulling machine targeting mid-back thickness and lats.',
+    desc: 'Horizontal pulling equipment targeting mid-back thickness, rhomboids, and lats.',
     primary: ['lats'],
     secondary: ['biceps']
   },
   {
     id: 'shoulder-press-m',
     name: 'Seated Shoulder Press Machine',
-    desc: 'Overhead press guided machine targeting anterior and lateral deltoids.',
+    desc: 'Guided overhead press machine targeting anterior and lateral deltoid heads.',
     primary: ['shoulders'],
     secondary: ['triceps']
   },
   {
     id: 'leg-extension',
     name: 'Leg Extension Machine',
-    desc: 'Isolation exercise focusing exclusively on quadriceps rectus femoris.',
+    desc: 'Isolation machine focusing directly on quadriceps muscle isolation.',
     primary: ['quadriceps'],
     secondary: []
   },
   {
     id: 'hamstring-curl',
     name: 'Seated Hamstring Curl',
-    desc: 'Isolated knee flexion machine targeting posterior thigh hamstring muscles.',
+    desc: 'Knee flexion isolation equipment for posterior thigh hamstrings.',
     primary: ['hamstrings'],
     secondary: []
   },
   {
     id: 'triceps-pushdown',
     name: 'Cable Triceps Pushdown',
-    desc: 'Cable pulley machine isolation exercise for triceps muscle heads.',
+    desc: 'High-pulley cable machine isolation exercise for triceps extensions.',
     primary: ['triceps'],
     secondary: []
   },
   {
     id: 'cable-curl',
     name: 'Cable Biceps Curl Machine',
-    desc: 'Constant tension cable pulley targeting biceps brachii.',
+    desc: 'Low-pulley constant tension cable machine targeting biceps brachii.',
     primary: ['biceps'],
     secondary: []
   },
   {
     id: 'calf-raise-m',
-    name: 'Seated / Standing Calf Raise Machine',
-    desc: 'Targeting gastrocnemius and soleus calf muscles.',
+    name: 'Standing Calf Raise Machine',
+    desc: 'Ankle plantarflexion machine targeting gastrocnemius and soleus calf muscles.',
     primary: ['calves'],
     secondary: []
   },
   {
     id: 'ab-crunch-m',
     name: 'Abdominal Crunch Machine',
-    desc: 'Resisted trunk flexion machine targeting rectus abdominis.',
+    desc: 'Resisted spinal flexion equipment targeting rectus abdominis.',
     primary: ['abs'],
     secondary: []
   }
@@ -644,7 +719,22 @@ const GYM_MACHINES = [
 
 let selectedMachine = null;
 
-// --- INITIALIZATION ---
+// --- TOAST NOTIFICATIONS ---
+function showToast(message) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => toast.classList.add('show'), 20);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2200);
+}
+
+// --- PERSISTENCE & SETTINGS ---
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   renderAll();
@@ -652,24 +742,30 @@ function saveState() {
 
 function applySettings() {
   const s = state.settings || cleanState.settings;
-  document.documentElement.setAttribute('data-theme', s.theme || 'light');
+  document.documentElement.setAttribute('data-theme', s.theme || 'dark');
   document.documentElement.setAttribute('data-color', s.color || 'blue');
   document.documentElement.setAttribute('data-scale', s.scale || 'md');
   document.documentElement.setAttribute('data-font', s.font || 'default');
   document.documentElement.setAttribute('data-contrast', s.contrast || 'normal');
   document.documentElement.setAttribute('data-motion', s.motion || 'normal');
 
-  // Update DOM selectors in Settings screen
-  if(document.getElementById('themeSelect')) document.getElementById('themeSelect').value = s.theme || 'light';
+  // Sync inputs in Settings Screen
+  if(document.getElementById('themeSelect')) document.getElementById('themeSelect').value = s.theme || 'dark';
   if(document.getElementById('scaleSelect')) document.getElementById('scaleSelect').value = s.scale || 'md';
   if(document.getElementById('fontSelect')) document.getElementById('fontSelect').value = s.font || 'default';
   if(document.getElementById('contrastToggle')) document.getElementById('contrastToggle').value = s.contrast || 'normal';
   if(document.getElementById('motionToggle')) document.getElementById('motionToggle').value = s.motion || 'normal';
 
-  // Highlight active color dot
+  // Active color dot highlight
   document.querySelectorAll('.color-dot').forEach(dot => {
     dot.classList.remove('active');
   });
+}
+
+function toggleQuickTheme() {
+  state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+  saveState();
+  showToast(`Switched to ${state.settings.theme} mode`);
 }
 
 // --- NAVIGATION ---
@@ -682,9 +778,9 @@ function showScreen(screenId, btn) {
   }
 }
 
-// --- RENDER FUNCTIONS ---
+// --- RENDERING LOGIC ---
 function renderDashboard() {
-  // Calorie calculations
+  // Calories
   document.getElementById('dashCal').textContent = state.cal.toLocaleString();
   document.getElementById('dashCalTarget').textContent = state.calTarget.toLocaleString();
   const pct = Math.min(100, Math.round((state.cal / state.calTarget) * 100));
@@ -702,15 +798,15 @@ function renderDashboard() {
   const waterPct = Math.min(100, Math.round((state.water / 2.5) * 100));
   document.getElementById('dashWaterBar').style.width = waterPct + '%';
 
-  // Exercises overview
+  // Workout Count
   document.getElementById('dashWorkoutCount').textContent = state.workouts.length + ' Exercises';
 
   const container = document.getElementById('dashWorkoutsContainer');
   if (state.workouts.length === 0) {
     container.innerHTML = `
       <div class="empty-box">
-        <p>No workouts recorded today. Click below or use the Training Log to add exercises.</p>
-        <button class="btn-primary" onclick="showScreen('training', document.querySelectorAll('nav button')[1])">Open Training Log</button>
+        <p>No workouts logged today. Add exercises using the direct log below or Training tab.</p>
+        <button class="btn btn-primary" onclick="showScreen('training', document.querySelectorAll('nav button')[1])">Open Training Log</button>
       </div>`;
   } else {
     container.innerHTML = state.workouts.map((w, i) => `
@@ -718,7 +814,7 @@ function renderDashboard() {
         <div class="row-idx">${String(i + 1).padStart(2, '0')}</div>
         <div>
           <strong style="display:block; font-size:14px;">${w.name}</strong>
-          <span style="font-size:12px; color:var(--muted);">${w.muscle} · ${w.weight}kg · ${w.sets} sets x ${w.reps} reps</span>
+          <span style="font-size:12px; color:var(--muted);">${w.muscle} · ${w.weight}kg · ${w.sets} sets × ${w.reps} reps</span>
         </div>
         <button class="check-btn ${w.done ? 'done' : ''}" onclick="toggleWorkoutDone(${i})">${w.done ? '✓' : ''}</button>
       </div>
@@ -731,7 +827,7 @@ function renderTrainingLog() {
   if (state.workouts.length === 0) {
     container.innerHTML = `
       <div class="empty-box">
-        <p>Your session log is empty. Use the Direct Exercise Recorder above to write exercises into memory.</p>
+        <p>Session log is clean. Record exercises above to write into browser memory.</p>
       </div>`;
     return;
   }
@@ -743,10 +839,10 @@ function renderTrainingLog() {
         <strong style="display:block; font-size:14px;">${w.name}</strong>
         <span style="font-size:12px; color:var(--muted);">${w.muscle} target · ${w.weight} kg load</span>
       </div>
-      <div style="display:flex; align-items:center; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
         <span style="font-size:12px; font-weight:700;">${w.sets} sets × ${w.reps} reps</span>
         <button class="check-btn ${w.done ? 'done' : ''}" onclick="toggleWorkoutDone(${i})">${w.done ? '✓' : ''}</button>
-        <button class="btn-icon" style="color:var(--danger); padding:0 8px;" onclick="deleteWorkout(${i})">✕</button>
+        <button class="btn btn-icon-only" style="color:var(--danger); height:30px; width:30px; font-size:12px;" onclick="deleteWorkout(${i})">✕</button>
       </div>
     </div>
   `).join('');
@@ -755,7 +851,7 @@ function renderTrainingLog() {
 function renderNutrition() {
   const tableBody = document.getElementById('foodTableBody');
   if (state.foods.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding: 20px;">No meals logged today. Use the form above to add custom foods.</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding: 24px;">No custom meals logged today. Use the form above to add foods.</td></tr>`;
     return;
   }
 
@@ -766,7 +862,7 @@ function renderNutrition() {
       <td>${f.protein}g</td>
       <td>${f.carbs}g</td>
       <td>${f.fat}g</td>
-      <td><button class="btn-icon" style="color:var(--danger); padding:2px 8px; font-size:11px;" onclick="deleteFood(${i})">Delete</button></td>
+      <td><button class="btn" style="color:var(--danger); padding:2px 8px; font-size:11px;" onclick="deleteFood(${i})">Delete</button></td>
     </tr>
   `).join('');
 }
@@ -789,7 +885,7 @@ function selectMachine(id) {
   selectedMachine = GYM_MACHINES.find(m => m.id === id);
   renderMachines();
 
-  // Reset muscle visualizer SVGs
+  // Reset muscle SVG highlights
   document.querySelectorAll('.muscle-path').forEach(el => {
     el.classList.remove('active', 'secondary');
   });
@@ -820,13 +916,13 @@ function addSelectedMachineToLog() {
   state.workouts.push({
     name: selectedMachine.name,
     muscle: selectedMachine.primary[0] ? selectedMachine.primary[0].toUpperCase() : 'GENERAL',
-    weight: 40,
+    weight: 45,
     sets: 3,
     reps: 10,
     done: false
   });
   saveState();
-  alert(selectedMachine.name + ' added to training session log!');
+  showToast(`${selectedMachine.name} added to log`);
 }
 
 function renderAll() {
@@ -835,13 +931,13 @@ function renderAll() {
   renderTrainingLog();
   renderNutrition();
   renderMachines();
-  
-  // Date display
+
+  // Date Tag
   const now = new Date();
   document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-// --- WRITE CONTROLS & ACTIONS ---
+// --- ACTIONS & FORM HANDLERS ---
 function saveDirectExercise() {
   const name = document.getElementById('inputExName').value.trim();
   const muscle = document.getElementById('inputExMuscle').value;
@@ -850,29 +946,33 @@ function saveDirectExercise() {
   const reps = parseInt(document.getElementById('inputExReps').value) || 1;
 
   if (!name) {
-    alert('Please enter an exercise or machine name.');
+    showToast('Please enter an exercise or machine name');
     return;
   }
 
   state.workouts.push({ name, muscle, weight, sets, reps, done: false });
   document.getElementById('inputExName').value = '';
   saveState();
+  showToast(`Saved exercise: ${name}`);
 }
 
 function toggleWorkoutDone(index) {
   state.workouts[index].done = !state.workouts[index].done;
   saveState();
+  showToast(state.workouts[index].done ? 'Exercise completed' : 'Exercise uncompleted');
 }
 
 function deleteWorkout(index) {
   state.workouts.splice(index, 1);
   saveState();
+  showToast('Exercise removed');
 }
 
 function clearAllWorkouts() {
-  if (confirm('Clear all logged workouts for today?')) {
+  if (confirm('Clear all logged exercises for today?')) {
     state.workouts = [];
     saveState();
+    showToast('Workout log cleared');
   }
 }
 
@@ -884,7 +984,7 @@ function saveFoodEntry() {
   const fat = parseInt(document.getElementById('inputFoodFat').value) || 0;
 
   if (!name) {
-    alert('Please enter a food or meal name.');
+    showToast('Please enter a food item name');
     return;
   }
 
@@ -896,6 +996,7 @@ function saveFoodEntry() {
 
   document.getElementById('inputFoodName').value = '';
   saveState();
+  showToast(`Logged meal: ${name}`);
 }
 
 function deleteFood(index) {
@@ -906,27 +1007,31 @@ function deleteFood(index) {
   state.fat = Math.max(0, state.fat - f.fat);
   state.foods.splice(index, 1);
   saveState();
+  showToast('Food entry deleted');
 }
 
 function clearFoodLogs() {
-  if (confirm('Reset food intake logs for today?')) {
+  if (confirm('Reset meal intake logs for today?')) {
     state.foods = [];
     state.cal = 0;
     state.protein = 0;
     state.carbs = 0;
     state.fat = 0;
     saveState();
+    showToast('Meal logs reset');
   }
 }
 
 function addWater(amount) {
   state.water = parseFloat((state.water + amount).toFixed(2));
   saveState();
+  showToast(`Added ${amount * 1000}ml water`);
 }
 
 function resetWater() {
   state.water = 0;
   saveState();
+  showToast('Water tracker reset');
 }
 
 function openLogModal() {
@@ -939,13 +1044,14 @@ function openCalorieModal() {
   document.getElementById('inputFoodName').focus();
 }
 
-// --- SETTINGS HUB CONTROLS ---
-function changeTheme(val) { state.settings.theme = val; saveState(); }
+// --- SETTINGS HUB FUNCTIONS ---
+function changeTheme(val) { state.settings.theme = val; saveState(); showToast(`Theme updated`); }
 function changeColor(val, el) { 
   state.settings.color = val; 
   document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
   if (el) el.classList.add('active');
   saveState(); 
+  showToast(`Accent palette updated`);
 }
 function changeScale(val) { state.settings.scale = val; saveState(); }
 function changeFont(val) { state.settings.font = val; saveState(); }
@@ -953,34 +1059,36 @@ function changeContrast(val) { state.settings.contrast = val; saveState(); }
 function changeMotion(val) { state.settings.motion = val; saveState(); }
 
 function seedSampleData() {
-  if (confirm('Load sample gym workout and meal entries?')) {
+  if (confirm('Load sample workout & meal records?')) {
     state.workouts = [
-      { name: 'Leg Press Machine', muscle: 'Quadriceps', weight: 120, sets: 4, reps: 10, done: true },
-      { name: 'Lat Pulldown Machine', muscle: 'Lats', weight: 65, sets: 3, reps: 12, done: true },
-      { name: 'Seated Shoulder Press', muscle: 'Shoulders', weight: 45, sets: 3, reps: 10, done: false }
+      { name: 'Leg Press Machine', muscle: 'Quadriceps', weight: 140, sets: 4, reps: 10, done: true },
+      { name: 'Lat Pulldown Machine', muscle: 'Lats', weight: 70, sets: 3, reps: 12, done: true },
+      { name: 'Seated Shoulder Press', muscle: 'Shoulders', weight: 50, sets: 3, reps: 10, done: false }
     ];
     state.foods = [
-      { name: 'Oatmeal & Whey Protein', cal: 420, protein: 32, carbs: 55, fat: 8 },
-      { name: 'Chicken Breast & Rice Bowl', cal: 650, protein: 50, carbs: 70, fat: 12 }
+      { name: 'Oatmeal & Whey Protein', cal: 450, protein: 35, carbs: 55, fat: 8 },
+      { name: 'Chicken Breast & Jasmine Rice', cal: 680, protein: 52, carbs: 75, fat: 12 }
     ];
-    state.cal = 1070;
-    state.protein = 82;
-    state.carbs = 125;
+    state.cal = 1130;
+    state.protein = 87;
+    state.carbs = 130;
     state.fat = 20;
-    state.water = 1.25;
+    state.water = 1.50;
     saveState();
+    showToast('Sample data loaded');
   }
 }
 
 function resetAllData() {
-  if (confirm('Reset all local data? Gymplified will start clean with empty logs.')) {
+  if (confirm('Reset all saved browser logs? Gymplified will start clean.')) {
     localStorage.removeItem(STORAGE_KEY);
     state = JSON.parse(JSON.stringify(cleanState));
     saveState();
+    showToast('All browser data cleared');
   }
 }
 
-// Run on boot
+// Initial Boot
 renderAll();
 </script>
 

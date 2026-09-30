@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PULSE — Training Log</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+:root{
+ --bg:#f4f4f1;--panel:#fff;--ink:#171918;--muted:#6d726d;--line:#d9dcd7;
+ --brand:#315c4a;--brand2:#e5eee9;--red:#a74338;--yellow:#a06c20;
+ --max:1060px;
+}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;color:var(--ink);font-family:"DM Sans",sans-serif}
+button,input,select{font:inherit}.app{max-width:var(--max);margin:auto;min-height:100vh}
+.topbar{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#f4f4f1ee;position:sticky;top:0;z-index:20;backdrop-filter:blur(12px)}
+.brand{font-family:"Space Grotesk";font-weight:700;letter-spacing:-.04em;font-size:21px}.brand em{font-style:normal;color:var(--brand)}
+.topright{display:flex;align-items:center;gap:10px}.dateTag{font-size:12px;color:var(--muted);border-left:1px solid var(--line);padding-left:12px}
+.iconBtn{height:34px;width:34px;border:1px solid var(--line);background:var(--panel);border-radius:6px;cursor:pointer}
+.layout{display:grid;grid-template-columns:185px 1fr;min-height:calc(100vh - 64px)}
+aside{border-right:1px solid var(--line);padding:22px 12px;position:sticky;top:64px;height:calc(100vh - 64px)}
+.navlabel{text-transform:uppercase;font-size:9px;font-weight:700;letter-spacing:.12em;color:#969b96;padding:0 10px 8px}
+nav button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:5px;color:#666b66;cursor:pointer;font-size:13px;margin:2px 0}
+nav button:hover{background:#e9ebe7}nav button.active{background:var(--ink);color:#fff}
+main{padding:27px 28px 50px;min-width:0}.screen{display:none}.screen.active{display:block}
+.eyebrow{text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--brand);margin-bottom:7px}
+h1,h2,h3,p{margin:0}h1{font-family:"Space Grotesk";font-size:28px;letter-spacing:-.035em;margin-bottom:4px}h2{font-family:"Space Grotesk";font-size:16px;letter-spacing:-.02em}h3{font-size:14px}
+.subtitle{font-size:13px;color:var(--muted);margin-bottom:22px}
+.gridTop{display:grid;grid-template-columns:1.35fr .65fr;gap:12px;margin-bottom:12px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:7px}.pad{padding:18px}
+.metricHeader{display:flex;justify-content:space-between;align-items:start;margin-bottom:18px}.metricValue{font-family:"Space Grotesk";font-size:35px;letter-spacing:-.05em}.metricUnit{font-size:12px;color:var(--muted)}
+.progress{height:6px;background:#e7e9e5;border-radius:2px;overflow:hidden}.progress i{display:block;height:100%;background:var(--brand)}
+.metaRow{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px}
+.quick{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);margin-top:18px}.quick div{padding:13px 10px;border-right:1px solid var(--line)}.quick div:last-child{border:0}.quick b{display:block;font-size:17px}.quick span{font-size:10px;color:var(--muted)}
+.streak{font-family:"Space Grotesk";font-size:40px;letter-spacing:-.06em;margin:8px 0}.streak small{font:500 12px "DM Sans";color:var(--muted);letter-spacing:0}
+.section{margin-top:12px}.sectionHead{height:48px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.sectionHead .action{font-size:12px;color:var(--brand);font-weight:700;background:none;border:0;cursor:pointer}
+.row{display:grid;grid-template-columns:42px 1fr auto;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
+.number{font:600 12px "Space Grotesk";color:#8b908b}.row p{font-size:11px;color:var(--muted);margin-top:3px}.status{font-size:11px;color:var(--muted)}
+.check{width:25px;height:25px;border:1px solid #bfc4bd;background:#fff;border-radius:4px;cursor:pointer}.check.done{background:var(--brand);color:#fff;border-color:var(--brand)}
+.week{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);background:var(--panel)}.week div{min-height:67px;padding:9px;border-right:1px solid var(--line)}.week div:last-child{border:0}.week small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase}.week b{display:block;font-size:16px;margin-top:5px}.week .today{background:var(--brand2)}.week .doneDot:after{content:"";display:block;width:5px;height:5px;border-radius:50%;background:var(--brand);margin-top:8px}
+.twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.macro{padding:14px 0;border-bottom:1px solid var(--line)}.macro:last-child{border:0}.macroTop{display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px}.macroTop span{color:var(--muted)}
+.mealGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.meal{border:1px solid var(--line);padding:14px;background:#fff;border-radius:5px;cursor:pointer}.meal:hover{border-color:#9ca39c}.meal h3{margin-bottom:5px}.meal p{font-size:11px;color:var(--muted);line-height:1.4}.mealMeta{display:flex;gap:9px;margin-top:10px;font-size:10px;color:var(--brand);font-weight:700}
+.filter{display:flex;gap:7px;margin:15px 0}.filter button{border:1px solid var(--line);background:#fff;border-radius:5px;padding:7px 10px;font-size:11px;cursor:pointer}.filter button.active{background:var(--ink);color:#fff}
+.muscleTable{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);font-size:12px}.muscleTable th,.muscleTable td{text-align:left;padding:11px;border-bottom:1px solid var(--line)}.muscleTable th{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.bar{width:120px;height:5px;background:#e7e9e5}.bar i{display:block;height:100%;background:var(--brand)}
+.kpiGrid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);background:#fff}.kpi{padding:15px;border-right:1px solid var(--line)}.kpi:last-child{border:0}.kpi b{font:600 23px "Space Grotesk"}.kpi span{display:block;font-size:10px;color:var(--muted);margin-top:3px}
+.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px}.field input,.field select{width:100%;height:39px;border:1px solid var(--line);background:#fff;border-radius:5px;padding:0 10px;outline:none}.saveBtn{height:39px;border:0;background:var(--ink);color:#fff;border-radius:5px;padding:0 17px;font-weight:700;cursor:pointer}
+.modal{display:none;position:fixed;inset:0;background:#1118;z-index:50;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.dialog{width:min(480px,100%);background:#fff;border:1px solid #bbb;border-radius:7px;padding:20px}.dialogHead{display:flex;justify-content:space-between;margin-bottom:18px}.close{border:0;background:none;font-size:20px;cursor:pointer}.dialog .field{margin-bottom:10px}.dialog .saveBtn{width:100%;margin-top:6px}
+.toast{position:fixed;right:20px;bottom:20px;background:var(--ink);color:#fff;padding:10px 14px;border-radius:5px;font-size:12px;opacity:0;transform:translateY(8px);transition:.2s;z-index:80}.toast.show{opacity:1;transform:none}
+@media(max-width:760px){.layout{display:block}aside{position:fixed;z-index:30;bottom:0;top:auto;height:60px;width:100%;border:0;border-top:1px solid var(--line);padding:5px;background:#f8f8f5f2;backdrop-filter:blur(12px)}aside .navlabel{display:none}nav{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}nav button{text-align:center;font-size:10px;padding:9px 2px;margin:0}main{padding:20px 15px 80px}.topbar{padding:0 15px}.dateTag{display:none}.gridTop,.twocol{grid-template-columns:1fr}.mealGrid{grid-template-columns:1fr}.kpiGrid{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}.kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}.week div{padding:8px 5px}.week b{font-size:14px}}
+
+.mealPhoto{height:142px;background-size:cover;background-position:center;border-bottom:1px solid var(--line)}
+.mealBody{padding:13px}
+.progressChart{height:190px;display:flex;align-items:end;gap:8px;padding:18px 4px 0;border-bottom:1px solid var(--line)}
+.chartCol{height:100%;flex:1;display:flex;flex-direction:column;justify-content:end;align-items:center;gap:6px}
+.chartBar{width:100%;max-width:28px;background:var(--brand);border-radius:3px 3px 0 0;min-height:3px}
+.chartCol small{font-size:9px;color:var(--muted)}
+.chartValue{font-size:9px;color:var(--muted)}
+.pbGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
+.pb{background:#fff;padding:15px}
+.pb b{font-family:"Space Grotesk",sans-serif;font-size:22px}
+.pb span{display:block;font-size:10px;color:var(--muted);margin-top:4px}
+.trend{font-size:10px;color:var(--brand);font-weight:700;margin-top:8px}
+.danger{border:1px solid #d6b7b7!important;color:#9a2e2e!important;background:#fff!important}
+.resetBox{border:1px solid #e4caca;background:#fff8f8;padding:14px;border-radius:6px;margin-top:14px}
+@media(max-width:800px){.pbGrid{grid-template-columns:repeat(2,1fr)}}
+
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar"><div class="brand">PULSE<span>.</span></div><div class="topright"><span class="dateTag" id="topDate"></span><button class="iconBtn" onclick="openWorkout()">+</button></div></header>
+<div class="layout">
+<aside><div class="navlabel">Workspace</div><nav>
+<button class="active" onclick="show('dashboard',this)">Dashboard</button>
+<button onclick="show('training',this)">Training</button>
+<button onclick="show('meals',this)">Meals</button>
+<button onclick="show('muscles',this)">Muscles</button>
+<button onclick="show('history',this)">History</button>
+</nav></aside>
+<main>
+<section id="dashboard" class="screen active">
+<div class="eyebrow">Daily log</div><h1>Wednesday, September 23</h1><p class="subtitle">Record the work. Keep the numbers current.</p>
+<div class="gridTop">
+<div class="panel pad"><div class="metricHeader"><div><div class="eyebrow">Calories</div><div class="metricValue" id="dashCal">1,840 <span class="metricUnit">/ 2,500 kcal</span></div></div><button class="iconBtn" onclick="show('meals',document.querySelectorAll('nav button')[2])">+</button></div><div class="progress"><i id="dashCalBar" style="width:74%"></i></div><div class="metaRow"><span>660 kcal remaining</span><span id="calPct">74%</span></div><div class="quick"><div><b id="proteinQ">128g</b><span>PROTEIN</span></div><div><b id="carbQ">174g</b><span>CARBS</span></div><div><b id="fatQ">56g</b><span>FAT</span></div></div></div>
+<div class="panel pad"><div class="eyebrow">Consistency</div><div class="streak">4 <small>days</small></div><p style="font-size:12px;color:var(--muted)">Current training streak</p><div class="metaRow" style="margin-top:20px"><span>This week</span><b>3 / 5</b></div></div>
+</div>
+<div class="section"><div class="sectionHead"><h2>Training week</h2><span class="status">3 sessions logged</span></div><div class="week" id="week"></div></div>
+<div class="section panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Today's session</h2><button class="action" onclick="openWorkout()">Add exercise</button></div><div id="dashWorkouts"></div></div>
+<div class="section twocol">
+<div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Next meal</h2><button class="action" onclick="show('meals',document.querySelectorAll('nav button')[2])">View meals</button></div><div style="padding-top:15px" id="nextMeal"></div></div>
+<div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Hydration</h2><button class="action" onclick="addWater()">+ 250 ml</button></div><div style="padding-top:15px"><div class="metricValue" id="water">1.75 <span class="metricUnit">L</span></div><div class="progress" style="margin-top:10px"><i id="waterBar" style="width:70%"></i></div><div class="metaRow"><span>Daily target</span><span>2.5 L</span></div></div></div>
+</div>
+</section>
+
+<section id="training" class="screen"><div class="eyebrow">Training</div><h1>Session log</h1><p class="subtitle">Check off completed exercises. Add sets as you go.</p><div class="kpiGrid" style="margin-bottom:12px"><div class="kpi"><b id="tDone">2</b><span>COMPLETED</span></div><div class="kpi"><b id="tSets">7</b><span>SETS</span></div><div class="kpi"><b>52 min</b><span>SESSION</span></div><div class="kpi"><b>Chest</b><span>FOCUS</span></div></div><div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Exercises</h2><button class="action" onclick="openWorkout()">Add exercise</button></div><div id="trainingList"></div></div></section>
+
+<section id="meals" class="screen"><div class="eyebrow">Nutrition</div><h1>Meal planner</h1><p class="subtitle">Suggestions are filtered by your calorie target and training needs.</p>
+<div class="twocol"><div class="panel pad"><div class="eyebrow">Remaining</div><div class="metricValue" id="remain">660 <span class="metricUnit">kcal</span></div><div class="metaRow"><span>Protein target</span><b>160 g</b></div><div class="progress" style="margin-top:8px"><i id="proteinBar" style="width:80%"></i></div></div><div class="panel pad"><div class="eyebrow">Meal plan</div><div style="font-size:13px;line-height:1.6">High protein<br>2,500 kcal target<br>3 meals + 1 snack</div></div></div>
+<div class="filter"><button class="active" onclick="filterMeals('all',this)">All</button><button onclick="filterMeals('breakfast',this)">Breakfast</button><button onclick="filterMeals('lunch',this)">Lunch</button><button onclick="filterMeals('dinner',this)">Dinner</button><button onclick="filterMeals('snack',this)">Snack</button></div>
+<div class="mealGrid" id="mealGrid"></div></section>
+
+<section id="muscles" class="screen"><div class="eyebrow">Coverage</div><h1>Muscle groups</h1><p class="subtitle">Weekly volume by muscle group.</p><table class="muscleTable"><thead><tr><th>Group</th><th>Sets</th><th>Weekly volume</th><th>Coverage</th></tr></thead><tbody id="muscleRows"></tbody></table></section>
+
+
+<section id="progress" class="screen">
+  <div class="eyebrow">Progress</div>
+  <h1>Performance</h1>
+  <p class="subtitle">Track changes in strength, body weight and training volume.</p>
+
+  <div class="kpiGrid" style="margin-bottom:12px">
+    <div class="kpi"><b>+12.5 kg</b><span>BENCH PRESS</span></div>
+    <div class="kpi"><b>+15 kg</b><span>SQUAT</span></div>
+    <div class="kpi"><b>+20 kg</b><span>DEADLIFT</span></div>
+    <div class="kpi"><b>18</b><span>SESSIONS</span></div>
+  </div>
+
+  <div class="twocol">
+    <div class="panel pad">
+      <div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Bench press</h2><span class="status">kg</span></div>
+      <div class="progressChart" id="strengthChart"></div>
+      <div class="metaRow"><span>Aug 26</span><span>Sep 23</span></div>
+    </div>
+    <div class="panel pad">
+      <div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Body weight</h2><span class="status">kg</span></div>
+      <div style="padding-top:18px">
+        <div class="metricValue">72.4 <span class="metricUnit">kg</span></div>
+        <p style="font-size:11px;color:var(--muted);margin-top:5px">Starting weight: 70.8 kg</p>
+        <div class="progress" style="margin-top:22px"><i style="width:38%"></i></div>
+        <div class="metaRow"><span>+1.6 kg</span><span>4 weeks</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section panel pad">
+    <div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Personal bests</h2><span class="status">Latest records</span></div>
+    <div class="pbGrid" style="margin-top:18px">
+      <div class="pb"><b>80 kg</b><span>BENCH PRESS · 1 REP</span><div class="trend">↑ 12.5 kg</div></div>
+      <div class="pb"><b>105 kg</b><span>BACK SQUAT · 1 REP</span><div class="trend">↑ 15 kg</div></div>
+      <div class="pb"><b>125 kg</b><span>DEADLIFT · 1 REP</span><div class="trend">↑ 20 kg</div></div>
+      <div class="pb"><b>32 kg</b><span>DB SHOULDER PRESS</span><div class="trend">↑ 4 kg</div></div>
+      <div class="pb"><b>60 kg</b><span>BARBELL ROW</span><div class="trend">↑ 10 kg</div></div>
+      <div class="pb"><b>18 kg</b><span>DB CURL</span><div class="trend">↑ 3 kg</div></div>
+    </div>
+  </div>
+
+  <div class="resetBox">
+    <strong>Data</strong>
+    <div style="font-size:11px;color:var(--muted);margin:5px 0 10px">Your workout logs, preferences and saved progress are stored in this browser.</div>
+    <button class="btn danger" onclick="resetData()">Reset all saved data</button>
+  </div>
+</section>
+
+<section id="history" class="screen"><div class="eyebrow">Records</div><h1>Training history</h1><p class="subtitle">Completed sessions and personal records.</p><div class="twocol"><div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Sessions</h2></div><div id="historyRows"></div></div><div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Personal records</h2></div><div class="row"><div class="number">01</div><div><h3>Bench Press</h3><p>Last best set</p></div><b>80 kg</b></div><div class="row"><div class="number">02</div><div><h3>Squat</h3><p>Last best set</p></div><b>105 kg</b></div><div class="row"><div class="number">03</div><div><h3>Deadlift</h3><p>Last best set</p></div><b>125 kg</b></div></div></div></section>
+</main></div></div>
+
+<div class="modal" id="workoutModal" onclick="if(event.target===this)closeWorkout()"><div class="dialog"><div class="dialogHead"><h2>Add exercise</h2><button class="close" onclick="closeWorkout()">×</button></div><div class="field"><label>EXERCISE</label><input id="exName" placeholder="e.g. Incline dumbbell press"></div><div class="formGrid"><div class="field"><label>MUSCLE GROUP</label><select id="exGroup"><option>Chest</option><option>Back</option><option>Legs</option><option>Shoulders</option><option>Arms</option><option>Core</option></select></div><div class="field"><label>SETS</label><input id="exSets" type="number" value="3"></div></div><button class="saveBtn" onclick="addExercise()">Add to session</button></div></div>
+<div class="modal" id="mealModal" onclick="if(event.target===this)closeMeal()"><div class="dialog"><div class="dialogHead"><h2 id="mealTitle"></h2><button class="close" onclick="closeMeal()">×</button></div><p id="mealDesc" style="font-size:13px;line-height:1.6;color:var(--muted);margin-bottom:15px"></p><div class="kpiGrid"><div class="kpi"><b id="mealCal"></b><span>KCAL</span></div><div class="kpi"><b id="mealPro"></b><span>PROTEIN</span></div><div class="kpi"><b id="mealCarb"></b><span>CARBS</span></div><div class="kpi"><b id="mealFat"></b><span>FAT</span></div></div></div></div>
+<div class="toast" id="toast"></div>
+<script>
+const KEY='pulseV2';
+const state=JSON.parse(localStorage.getItem(KEY)||'null')||{
+ cal:1840,protein:128,water:1.75,
+ workouts:[
+ {name:'Bench Press',group:'Chest',sets:4,done:true},
+ {name:'Incline Dumbbell Press',group:'Chest',sets:3,done:true},
+ {name:'Cable Fly',group:'Chest',sets:3,done:false},
+ {name:'Triceps Pushdown',group:'Arms',sets:3,done:false}],
+ history:[['Today','Chest & Triceps','10 sets'],['Yesterday','Back & Biceps','13 sets'],['Mon, Sep 21','Leg Day','15 sets'],['Sat, Sep 19','Shoulders','11 sets']],
+};
+const meals=[
+['breakfast','Greek yogurt bowl','Greek yogurt, oats, berries and honey',430,32,52,10],
+['breakfast','Egg & toast plate','3 eggs, wholegrain toast, spinach and fruit',510,31,42,24],
+['lunch','Chicken rice bowl','Chicken breast, jasmine rice, vegetables and yogurt sauce',620,55,68,12],
+['lunch','Tuna pasta','Tuna, wholewheat pasta, tomato, spinach and parmesan',590,46,63,15],
+['dinner','Salmon & potatoes','Salmon fillet, roasted potatoes, broccoli and lemon',670,43,55,28],
+['dinner','Turkey burrito','Lean turkey, rice, beans, salsa and avocado',640,49,66,18],
+['snack','Protein oats','Oats, milk, banana and whey protein',390,30,48,9],
+['snack','Cottage cheese & fruit','Cottage cheese, apple and a small handful of nuts',310,28,28,10]
+];
+function save(){localStorage.setItem(KEY,JSON.stringify(state))}
+function toast(t){let e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1400)}
+function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');render()}
+function openWorkout(){document.getElementById('workoutModal').classList.add('show')}
+function closeWorkout(){document.getElementById('workoutModal').classList.remove('show')}
+function addExercise(){let n=document.getElementById('exName').value.trim();if(!n)return;state.workouts.push({name:n,group:document.getElementById('exGroup').value,sets:+document.getElementById('exSets').value||3,done:false});save();document.getElementById('exName').value='';closeWorkout();toast('Exercise added');render()}
+function toggle(i){state.workouts[i].done=!state.workouts[i].done;save();render()}
+function addWater(){state.water=Math.min(5,Math.round((state.water+.25)*100)/100);save();toast('250 ml added');render()}
+function filterMeals(type,btn){document.querySelectorAll('.filter button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');renderMeals(type)}
+function openMeal(i){let m=meals[i];document.getElementById('mealTitle').textContent=m[1];document.getElementById('mealDesc').textContent=m[2];['mealCal','mealPro','mealCarb','mealFat'].forEach((id,j)=>document.getElementById(id).textContent=m[j+4]+(j?' g':''));document.getElementById('mealModal').classList.add('show')}
+function closeMeal(){document.getElementById('mealModal').classList.remove('show')}
+function renderMeals(type='all'){let list=type==='all'?meals:meals.filter(x=>x[0]===type);document.getElementById('mealGrid').innerHTML=list.map(m=>{let i=meals.indexOf(m);return `<div class="meal" onclick="openMeal(${i})"><h3>${m[1]}</h3><p>${m[2]}</p><div class="mealMeta"><span>${m[3]} kcal</span><span>${m[4]}g protein</span></div></div>`}).join('')}
+function render(){
+let now=new Date();document.getElementById('topDate').textContent=now.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
+document.getElementById('dashCal').innerHTML=`${state.cal.toLocaleString()} <span class="metricUnit">/ 2,500 kcal</span>`;let cp=Math.min(100,state.cal/2500*100);document.getElementById('dashCalBar').style.width=cp+'%';document.getElementById('calPct').textContent=Math.round(cp)+'%';document.getElementById('proteinQ').textContent=state.protein+'g';document.getElementById('carbQ').textContent=Math.round(state.cal*.095)+'g';document.getElementById('fatQ').textContent=Math.round(state.cal*.03)+'g';
+document.getElementById('water').innerHTML=`${state.water.toFixed(2)} <span class="metricUnit">L</span>`;document.getElementById('waterBar').style.width=Math.min(100,state.water/2.5*100)+'%';
+document.getElementById('week').innerHTML=['M','T','W','T','F','S','S'].map((d,i)=>`<div class="${i===2?'today':''} ${i<2?'doneDot':''}"><small>${d}</small><b>${21+i}</b></div>`).join('');
+let renderRow=(w,i)=>`<div class="row"><div class="number">${String(i+1).padStart(2,'0')}</div><div><h3>${w.name}</h3><p>${w.group} · ${w.sets} sets</p></div><button class="check ${w.done?'done':''}" onclick="toggle(${i})">${w.done?'✓':''}</button></div>`;
+document.getElementById('dashWorkouts').innerHTML=state.workouts.slice(0,4).map(renderRow).join('');document.getElementById('trainingList').innerHTML=state.workouts.map(renderRow).join('');
+let done=state.workouts.filter(x=>x.done).length,sets=state.workouts.filter(x=>x.done).reduce((a,x)=>a+x.sets,0);document.getElementById('tDone').textContent=done;document.getElementById('tSets').textContent=sets;
+let remain=Math.max(0,2500-state.cal);document.getElementById('remain').innerHTML=`${remain.toLocaleString()} <span class="metricUnit">kcal</span>`;document.getElementById('proteinBar').style.width=Math.min(100,state.protein/160*100)+'%';
+document.getElementById('nextMeal').innerHTML=`<h3>${meals[4][1]}</h3><p style="font-size:11px;color:var(--muted);margin-top:5px">${meals[4][3]} kcal · ${meals[4][4]}g protein</p><button class="action" style="margin-top:13px;border:0;background:none;padding:0;cursor:pointer" onclick="openMeal(4)">View meal →</button>`;
+let groups=['Chest','Back','Legs','Shoulders','Arms','Core'];document.getElementById('muscleRows').innerHTML=groups.map((g,i)=>{let s=state.workouts.filter(x=>x.group===g).reduce((a,x)=>a+x.sets,0)+(i===2?12:i===1?8:0);return `<tr><td><b>${g}</b></td><td>${s}</td><td>${s*8} total reps</td><td><div class="bar"><i style="width:${Math.min(100,s/16*100)}%"></i></div></td></tr>`}).join('');
+document.getElementById('historyRows').innerHTML=state.history.map(x=>`<div class="row"><div class="number">${x[0].slice(0,3)}</div><div><h3>${x[1]}</h3><p>${x[0]}</p></div><span class="status">${x[2]}</span></div>`).join('');
+renderMeals();
+}
+render();
+
+function resetData(){
+  if(!confirm('Reset all saved gym data? This cannot be undone.')) return;
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch(e) {}
+  location.reload();
+}
+
+
+(function(){
+  const el=document.getElementById('strengthChart');
+  if(!el) return;
+  const vals=[67.5,70,72.5,72.5,75,77.5,80], max=Math.max(...vals);
+  el.innerHTML=vals.map((v,i)=>`<div class="chartCol"><span class="chartValue">${v}</span><div class="chartBar" style="height:${Math.max(5,v/max*135)}px"></div><small>W${i+1}</small></div>`).join('');
+})();
+
+</script>
+</body>
+</html>

@@ -1,157 +1,237 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>IronTrack - Ultimate AI Workout & Metric Suite</title>
+  <title>Athletic Data Engine &amp; Analytics Engine</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Inter"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            bg: '#0b0f17',
+            panel: '#111827',
+            subpanel: '#1f2937',
+            border: '#374151',
+            borderHighlight: '#4b5563',
+            accent: '#3b82f6',
+            accentHover: '#2563eb',
+            accentGreen: '#10b981',
+            accentRed: '#ef4444',
+            accentAmber: '#f59e0b',
+            accentPurple: '#8b5cf6',
+            textPrimary: '#f9fafb',
+            textMuted: '#9ca3af',
+          },
+          borderRadius: {
+            DEFAULT: '0.5rem',
+            sm: '0.375rem',
+            md: '0.5rem',
+            lg: '0.75rem',
+            xl: '1rem',
+            '2xl': '1.25rem',
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    .heatmap-cell { width: 14px; height: 14px; border-radius: 2px; }
-    .plate { height: 70px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-weight: bold; font-size: 10px; color: white; }
+    body {
+      background-color: #0b0f17;
+      color: #f9fafb;
+      font-family: 'Inter', sans-serif;
+    }
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b0f17;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+    .grid-cell {
+      aspect-ratio: 1 / 1;
+    }
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
   </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col font-sans">
+<body class="min-h-screen bg-bg text-textPrimary antialiased selection:bg-accent selection:text-white pb-12">
 
-  <!-- ONBOARDING MODAL -->
-  <div id="onboardingModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 max-w-md w-full shadow-2xl">
-      <h2 class="text-2xl font-bold text-amber-400 mb-2">Welcome to IronTrack! 💪</h2>
-      <p class="text-slate-400 text-sm mb-6">Let's customize your workout experience based on your current background and equipment access.</p>
-      
-      <form id="onboardingForm" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-300 mb-1">How long have you been training?</label>
-          <select id="onboardExperience" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none">
-            <option value="Beginner (< 6 months)">Beginner (&lt; 6 months)</option>
-            <option value="Intermediate (6 months - 2 years)">Intermediate (6 months - 2 years)</option>
-            <option value="Advanced (2 - 5 years)">Advanced (2 - 5 years)</option>
-            <option value="Elite (5+ years)">Elite (5+ years)</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-slate-300 mb-1">What is your primary workout setup?</label>
-          <select id="onboardSetup" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 focus:ring-2 focus:ring-amber-500 outline-none">
-            <option value="Full Commercial Gym">Full Commercial Gym (Barbells, Cables, Machines)</option>
-            <option value="Home Gym with Machines">Home Gym with Machines & Cables</option>
-            <option value="Home Gym (Free Weights Only)">Home Gym (Dumbbells & Barbells only)</option>
-            <option value="Bodyweight / Minimal Setup">Bodyweight & Resistance Bands</option>
-          </select>
-        </div>
-
-        <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition shadow-lg mt-4">
-          Get Started <i class="fa-solid fa-arrow-right ml-2"></i>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- REST TIMER POPUP -->
-  <div id="timerContainer" class="fixed bottom-4 right-4 bg-slate-800 border border-amber-500/40 rounded-xl p-4 shadow-2xl z-40 hidden w-72">
-    <div class="flex items-center justify-between mb-2">
-      <span class="text-xs font-bold uppercase tracking-wider text-amber-400"><i class="fa-solid fa-stopwatch mr-1"></i> Rest Timer</span>
-      <button onclick="toggleTimerWidget()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-    </div>
-    <div id="timerDisplay" class="text-3xl font-mono font-bold text-center my-2 text-white">00:00</div>
-    <div class="grid grid-cols-3 gap-2 mt-3">
-      <button onclick="startRestTimer(60)" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded font-medium">60s</button>
-      <button onclick="startRestTimer(90)" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded font-medium">90s</button>
-      <button onclick="startRestTimer(180)" class="bg-slate-700 hover:bg-slate-600 text-xs py-1.5 rounded font-medium">180s</button>
-    </div>
-  </div>
-
-  <!-- MAIN NAVIGATION -->
-  <header class="bg-slate-800/80 backdrop-blur border-b border-slate-700 sticky top-0 z-30">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+  <!-- TOP APP HEADER BAR -->
+  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-4 py-3 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
       <div class="flex items-center space-x-3">
-        <div class="bg-amber-500 text-slate-950 p-2 rounded-lg font-black text-xl"><i class="fa-solid fa-dumbbell"></i></div>
-        <h1 class="text-xl font-bold tracking-tight text-white">Iron<span class="text-amber-400">Track</span></h1>
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white shadow-md shadow-blue-500/20 text-xs">
+          ADE
+        </div>
+        <div>
+          <span class="font-bold text-sm tracking-tight text-white block">Athletic Data Engine</span>
+          <span class="text-[10px] font-mono text-slate-400">v4.2 Pro Suite</span>
+        </div>
+        <span class="text-xs font-mono text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5 hidden sm:inline-block ml-2" id="profileHeaderTag">
+          EXP: UNSET | ACCESS: UNSET
+        </span>
       </div>
-      
-      <nav class="flex space-x-1 overflow-x-auto py-1 text-sm">
-        <button onclick="switchTab('dashboard')" class="tab-btn px-3 py-1.5 rounded-lg bg-amber-500 text-slate-950 font-bold" data-tab="dashboard"><i class="fa-solid fa-chart-line mr-1"></i> Dashboard</button>
-        <button onclick="switchTab('log')" class="tab-btn px-3 py-1.5 rounded-lg text-slate-300 hover:text-white" data-tab="log"><i class="fa-solid fa-pen-to-square mr-1"></i> Log Set</button>
-        <button onclick="switchTab('templates')" class="tab-btn px-3 py-1.5 rounded-lg text-slate-300 hover:text-white" data-tab="templates"><i class="fa-solid fa-layer-group mr-1"></i> Templates</button>
-        <button onclick="switchTab('metrics')" class="tab-btn px-3 py-1.5 rounded-lg text-slate-300 hover:text-white" data-tab="metrics"><i class="fa-solid fa-weight-scale mr-1"></i> Body Metrics</button>
-        <button onclick="switchTab('tools')" class="tab-btn px-3 py-1.5 rounded-lg text-slate-300 hover:text-white" data-tab="tools"><i class="fa-solid fa-calculator mr-1"></i> Barbell & 1RM</button>
-        <button onclick="switchTab('aicoach')" class="tab-btn px-3 py-1.5 rounded-lg text-slate-300 hover:text-white" data-tab="aicoach"><i class="fa-solid fa-robot mr-1"></i> AI Coach</button>
-        <button onclick="switchTab('settings')" class="tab-btn px-3 py-1.5 rounded-lg text-slate-300 hover:text-white" data-tab="settings"><i class="fa-solid fa-gear mr-1"></i> Data</button>
-      </nav>
+
+      <!-- Header Quick Controls -->
+      <div class="flex items-center flex-wrap gap-2 text-xs">
+        <!-- Rest Timer Minimal Indicator -->
+        <div class="flex items-center bg-slate-800/80 border border-slate-700/80 rounded-lg px-3 py-1 space-x-2 shadow-inner">
+          <span class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider">REST:</span>
+          <span id="timerDisplay" class="font-mono text-sm font-bold text-blue-400 min-w-[45px]">00:00</span>
+          <div class="flex items-center space-x-1 border-l border-slate-700 pl-2">
+            <button onclick="quickStartTimer(60)" class="hover:bg-slate-700 text-slate-300 hover:text-white px-1.5 py-0.5 rounded text-xs transition-colors">60s</button>
+            <button onclick="quickStartTimer(90)" class="hover:bg-slate-700 text-slate-300 hover:text-white px-1.5 py-0.5 rounded text-xs transition-colors">90s</button>
+            <button onclick="quickStartTimer(180)" class="hover:bg-slate-700 text-slate-300 hover:text-white px-1.5 py-0.5 rounded text-xs transition-colors">180s</button>
+          </div>
+          <button onclick="toggleTimer()" id="timerToggleBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm">START</button>
+          <button onclick="resetTimer()" class="text-slate-400 hover:text-white px-1 text-xs">Reset</button>
+        </div>
+
+        <button onclick="openOnboardingModal()" class="border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 text-slate-200 text-xs px-3 py-1.5 rounded-lg transition-all font-medium shadow-sm">
+          Profile Setup
+        </button>
+        <button onclick="exportDataJSON()" class="border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 text-slate-200 text-xs px-3 py-1.5 rounded-lg transition-all font-medium shadow-sm">
+          Export JSON
+        </button>
+        <label class="border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 text-slate-200 text-xs px-3 py-1.5 rounded-lg transition-all font-medium shadow-sm cursor-pointer">
+          Import JSON <input type="file" id="jsonFileInput" onchange="importDataJSON(event)" class="hidden" accept=".json">
+        </label>
+      </div>
     </div>
   </header>
 
-  <!-- MOTIVATIONAL BANNER -->
-  <div class="bg-slate-800/40 border-b border-slate-800 py-2 px-4 text-center text-xs text-amber-300 font-medium italic flex items-center justify-center gap-2">
-    <i class="fa-solid fa-quote-left opacity-50"></i>
-    <span id="motivationQuote">"Consistency is what transforms average into excellence."</span>
-    <i class="fa-solid fa-quote-right opacity-50"></i>
+  <!-- MOTIVATION / DIRECTIVE BANNER -->
+  <div class="border-b border-slate-800/80 bg-slate-900/40 px-4 py-2 text-xs flex items-center justify-between">
+    <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
+      <div class="flex items-center space-x-2 truncate pr-4">
+        <span class="text-blue-400 font-semibold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 shrink-0 text-[11px]">DIRECTIVE</span>
+        <span id="motivationText" class="truncate text-slate-300 italic">"Track variables, eliminate guesswork. Progressive overload is calculated."</span>
+      </div>
+      <button onclick="openQuoteModal()" class="shrink-0 text-xs text-slate-400 hover:text-blue-400 transition-colors font-medium">+ Add Directive</button>
+    </div>
   </div>
 
-  <!-- CONTENT CONTAINER -->
-  <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+  <!-- MAIN NAVIGATION TABS -->
+  <nav class="border-b border-slate-800 bg-slate-950/60 sticky top-[57px] z-20 backdrop-blur-md px-4">
+    <div class="max-w-7xl mx-auto flex space-x-2 overflow-x-auto text-xs font-medium py-2.5 scrollbar-none">
+      <button onclick="switchTab('logging')" id="tab-btn-logging" class="tab-btn active px-3.5 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/20 border border-blue-500 transition-all flex items-center gap-1.5 shrink-0">
+        <span>01.</span> Execution &amp; Logging
+      </button>
+      <button onclick="switchTab('calculator')" id="tab-btn-calculator" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
+        <span>02.</span> Plate Calculator
+      </button>
+      <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
+        <span>03.</span> Analytics &amp; 1RM Matrix
+      </button>
+      <button onclick="switchTab('metrics')" id="tab-btn-metrics" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
+        <span>04.</span> Metrics &amp; Heatmap
+      </button>
+      <button onclick="switchTab('advisor')" id="tab-btn-advisor" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
+        <span>05.</span> AI Advisor
+      </button>
+      <button onclick="switchTab('directory')" id="tab-btn-directory" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
+        <span>06.</span> Exercise Directory
+      </button>
+    </div>
+  </nav>
 
-    <!-- DASHBOARD VIEW -->
-    <section id="view-dashboard" class="tab-content space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl">
-          <p class="text-xs text-slate-400 font-semibold uppercase">Total Sets Logged</p>
-          <h3 id="statTotalSets" class="text-3xl font-bold text-white mt-1">0</h3>
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+
+    <!-- ================================================================= -->
+    <!-- TAB 1: TRAINING EXECUTION & LOGGING -->
+    <!-- ================================================================= -->
+    <section id="tab-logging" class="tab-content space-y-5">
+      
+      <!-- Top Action Strip: Routine Template Selection -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+        <div class="md:col-span-4">
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ROUTINE TEMPLATES</label>
+          <select id="templateSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
+            <!-- Populated via JS -->
+          </select>
         </div>
-        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl">
-          <p class="text-xs text-slate-400 font-semibold uppercase">Total Volume Lifted</p>
-          <h3 id="statTotalVolume" class="text-3xl font-bold text-amber-400 mt-1">0 kg</h3>
+        <div class="md:col-span-3 flex items-end">
+          <button onclick="loadSelectedTemplate()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg py-2 px-3 shadow-md shadow-blue-600/20 transition-all">
+            Load Template to Log
+          </button>
         </div>
-        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl">
-          <p class="text-xs text-slate-400 font-semibold uppercase">Profile Setup</p>
-          <h3 id="statProfileSetup" class="text-lg font-bold text-white mt-1 truncate">Commercial Gym</h3>
-        </div>
-        <div class="bg-slate-800 border border-slate-700 p-4 rounded-xl">
-          <p class="text-xs text-slate-400 font-semibold uppercase">Experience Level</p>
-          <h3 id="statProfileExp" class="text-lg font-bold text-slate-300 mt-1 truncate">Intermediate</h3>
+        <div class="md:col-span-5 flex items-end space-x-2">
+          <input type="text" id="newTemplateName" placeholder="Template Name (e.g. Upper Power)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none focus:border-blue-500 w-full">
+          <button onclick="saveCurrentAsTemplate()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 transition-all shrink-0 font-medium">
+            Save Active
+          </button>
         </div>
       </div>
 
-      <!-- CONSISTENCY HEATMAP -->
-      <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-        <h2 class="text-base font-bold text-white mb-3 flex items-center"><i class="fa-solid fa-fire text-amber-500 mr-2"></i> Monthly Consistency Heatmap</h2>
-        <div id="heatmapGrid" class="flex flex-wrap gap-1.5 pt-2"></div>
-      </div>
-
-      <!-- PROGRESS CHARTS -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h2 class="text-base font-bold text-white mb-4"><i class="fa-solid fa-chart-area text-amber-400 mr-2"></i> Training Volume Progression</h2>
-          <canvas id="chartVolume" class="max-h-64"></canvas>
+      <!-- Active Workout Session Area -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-md space-y-5">
+        
+        <!-- Session Header info -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+          <div class="space-y-1.5">
+            <span class="text-[11px] font-semibold text-blue-400 uppercase tracking-wider">ACTIVE LOGGING SESSION</span>
+            <div class="flex flex-wrap items-center gap-3">
+              <input type="text" id="workoutName" value="Chest & Tricep Hypertrophy" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-base font-bold text-white outline-none focus:border-blue-500 min-w-[240px]">
+              <input type="date" id="workoutDate" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none focus:border-blue-500">
+            </div>
+          </div>
+          
+          <div class="flex items-center space-x-4">
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-lg px-3.5 py-1.5 text-right">
+              <span class="block text-[10px] font-semibold text-slate-400 uppercase">Total Volume</span>
+              <span id="sessionTotalVolume" class="font-bold text-blue-400 text-base">0 KG</span>
+            </div>
+            <div class="bg-slate-800/80 border border-slate-700/60 rounded-lg px-3.5 py-1.5 text-right">
+              <span class="block text-[10px] font-semibold text-slate-400 uppercase">Working Sets</span>
+              <span id="sessionTotalSets" class="font-bold text-white text-base">0</span>
+            </div>
+            <button onclick="clearCurrentWorkout()" class="border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-lg px-3 py-2 text-xs font-medium transition-colors">
+              Clear Log
+            </button>
+          </div>
         </div>
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h2 class="text-base font-bold text-white mb-4"><i class="fa-solid fa-trophy text-amber-400 mr-2"></i> Exercise Est. 1RM Progression</h2>
-          <div class="mb-3">
-            <select id="chartExerciseSelect" onchange="renderCharts()" class="bg-slate-900 border border-slate-700 text-xs rounded p-2 text-slate-200">
-              <!-- Populated via JS -->
+
+        <!-- Exercise Selector Strip (Direct Exercise Selection) -->
+        <div class="bg-slate-800/50 border border-slate-700/80 rounded-xl p-4 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+          <div class="md:col-span-4">
+            <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">SELECT EXERCISE FROM DATABASE</label>
+            <select id="exercisePickerSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
+              <!-- JS Populated -->
             </select>
           </div>
-          <canvas id="chart1RM" class="max-h-56"></canvas>
-        </div>
-      </div>
-    </section>
-
-    <!-- LOG WORKOUT VIEW -->
-    <section id="view-log" class="tab-content hidden space-y-6">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        <!-- WORKOUT FORM -->
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-          <h2 class="text-lg font-bold text-white flex items-center justify-between">
-            <span><i class="fa-solid fa-plus-circle text-amber-400 mr-2"></i> Log Set</span>
-            <button onclick="toggleTimerWidget()" class="text-xs bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-amber-300"><i class="fa-solid fa-stopwatch"></i> Timer</button>
-          </h2>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Filter Muscle Group</label>
-            <select id="muscleFilter" onchange="filterExerciseList()" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
-              <option value="All">All Muscles</option>
+          <div class="md:col-span-3">
+            <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">FILTER MUSCLE</label>
+            <select id="exerciseMuscleFilter" onchange="filterExercisePicker()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none">
+              <option value="ALL">All Muscle Groups</option>
               <option value="Chest">Chest</option>
               <option value="Back">Back</option>
               <option value="Legs">Legs</option>
@@ -160,807 +240,1712 @@
               <option value="Core">Core</option>
             </select>
           </div>
-
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Select Exercise / Machine Direct Pick</label>
-            <select id="logExercise" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-amber-300 font-semibold">
-              <!-- Direct Exercise Library loaded dynamically -->
+          <div class="md:col-span-3">
+            <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">FILTER EQUIPMENT</label>
+            <select id="exerciseEquipmentFilter" onchange="filterExercisePicker()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none">
+              <option value="ALL">All Equipment</option>
+              <option value="Barbell">Barbell</option>
+              <option value="Dumbbell">Dumbbell</option>
+              <option value="Machine">Machine</option>
+              <option value="Cable">Cable</option>
+              <option value="Bodyweight">Bodyweight</option>
             </select>
           </div>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Weight (kg)</label>
-              <input type="number" id="logWeight" placeholder="80" step="0.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Reps</label>
-              <input type="number" id="logReps" placeholder="10" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-            </div>
+          <div class="md:col-span-2">
+            <button onclick="addSelectedExerciseToLog()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg py-2 px-3 shadow-md shadow-blue-600/20 transition-all">
+              + Add Lift
+            </button>
           </div>
+        </div>
 
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Set Tag</label>
-            <select id="logSetType" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm text-slate-100">
-              <option value="Working">Working Set</option>
-              <option value="Warmup">Warmup Set</option>
-              <option value="Drop Set">Drop Set</option>
-              <option value="Failure">Failure Set</option>
-            </select>
-          </div>
+        <!-- Logged Exercises Container -->
+        <div id="workoutExercisesContainer" class="space-y-4 min-h-[160px]">
+          <!-- Active Exercise Cards Render Here -->
+        </div>
 
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Date</label>
-            <input type="date" id="logDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-          </div>
-
-          <button onclick="addLogEntry()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition shadow">
-            Save Log Entry
+        <!-- Submit Session Button -->
+        <div class="border-t border-slate-800 pt-4 flex justify-end">
+          <button onclick="finalizeAndSaveWorkout()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-3 px-6 rounded-xl shadow-lg shadow-emerald-600/20 transition-all tracking-wide uppercase flex items-center gap-2">
+            Complete &amp; Store Workout Log
           </button>
         </div>
 
-        <!-- RECENT LOGS TABLE -->
-        <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-list-check text-amber-400 mr-2"></i> Recent Activity Log</h2>
-            <button onclick="clearAllLogs()" class="text-xs text-rose-400 hover:underline"><i class="fa-solid fa-trash mr-1"></i> Clear History</button>
-          </div>
-
-          <div class="overflow-x-auto flex-grow">
-            <table class="w-full text-left text-sm text-slate-300">
-              <thead class="text-xs uppercase bg-slate-900/50 text-slate-400">
-                <tr>
-                  <th class="p-3">Date</th>
-                  <th class="p-3">Exercise / Machine</th>
-                  <th class="p-3">Weight x Reps</th>
-                  <th class="p-3">Tag</th>
-                  <th class="p-3">Est. 1RM</th>
-                  <th class="p-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody id="logsTableBody" class="divide-y divide-slate-700/50">
-                <!-- Entries populated via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
       </div>
+
     </section>
 
-    <!-- TEMPLATES VIEW -->
-    <section id="view-templates" class="tab-content hidden space-y-6">
-      <div class="flex justify-between items-center">
-        <div>
-          <h2 class="text-2xl font-bold text-white">Workout Routines</h2>
-          <p class="text-slate-400 text-sm">Quickly load pre-made machine and lift workout plans.</p>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="templatesContainer">
-        <!-- Templates auto injected via JS -->
-      </div>
-    </section>
-
-    <!-- BODY METRICS VIEW -->
-    <section id="view-metrics" class="tab-content hidden space-y-6">
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- ================================================================= -->
+    <!-- TAB 2: PLATE BARBELL CALCULATOR -->
+    <!-- ================================================================= -->
+    <section id="tab-calculator" class="tab-content hidden space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
         
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-          <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-heart-pulse text-amber-400 mr-2"></i> Log Body Measurements</h2>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Date</label>
-            <input type="date" id="metricDate" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Body Weight (kg)</label>
-            <input type="number" id="metricWeight" step="0.1" placeholder="75.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Body Fat %</label>
-            <input type="number" id="metricFat" step="0.1" placeholder="15" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-          </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-400 uppercase mb-1">Waist Circumference (cm)</label>
-            <input type="number" id="metricWaist" step="0.5" placeholder="82" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100">
-          </div>
-          <button onclick="saveBodyMetric()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition">Save Metric Log</button>
-        </div>
-
-        <div class="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-xl p-5">
-          <h2 class="text-lg font-bold text-white mb-4"><i class="fa-solid fa-chart-line text-amber-400 mr-2"></i> Body Weight Trend</h2>
-          <canvas id="chartMetrics" class="max-h-64"></canvas>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- TOOLS VIEW (BARBELL & 1RM) -->
-    <section id="view-tools" class="tab-content hidden space-y-6">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- PLATE CALCULATOR -->
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-          <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-circle-notch text-amber-400 mr-2"></i> Plate Barbell Calculator</h2>
-          <p class="text-slate-400 text-xs">Calculates plate configuration per side for a standard 20kg Olympic Barbell.</p>
+        <!-- Controls Column -->
+        <div class="md:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5 shadow-sm">
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">BARBELL PLATE LOAD CALCULATOR</h2>
           
-          <div class="flex gap-2">
-            <input type="number" id="calcTargetWeight" value="100" step="2.5" class="bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 flex-grow font-bold text-lg">
-            <button onclick="calculatePlates()" class="px-5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg">Calculate</button>
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-400 uppercase">TARGET TOTAL WEIGHT (KG)</label>
+            <div class="flex items-center space-x-2">
+              <input type="number" id="calcTargetWeight" value="100" step="2.5" oninput="calculatePlateLoad()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xl font-mono font-bold text-white outline-none focus:border-blue-500">
+              <button onclick="adjustCalcWeight(-2.5)" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-700 font-semibold text-xs transition-colors">-2.5</button>
+              <button onclick="adjustCalcWeight(2.5)" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-700 font-semibold text-xs transition-colors">+2.5</button>
+            </div>
           </div>
 
-          <div class="pt-4 border-t border-slate-700">
-            <p class="text-xs text-slate-400 mb-2 font-semibold uppercase">Plates per side:</p>
-            <div id="platesDisplay" class="flex flex-wrap items-center gap-2 min-h-[80px] bg-slate-900/50 p-4 rounded-xl">
-              <!-- Visual Plates Rendered Here -->
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-slate-400 uppercase">BARBELL BASE WEIGHT (KG)</label>
+            <select id="calcBarWeight" onchange="calculatePlateLoad()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
+              <option value="20" selected>20 KG (Olympic Standard Bar)</option>
+              <option value="15">15 KG (Olympic Women's / Technique Bar)</option>
+              <option value="10">10 KG (EZ Curl / Short Bar)</option>
+            </select>
+          </div>
+
+          <div class="border-t border-slate-800 pt-4 space-y-2">
+            <span class="block text-xs font-semibold text-slate-400 uppercase">AVAILABLE PLATE INVENTORY</span>
+            <div class="grid grid-cols-2 gap-2 text-xs font-mono" id="plateInventoryContainer">
+              <!-- Checkboxes for 25kg, 20kg, 15kg, 10kg, 5kg, 2.5kg, 1.25kg -->
+            </div>
+          </div>
+
+          <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 font-mono space-y-2">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">PER SIDE SLEEVE LOAD:</span>
+              <span id="calcPerSideWeight" class="font-bold text-blue-400">40.0 KG</span>
+            </div>
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">EXACT TARGET REACHED:</span>
+              <span id="calcExactMatch" class="font-bold text-emerald-400">YES (100.0 KG)</span>
             </div>
           </div>
         </div>
 
-        <!-- 1RM PERCENTAGE MATRIX -->
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-          <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-percent text-amber-400 mr-2"></i> 1RM Training Percentage Matrix</h2>
-          <div class="flex gap-2">
-            <input type="number" id="calc1RM" value="100" step="2.5" class="bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-slate-100 flex-grow font-bold text-lg" placeholder="1RM Weight">
-            <button onclick="render1RMMatrix()" class="px-5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg">Compute</button>
+        <!-- Plate Display Visualizer Column -->
+        <div class="md:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between space-y-5 shadow-sm">
+          <div>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">SLEEVE LOADING SCHEMATIC</h2>
+            <p class="text-xs text-slate-400 mt-2">Plates listed from inside collar outward to sleeve tip.</p>
           </div>
 
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-slate-300">
-              <thead class="text-xs uppercase bg-slate-900/50 text-slate-400">
-                <tr>
-                  <th class="p-2">% 1RM</th>
-                  <th class="p-2">Target Weight</th>
-                  <th class="p-2">Est. Target Reps</th>
+          <!-- Barbell Visual Graphic -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center min-h-[220px] overflow-x-auto shadow-inner">
+            <div id="barbellGraphic" class="flex items-center space-x-1 py-4 px-2">
+              <!-- Generated Barbell Sleeve Graphic -->
+            </div>
+          </div>
+
+          <!-- Plate Breakdown List Table -->
+          <div class="border border-slate-800 bg-slate-800/40 rounded-xl p-4">
+            <span class="block text-xs font-semibold text-slate-400 uppercase mb-3">REQUIRED PLATES (PER SIDE)</span>
+            <table class="w-full text-left font-mono text-xs">
+              <thead>
+                <tr class="border-b border-slate-700 text-slate-400 text-[10px]">
+                  <th class="pb-2">PLATE WEIGHT</th>
+                  <th class="pb-2">COUNT (PER SIDE)</th>
+                  <th class="pb-2">TOTAL PLATES</th>
+                  <th class="pb-2 text-right">SUBTOTAL</th>
                 </tr>
               </thead>
-              <tbody id="matrixTableBody" class="divide-y divide-slate-700/50">
-                <!-- Rendered JS -->
+              <tbody id="plateBreakdownTableBody">
+                <!-- JS populated -->
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- TAB 3: ANALYTICS & 1RM TRAINING MATRIX -->
+    <!-- ================================================================= -->
+    <section id="tab-analytics" class="tab-content hidden space-y-5">
+      
+      <!-- Top Bar Controls -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-3 shadow-sm">
+        <div class="flex items-center space-x-3 w-full md:w-auto">
+          <label class="text-xs font-semibold text-slate-400 uppercase shrink-0">SELECT LIFT:</label>
+          <select id="analyticsExerciseSelect" onchange="renderAnalyticsViews()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500 w-full md:w-64">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div class="text-xs font-mono text-slate-400">
+          1RM FORMULA: <span class="text-slate-200 font-bold">EPLEY ($W \times (1 + R/30)$)</span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+        
+        <!-- 1RM Percentage Matrix Panel -->
+        <div class="md:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm">
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">1RM PERCENTAGE MATRIX</h2>
+          
+          <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 font-mono space-y-1">
+            <span class="text-[10px] text-slate-400 uppercase font-semibold">BEST LOGGED RECORD FOR SELECTED LIFT</span>
+            <div class="text-base font-bold text-white" id="prBestRecordDisplay">100.0 KG x 5 REPS</div>
+            <div class="text-xs text-blue-400 font-bold" id="prEst1RMDisplay">ESTIMATED 1RM: 116.7 KG</div>
+          </div>
+
+          <div class="overflow-x-auto rounded-xl border border-slate-800">
+            <table class="w-full text-left font-mono text-xs">
+              <thead class="bg-slate-800/80 text-[10px] text-slate-400 uppercase border-b border-slate-800">
+                <tr>
+                  <th class="p-3">INTENSITY %</th>
+                  <th class="p-3">TARGET WEIGHT</th>
+                  <th class="p-3 text-right">REP RANGE</th>
+                </tr>
+              </thead>
+              <tbody id="matrixTableBody" class="divide-y divide-slate-800/60 bg-slate-900">
+                <!-- JS Populated -->
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[11px] text-slate-400 italic">Weights automatically rounded to nearest 2.5 kg standard increment.</p>
+        </div>
+
+        <!-- Visual Line Chart Panel -->
+        <div class="md:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 flex flex-col justify-between shadow-sm">
+          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">PROGRESSION TRAJECTORY</h2>
+            <div class="flex space-x-2 text-xs">
+              <button onclick="setChartMetric('1rm')" id="btnMetric1RM" class="border border-blue-500 bg-blue-600/20 px-3 py-1 rounded-lg text-white font-semibold shadow-sm">Est. 1RM</button>
+              <button onclick="setChartMetric('volume')" id="btnMetricVolume" class="border border-slate-700 bg-slate-800 px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-colors">Volume</button>
+            </div>
+          </div>
+
+          <!-- Canvas Container -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 h-72 relative">
+            <canvas id="progressionChartCanvas"></canvas>
+          </div>
+
+          <div class="text-xs font-mono text-slate-400 flex justify-between">
+            <span>DATA POINTS: <span id="chartDataPointsCount" class="text-white font-bold">0</span></span>
+            <span>TIMELINE: ALL HISTORICAL LOGS</span>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- TAB 4: METRICS & HEATMAP -->
+    <!-- ================================================================= -->
+    <section id="tab-metrics" class="tab-content hidden space-y-5">
+      
+      <!-- Top Row: Consistency Heatmap -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm">
+        <div class="flex flex-col md:flex-row justify-between md:items-center border-b border-slate-800 pb-3 gap-2">
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider">CONSISTENCY HEATMAP (PAST 60 DAYS)</h2>
+          <div class="flex items-center space-x-3 text-xs text-slate-400">
+            <div class="flex items-center space-x-1.5">
+              <span class="w-3 h-3 bg-slate-800 border border-slate-700 rounded-sm"></span>
+              <span>0 Logs</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <span class="w-3 h-3 bg-blue-600/50 border border-blue-500 rounded-sm"></span>
+              <span>1 Log</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <span class="w-3 h-3 bg-blue-500 border border-blue-400 rounded-sm shadow-sm"></span>
+              <span>2+ Logs</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="heatmapGrid" class="grid grid-cols-10 sm:grid-cols-12 md:grid-cols-20 gap-2 pt-2">
+          <!-- JS Populated 60 Grid Cells -->
+        </div>
+
+        <div class="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-800">
+          <span>Active Streak: <span id="currentStreakText" class="text-emerald-400 font-bold">0 DAYS</span></span>
+          <span>Total Logged Sessions: <span id="totalSessionsCountText" class="text-white font-bold">0</span></span>
+        </div>
+      </div>
+
+      <!-- Bottom Row: Body Metrics Tracker Split -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
+        
+        <!-- Metrics Log Form -->
+        <div class="md:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm">
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">LOG BODY METRICS</h2>
+          
+          <form onsubmit="handleSaveBodyMetric(event)" class="space-y-3 text-xs">
+            <div>
+              <label class="block text-slate-400 font-semibold uppercase mb-1">DATE</label>
+              <input type="date" id="metricDate" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-semibold uppercase mb-1">BODY WEIGHT (KG)</label>
+              <input type="number" step="0.1" id="metricWeight" placeholder="e.g. 81.5" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-semibold uppercase mb-1">BODY FAT % (ESTIMATED / DEXA)</label>
+              <input type="number" step="0.1" id="metricBodyFat" placeholder="e.g. 15.0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-semibold uppercase mb-1">WAIST CIRCUMFERENCE (CM)</label>
+              <input type="number" step="0.5" id="metricWaist" placeholder="e.g. 82.0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-semibold uppercase mb-1">CHEST CIRCUMFERENCE (CM)</label>
+              <input type="number" step="0.5" id="metricChest" placeholder="e.g. 104.0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-slate-400 font-semibold uppercase mb-1">ARM CIRCUMFERENCE (CM)</label>
+              <input type="number" step="0.5" id="metricArms" placeholder="e.g. 38.5" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            </div>
+
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg shadow-md shadow-blue-600/20 transition-all uppercase mt-3">
+              Record Metric Entry
+            </button>
+          </form>
+        </div>
+
+        <!-- Historical Body Metrics Table & Chart -->
+        <div class="md:col-span-8 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm">
+          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">BODY WEIGHT &amp; COMPOSITION HISTORICAL LOG</h2>
+
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 h-48 relative">
+            <canvas id="bodyWeightChartCanvas"></canvas>
+          </div>
+
+          <div class="overflow-x-auto max-h-56 rounded-xl border border-slate-800">
+            <table class="w-full text-left font-mono text-xs">
+              <thead class="bg-slate-800/80 text-[10px] text-slate-400 uppercase border-b border-slate-800 sticky top-0">
+                <tr>
+                  <th class="p-2.5">DATE</th>
+                  <th class="p-2.5">WEIGHT (KG)</th>
+                  <th class="p-2.5">BODY FAT %</th>
+                  <th class="p-2.5">WAIST (CM)</th>
+                  <th class="p-2.5">CHEST (CM)</th>
+                  <th class="p-2.5">ARMS (CM)</th>
+                  <th class="p-2.5 text-right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody id="bodyMetricsTableBody" class="divide-y divide-slate-800/60 bg-slate-900">
+                <!-- JS Populated -->
               </tbody>
             </table>
           </div>
         </div>
 
       </div>
+
     </section>
 
-    <!-- AI COACH VIEW -->
-    <section id="view-aicoach" class="tab-content hidden space-y-6">
-      <div class="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-6">
-        <div class="flex items-center space-x-3 border-b border-slate-700 pb-4">
-          <div class="bg-amber-500/20 text-amber-400 p-3 rounded-xl text-2xl"><i class="fa-solid fa-robot"></i></div>
+    <!-- ================================================================= -->
+    <!-- TAB 5: AI TRAINING ADVISOR -->
+    <!-- ================================================================= -->
+    <section id="tab-advisor" class="tab-content hidden space-y-5">
+      
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5 shadow-sm">
+        
+        <div class="flex flex-col md:flex-row justify-between md:items-center border-b border-slate-800 pb-4 gap-3">
           <div>
-            <h2 class="text-xl font-bold text-white">AI Personal Fitness Coach</h2>
-            <p class="text-slate-400 text-xs">Dynamic training and recovery guidance generated strictly from your profile, equipment, and recent logs.</p>
+            <h2 class="text-sm font-bold text-white uppercase tracking-wider">INFERENCE ENGINE &amp; PROGRAM ADVISOR</h2>
+            <p class="text-xs text-slate-400 mt-1">Automated algorithmic analysis of logged tonnage, recovery status, and strength progression trajectories.</p>
+          </div>
+
+          <button onclick="runAIDiagnosticEngine()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-blue-600/20 uppercase tracking-wider shrink-0">
+            Run Diagnostic Evaluation
+          </button>
+        </div>
+
+        <!-- Optional LLM API Key Box -->
+        <div class="bg-slate-800/50 border border-slate-700/80 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
+          <div class="space-y-0.5 w-full md:w-auto">
+            <span class="text-white font-semibold block">EXTERNAL LLM ENGINE (OPTIONAL)</span>
+            <p class="text-[11px] text-slate-400">Supply an OpenAI/Anthropic compatible key for custom LLM query synthesis. If left empty, internal deterministic heuristics engine executes.</p>
+          </div>
+          <div class="flex items-center space-x-2 w-full md:w-auto shrink-0">
+            <input type="password" id="userApiKeyInput" placeholder="sk-..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none w-full md:w-48 focus:border-blue-500">
+            <button onclick="saveApiKey()" class="bg-slate-700 hover:bg-slate-600 px-3.5 py-1.5 rounded-lg text-white uppercase text-xs font-semibold">Save Key</button>
           </div>
         </div>
 
-        <button onclick="generateAICoachAdvice()" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold rounded-lg transition shadow-lg flex items-center justify-center gap-2">
-          <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze My Progress & Generate Advice
-        </button>
-
-        <div id="aiCoachOutput" class="bg-slate-900/70 border border-slate-700/60 rounded-xl p-5 text-slate-200 text-sm leading-relaxed space-y-4">
-          <p class="text-slate-400 italic">Click the button above to run the AI analysis engine on your logged exercises, setup, and performance stats...</p>
+        <!-- Synthetic Report Output Box -->
+        <div class="border border-slate-800 bg-slate-950 rounded-xl p-5 space-y-4 min-h-[300px]" id="aiReportOutput">
+          <div class="text-center py-16 text-slate-500 space-y-2">
+            <p class="text-sm font-semibold">NO DIAGNOSTIC RUN CURRENTLY LOADED.</p>
+            <p class="text-xs">Click <strong class="text-slate-300">"Run Diagnostic Evaluation"</strong> above to parse user profile, active lift PRs, and session volume.</p>
+          </div>
         </div>
+
       </div>
+
     </section>
 
-    <!-- DATA & SETTINGS VIEW -->
-    <section id="view-settings" class="tab-content hidden space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-          <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-file-export text-amber-400 mr-2"></i> Export / Backup Data</h2>
-          <p class="text-slate-400 text-xs">Download your logs and profile to JSON or CSV for backup or custom analysis.</p>
-          <div class="flex gap-3">
-            <button onclick="exportJSON()" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold text-slate-200"><i class="fa-solid fa-download mr-1"></i> Export JSON</button>
-            <button onclick="exportCSV()" class="flex-1 py-2.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold text-slate-200"><i class="fa-solid fa-file-csv mr-1"></i> Export CSV</button>
-          </div>
+    <!-- ================================================================= -->
+    <!-- TAB 6: EXERCISE DIRECTORY & SEARCH -->
+    <!-- ================================================================= -->
+    <section id="tab-directory" class="tab-content hidden space-y-5">
+      
+      <!-- Filters and Add custom exercise -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-1 md:grid-cols-12 gap-3 items-end shadow-sm">
+        <div class="md:col-span-4">
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">SEARCH EXERCISES</label>
+          <input type="text" id="dirSearchInput" oninput="renderExerciseDirectory()" placeholder="Filter by lift name..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
         </div>
-
-        <div class="bg-slate-800 border border-slate-700 rounded-xl p-5 space-y-4">
-          <h2 class="text-lg font-bold text-white"><i class="fa-solid fa-file-import text-amber-400 mr-2"></i> Import Data</h2>
-          <p class="text-slate-400 text-xs">Restore your workout data from a saved JSON backup file.</p>
-          <input type="file" id="importFile" accept=".json" class="text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-950 hover:file:bg-amber-600">
-          <button onclick="importJSON()" class="w-full py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-xs font-bold text-slate-200 mt-2">Process Backup</button>
+        <div class="md:col-span-3">
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">TARGET MUSCLE</label>
+          <select id="dirMuscleFilter" onchange="renderExerciseDirectory()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none">
+            <option value="ALL">All Muscles</option>
+            <option value="Chest">Chest</option>
+            <option value="Back">Back</option>
+            <option value="Legs">Legs</option>
+            <option value="Shoulders">Shoulders</option>
+            <option value="Arms">Arms</option>
+            <option value="Core">Core</option>
+          </select>
+        </div>
+        <div class="md:col-span-3">
+          <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">EQUIPMENT TYPE</label>
+          <select id="dirEquipmentFilter" onchange="renderExerciseDirectory()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none">
+            <option value="ALL">All Equipment</option>
+            <option value="Barbell">Barbell</option>
+            <option value="Dumbbell">Dumbbell</option>
+            <option value="Machine">Machine</option>
+            <option value="Cable">Cable</option>
+            <option value="Bodyweight">Bodyweight</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <button onclick="openCustomExerciseModal()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all uppercase">
+            + Create Custom
+          </button>
         </div>
       </div>
+
+      <!-- Exercise Database Cards Grid -->
+      <div id="exerciseDirectoryGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <!-- JS Populated -->
+      </div>
+
     </section>
 
   </main>
 
+  <!-- ================================================================= -->
+  <!-- MODALS -->
+  <!-- ================================================================= -->
+
+  <!-- ONBOARDING MODAL -->
+  <div id="onboardingModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
+      <div class="border-b border-slate-800 pb-3">
+        <h2 class="text-base font-bold text-white uppercase tracking-wider">ATHLETIC PROFILE SETUP</h2>
+        <p class="text-xs text-slate-400 mt-1">Configure baseline variables to optimize exercise recommendations and AI diagnostic reports.</p>
+      </div>
+
+      <form onsubmit="handleSaveProfile(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-400 font-semibold uppercase mb-1">GYM EXPERIENCE DURATION</label>
+          <select id="onboardExp" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            <option value="< 6 Months">&lt; 6 Months (Novice)</option>
+            <option value="6 - 24 Months" selected>6 - 24 Months (Intermediate)</option>
+            <option value="2+ Years">2+ Years (Advanced Lifting)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold uppercase mb-1">FACILITY / EQUIPMENT ACCESS</label>
+          <select id="onboardAccess" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            <option value="Full Commercial Gym" selected>Full Commercial Gym (Barbells, Dumbbells, Machines, Cables)</option>
+            <option value="Home Gym (Barbell & Rack)">Home Gym (Barbell, Plates, Squat Rack)</option>
+            <option value="Dumbbells & Bench Only">Dumbbells &amp; Adjustable Bench Only</option>
+            <option value="Bodyweight / Calisthenics">Bodyweight / Minimal Equipment</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-slate-400 font-semibold uppercase mb-1">PRIMARY GOAL</label>
+          <select id="onboardGoal" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            <option value="Hypertrophy">Hypertrophy (Muscle Mass Building)</option>
+            <option value="Strength Powerlifting">Strength / Powerlifting (1RM Maxima)</option>
+            <option value="General Athleticism">General Athletic Conditioning</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/20 uppercase transition-all">
+            Initialize Engine
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD CUSTOM EXERCISE MODAL -->
+  <div id="customExerciseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+      <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+        <h2 class="text-sm font-bold text-white uppercase">ADD CUSTOM EXERCISE LIFT</h2>
+        <button onclick="closeModal('customExerciseModal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <form onsubmit="handleSaveCustomExercise(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-400 font-semibold uppercase mb-1">EXERCISE NAME</label>
+          <input type="text" id="custExName" placeholder="e.g. Hack Squat Machine" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold uppercase mb-1">PRIMARY MUSCLE GROUP</label>
+          <select id="custExMuscle" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            <option value="Chest">Chest</option>
+            <option value="Back">Back</option>
+            <option value="Legs">Legs</option>
+            <option value="Shoulders">Shoulders</option>
+            <option value="Arms">Arms</option>
+            <option value="Core">Core</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 font-semibold uppercase mb-1">EQUIPMENT CATEGORY</label>
+          <select id="custExEquipment" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
+            <option value="Barbell">Barbell</option>
+            <option value="Dumbbell">Dumbbell</option>
+            <option value="Machine">Machine</option>
+            <option value="Cable">Cable</option>
+            <option value="Bodyweight">Bodyweight</option>
+          </select>
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeModal('customExerciseModal')" class="border border-slate-700 bg-slate-800 px-4 py-2 rounded-lg text-slate-300">Cancel</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold uppercase shadow-md shadow-blue-600/20">Save Exercise</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ADD CUSTOM DIRECTIVE/QUOTE MODAL -->
+  <div id="quoteModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
+      <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+        <h2 class="text-sm font-bold text-white uppercase">ADD SYSTEM DIRECTIVE</h2>
+        <button onclick="closeModal('quoteModal')" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <form onsubmit="handleSaveCustomQuote(event)" class="space-y-4 text-xs">
+        <div>
+          <label class="block text-slate-400 font-semibold uppercase mb-1">DIRECTIVE STATEMENT / QUOTE</label>
+          <textarea id="quoteInputText" rows="3" placeholder="e.g. Progressive volume drives enzymatic muscle protein synthesis." required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"></textarea>
+        </div>
+
+        <div class="pt-2 flex justify-end space-x-2">
+          <button type="button" onclick="closeModal('quoteModal')" class="border border-slate-700 bg-slate-800 px-4 py-2 rounded-lg text-slate-300">Cancel</button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold uppercase shadow-md shadow-blue-600/20">Store Directive</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================================================================= -->
+  <!-- JAVASCRIPT APPLICATION LOGIC -->
+  <!-- ================================================================= -->
   <script>
-    // PRE-DEFINED EXERCISE & MACHINE LIBRARY DIRECTORY
-    const EXERCISE_LIBRARY = [
-      { name: "Barbell Bench Press", muscle: "Chest", type: "Free Weight" },
-      { name: "Incline Dumbbell Press", muscle: "Chest", type: "Free Weight" },
-      { name: "Chest Press Machine", muscle: "Chest", type: "Machine" },
-      { name: "Pec Fly Machine / Butterfly", muscle: "Chest", type: "Machine" },
-      { name: "Cable Chest Crossover", muscle: "Chest", type: "Cable" },
-      { name: "Barbell Back Squat", muscle: "Legs", type: "Free Weight" },
-      { name: "Leg Press Machine", muscle: "Legs", type: "Machine" },
-      { name: "Leg Extension Machine", muscle: "Legs", type: "Machine" },
-      { name: "Seated Leg Curl Machine", muscle: "Legs", type: "Machine" },
-      { name: "Standing Calf Raise Machine", muscle: "Legs", type: "Machine" },
-      { name: "Lat Pulldown Machine", muscle: "Back", type: "Cable" },
-      { name: "Seated Cable Row", muscle: "Back", type: "Cable" },
-      { name: "Barbell Deadlift", muscle: "Back", type: "Free Weight" },
-      { name: "Assisted Pull-up Machine", muscle: "Back", type: "Machine" },
-      { name: "Dumbbell Overhead Shoulder Press", muscle: "Shoulders", type: "Free Weight" },
-      { name: "Lateral Raise Machine / Cable", muscle: "Shoulders", type: "Machine" },
-      { name: "Reverse Pec Deck Fly Machine", muscle: "Shoulders", type: "Machine" },
-      { name: "Barbell Bicep Curl", muscle: "Arms", type: "Free Weight" },
-      { name: "Triceps Cable Pushdown", muscle: "Arms", type: "Cable" },
-      { name: "Machine Arm Curl", muscle: "Arms", type: "Machine" },
-      { name: "Cable Abdominal Crunch", muscle: "Core", type: "Cable" },
-      { name: "Machine Torso Rotation", muscle: "Core", type: "Machine" }
+    // --- GLOBAL STATE STORAGE KEYS ---
+    const STORAGE_KEY_PROFILE = 'gym_engine_profile';
+    const STORAGE_KEY_LOGS = 'gym_engine_logs';
+    const STORAGE_KEY_TEMPLATES = 'gym_engine_templates';
+    const STORAGE_KEY_EXERCISES = 'gym_engine_exercises';
+    const STORAGE_KEY_METRICS = 'gym_engine_metrics';
+    const STORAGE_KEY_QUOTES = 'gym_engine_quotes';
+    const STORAGE_KEY_API_KEY = 'gym_engine_api_key';
+
+    // --- DEFAULT INITIALIZATION DATA ---
+    const DEFAULT_EXERCISES = [
+      { id: 'ex-1', name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell' },
+      { id: 'ex-2', name: 'Incline Dumbbell Press', muscle: 'Chest', equipment: 'Dumbbell' },
+      { id: 'ex-3', name: 'Barbell Back Squat', muscle: 'Legs', equipment: 'Barbell' },
+      { id: 'ex-4', name: 'Conventional Deadlift', muscle: 'Back', equipment: 'Barbell' },
+      { id: 'ex-5', name: 'Standing Overhead Press', muscle: 'Shoulders', equipment: 'Barbell' },
+      { id: 'ex-6', name: 'Lat Pulldown', muscle: 'Back', equipment: 'Cable' },
+      { id: 'ex-7', name: 'Seated Cable Row', muscle: 'Back', equipment: 'Cable' },
+      { id: 'ex-8', name: 'Romanian Deadlift', muscle: 'Legs', equipment: 'Barbell' },
+      { id: 'ex-9', name: 'Leg Press', muscle: 'Legs', equipment: 'Machine' },
+      { id: 'ex-10', name: 'Lateral Cable Raise', muscle: 'Shoulders', equipment: 'Cable' },
+      { id: 'ex-11', name: 'Tricep Rope Pushdown', muscle: 'Arms', equipment: 'Cable' },
+      { id: 'ex-12', name: 'Barbell Bicep Curl', muscle: 'Arms', equipment: 'Barbell' }
     ];
 
-    const PRESET_TEMPLATES = [
+    const DEFAULT_TEMPLATES = [
       {
-        name: "Push Focus (Chest/Shoulders/Triceps)",
-        desc: "High volume pressing routine suitable for commercial or home setups.",
-        exercises: ["Barbell Bench Press", "Chest Press Machine", "Dumbbell Overhead Shoulder Press", "Triceps Cable Pushdown"]
+        id: 'tmpl-1',
+        name: 'Push A (Heavy Bench Focus)',
+        exercises: [
+          { name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', sets: [{ type: 'Warmup', weight: 60, reps: 10 }, { type: 'Working', weight: 80, reps: 8 }, { type: 'Working', weight: 80, reps: 8 }, { type: 'Failure', weight: 80, reps: 6 }] },
+          { name: 'Standing Overhead Press', muscle: 'Shoulders', equipment: 'Barbell', sets: [{ type: 'Working', weight: 45, reps: 8 }, { type: 'Working', weight: 45, reps: 8 }] },
+          { name: 'Incline Dumbbell Press', muscle: 'Chest', equipment: 'Dumbbell', sets: [{ type: 'Working', weight: 28, reps: 10 }, { type: 'Working', weight: 28, reps: 10 }] },
+          { name: 'Lateral Cable Raise', muscle: 'Shoulders', equipment: 'Cable', sets: [{ type: 'Working', weight: 10, reps: 15 }, { type: 'Working', weight: 10, reps: 12 }] }
+        ]
       },
       {
-        name: "Pull Focus (Back/Biceps)",
-        desc: "Complete back thickness and lat development.",
-        exercises: ["Lat Pulldown Machine", "Seated Cable Row", "Barbell Deadlift", "Barbell Bicep Curl"]
+        id: 'tmpl-2',
+        name: 'Pull B (Lat & Chain)',
+        exercises: [
+          { name: 'Conventional Deadlift', muscle: 'Back', equipment: 'Barbell', sets: [{ type: 'Warmup', weight: 70, reps: 5 }, { type: 'Working', weight: 120, reps: 5 }, { type: 'Working', weight: 120, reps: 5 }] },
+          { name: 'Lat Pulldown', muscle: 'Back', equipment: 'Cable', sets: [{ type: 'Working', weight: 60, reps: 10 }, { type: 'Working', weight: 60, reps: 10 }] },
+          { name: 'Seated Cable Row', muscle: 'Back', equipment: 'Cable', sets: [{ type: 'Working', weight: 55, reps: 12 }, { type: 'Working', weight: 55, reps: 10 }] },
+          { name: 'Barbell Bicep Curl', muscle: 'Arms', equipment: 'Barbell', sets: [{ type: 'Working', weight: 30, reps: 10 }, { type: 'Failure', weight: 30, reps: 8 }] }
+        ]
       },
       {
-        name: "Legs & Lower Body Machine Blitz",
-        desc: "Quad and hamstring hypertrophy workout.",
-        exercises: ["Barbell Back Squat", "Leg Press Machine", "Leg Extension Machine", "Seated Leg Curl Machine"]
+        id: 'tmpl-3',
+        name: 'Legs Heavy',
+        exercises: [
+          { name: 'Barbell Back Squat', muscle: 'Legs', equipment: 'Barbell', sets: [{ type: 'Warmup', weight: 60, reps: 8 }, { type: 'Working', weight: 100, reps: 6 }, { type: 'Working', weight: 100, reps: 6 }] },
+          { name: 'Romanian Deadlift', muscle: 'Legs', equipment: 'Barbell', sets: [{ type: 'Working', weight: 80, reps: 10 }, { type: 'Working', weight: 80, reps: 10 }] },
+          { name: 'Leg Press', muscle: 'Legs', equipment: 'Machine', sets: [{ type: 'Working', weight: 160, reps: 12 }, { type: 'Drop Set', weight: 120, reps: 15 }] }
+        ]
       }
     ];
 
-    // STATE MANAGEMENT
-    let appState = {
-      profile: JSON.parse(localStorage.getItem('it_profile')) || null,
-      logs: JSON.parse(localStorage.getItem('it_logs')) || [],
-      bodyMetrics: JSON.parse(localStorage.getItem('it_metrics')) || []
+    const DEFAULT_QUOTES = [
+      "Track variables, eliminate guesswork. Progressive overload is calculated.",
+      "Form determines muscle recruitment; weight determines adaptive stimulus.",
+      "Recovery efficiency dictates adaptive yield per unit tonnage.",
+      "Consistency compounds exponentially across 52-week training cycles."
+    ];
+
+    // --- APP STATE ---
+    let appProfile = null;
+    let appWorkouts = [];
+    let appTemplates = [];
+    let appExercises = [];
+    let appMetrics = [];
+    let appQuotes = [];
+    let activeWorkoutState = {
+      name: 'Chest & Tricep Hypertrophy',
+      date: new Date().toISOString().split('T')[0],
+      exercises: []
     };
 
+    // Analytics Chart instances
+    let chartProgressionInstance = null;
+    let chartBodyWeightInstance = null;
+    let activeChartMetric = '1rm'; // '1rm' or 'volume'
+
+    // Rest Countdown Timer State
     let timerInterval = null;
-    let timerSeconds = 0;
-    let volumeChart = null;
-    let rmChart = null;
-    let metricChart = null;
+    let timerRemaining = 0;
+    let timerTotal = 0;
+    let timerRunning = false;
 
-    // INITIALIZATION
+    // --- INITIALIZATION ---
     window.addEventListener('DOMContentLoaded', () => {
-      // Set default date
-      document.getElementById('logDate').valueToDate = new Date();
-      document.getElementById('logDate').value = new Date().toISOString().split('T')[0];
-      document.getElementById('metricDate').value = new Date().toISOString().split('T')[0];
-
+      loadAllStorage();
+      initUI();
       checkOnboarding();
-      populateExerciseDropdown();
-      renderLogsTable();
-      renderTemplates();
-      renderHeatmap();
-      calculatePlates();
-      render1RMMatrix();
-      renderCharts();
+      loadDefaultWorkoutIfEmpty();
+      renderAllViews();
     });
 
-    // ONBOARDING HANDLERS
-    function checkOnboarding() {
-      if (!appState.profile) {
-        document.getElementById('onboardingModal').classList.remove('hidden');
-      } else {
-        document.getElementById('onboardingModal').classList.add('hidden');
-        document.getElementById('statProfileSetup').textContent = appState.profile.setup;
-        document.getElementById('statProfileExp').textContent = appState.profile.experience;
+    function loadAllStorage() {
+      appProfile = JSON.parse(localStorage.getItem(STORAGE_KEY_PROFILE)) || null;
+      appWorkouts = JSON.parse(localStorage.getItem(STORAGE_KEY_LOGS)) || seedSampleWorkouts();
+      appTemplates = JSON.parse(localStorage.getItem(STORAGE_KEY_TEMPLATES)) || DEFAULT_TEMPLATES;
+      appExercises = JSON.parse(localStorage.getItem(STORAGE_KEY_EXERCISES)) || DEFAULT_EXERCISES;
+      appMetrics = JSON.parse(localStorage.getItem(STORAGE_KEY_METRICS)) || seedSampleMetrics();
+      appQuotes = JSON.parse(localStorage.getItem(STORAGE_KEY_QUOTES)) || DEFAULT_QUOTES;
+      
+      const savedApiKey = localStorage.getItem(STORAGE_KEY_API_KEY);
+      if (savedApiKey) {
+        document.getElementById('userApiKeyInput').value = savedApiKey;
       }
     }
 
-    document.getElementById('onboardingForm').addEventListener('submit', (e) => {
-      e.preventDefault();
-      appState.profile = {
-        experience: document.getElementById('onboardExperience').value,
-        setup: document.getElementById('onboardSetup').value,
-        createdAt: new Date().toISOString()
-      };
-      localStorage.setItem('it_profile', JSON.stringify(appState.profile));
-      checkOnboarding();
-    });
+    function saveStorage() {
+      localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(appProfile));
+      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(appWorkouts));
+      localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(appTemplates));
+      localStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(appExercises));
+      localStorage.setItem(STORAGE_KEY_METRICS, JSON.stringify(appMetrics));
+      localStorage.setItem(STORAGE_KEY_QUOTES, JSON.stringify(appQuotes));
+    }
 
-    // TAB SWITCHING
+    function seedSampleWorkouts() {
+      const date1 = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
+      const date2 = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+      const date3 = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
+
+      return [
+        {
+          id: 'w-1',
+          date: date1,
+          name: 'Push Hypertrophy',
+          exercises: [
+            { name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', sets: [{ type: 'Working', weight: 75, reps: 8 }, { type: 'Working', weight: 75, reps: 8 }, { type: 'Working', weight: 75, reps: 7 }] },
+            { name: 'Standing Overhead Press', muscle: 'Shoulders', equipment: 'Barbell', sets: [{ type: 'Working', weight: 40, reps: 8 }, { type: 'Working', weight: 40, reps: 8 }] }
+          ]
+        },
+        {
+          id: 'w-2',
+          date: date2,
+          name: 'Push Heavy Focus',
+          exercises: [
+            { name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', sets: [{ type: 'Working', weight: 80, reps: 6 }, { type: 'Working', weight: 80, reps: 6 }, { type: 'Working', weight: 80, reps: 5 }] },
+            { name: 'Incline Dumbbell Press', muscle: 'Chest', equipment: 'Dumbbell', sets: [{ type: 'Working', weight: 26, reps: 10 }] }
+          ]
+        },
+        {
+          id: 'w-3',
+          date: date3,
+          name: 'Push Progression',
+          exercises: [
+            { name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', sets: [{ type: 'Working', weight: 82.5, reps: 5 }, { type: 'Working', weight: 82.5, reps: 5 }, { type: 'Failure', weight: 82.5, reps: 5 }] }
+          ]
+        }
+      ];
+    }
+
+    function seedSampleMetrics() {
+      const date1 = new Date(Date.now() - 21 * 86400000).toISOString().split('T')[0];
+      const date2 = new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0];
+      const date3 = new Date().toISOString().split('T')[0];
+      return [
+        { date: date1, weight: 82.0, bodyFat: 15.5, waist: 83.0, chest: 104.0, arms: 38.0 },
+        { date: date2, weight: 81.5, bodyFat: 15.2, waist: 82.5, chest: 104.5, arms: 38.2 },
+        { date: date3, weight: 81.2, bodyFat: 14.9, waist: 82.0, chest: 105.0, arms: 38.5 }
+      ];
+    }
+
+    function checkOnboarding() {
+      if (!appProfile) {
+        openOnboardingModal();
+      } else {
+        updateProfileDisplay();
+      }
+    }
+
+    function updateProfileDisplay() {
+      if (appProfile) {
+        document.getElementById('profileHeaderTag').innerText = `EXP: ${appProfile.experience.toUpperCase()} | ACCESS: ${appProfile.access.toUpperCase()}`;
+      }
+    }
+
+    function loadDefaultWorkoutIfEmpty() {
+      if (activeWorkoutState.exercises.length === 0 && appTemplates.length > 0) {
+        const t = appTemplates[0];
+        activeWorkoutState.name = t.name;
+        activeWorkoutState.exercises = JSON.parse(JSON.stringify(t.exercises));
+      }
+    }
+
+    function initUI() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('workoutDate').value = today;
+      document.getElementById('metricDate').value = today;
+
+      const plates = [25, 20, 15, 10, 5, 2.5, 1.25];
+      const invContainer = document.getElementById('plateInventoryContainer');
+      invContainer.innerHTML = plates.map(p => `
+        <label class="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 flex items-center space-x-2 text-xs cursor-pointer hover:border-slate-500 transition-colors">
+          <input type="checkbox" checked value="${p}" onchange="calculatePlateLoad()" class="plate-check rounded border-slate-700 text-blue-600 focus:ring-0">
+          <span>${p} KG PLATE</span>
+        </label>
+      `).join('');
+
+      rotateQuoteDisplay();
+    }
+
+    function renderAllViews() {
+      renderTemplateDropdown();
+      renderExercisePickerDropdown();
+      renderActiveWorkoutLog();
+      calculatePlateLoad();
+      populateAnalyticsExerciseSelect();
+      renderAnalyticsViews();
+      renderHeatmap();
+      renderBodyMetrics();
+      renderExerciseDirectory();
+    }
+
+    // --- TAB SWITCHING ---
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
       document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('bg-amber-500', 'text-slate-950', 'font-bold');
-        btn.classList.add('text-slate-300');
+        btn.classList.remove('active', 'bg-blue-600', 'text-white', 'font-semibold', 'shadow-md', 'shadow-blue-600/20', 'border-blue-500');
+        btn.classList.add('bg-slate-900/80', 'border-slate-800', 'text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/60');
       });
 
-      const activeBtn = document.querySelector(`[data-tab="${tabId}"]`);
-      if (activeBtn) {
-        activeBtn.classList.add('bg-amber-500', 'text-slate-950', 'font-bold');
-        activeBtn.classList.remove('text-slate-300');
+      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      activeBtn.classList.remove('bg-slate-900/80', 'border-slate-800', 'text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/60');
+      activeBtn.classList.add('active', 'bg-blue-600', 'text-white', 'font-semibold', 'shadow-md', 'shadow-blue-600/20', 'border-blue-500');
+
+      if (tabId === 'analytics') {
+        renderAnalyticsViews();
+      } else if (tabId === 'metrics') {
+        renderBodyMetrics();
       }
-
-      document.getElementById(`view-${tabId}`).classList.remove('hidden');
-      if (tabId === 'dashboard') renderCharts();
-      if (tabId === 'metrics') renderMetricsChart();
     }
 
-    // EXERCISE DROPDOWN & FILTER
-    function populateExerciseDropdown(filteredList = EXERCISE_LIBRARY) {
-      const select = document.getElementById('logExercise');
-      const chartSelect = document.getElementById('chartExerciseSelect');
-      
-      select.innerHTML = '';
-      chartSelect.innerHTML = '';
-
-      filteredList.forEach(ex => {
-        const opt = document.createElement('option');
-        opt.value = ex.name;
-        opt.textContent = `${ex.name} (${ex.type})`;
-        select.appendChild(opt);
-      });
-
-      EXERCISE_LIBRARY.forEach(ex => {
-        const optChart = document.createElement('option');
-        optChart.value = ex.name;
-        optChart.textContent = ex.name;
-        chartSelect.appendChild(optChart);
-      });
+    // --- MOTIVATION / QUOTES ---
+    function rotateQuoteDisplay() {
+      if (appQuotes.length > 0) {
+        const randIndex = Math.floor(Math.random() * appQuotes.length);
+        document.getElementById('motivationText').innerText = `"${appQuotes[randIndex]}"`;
+      }
     }
 
-    function filterExerciseList() {
-      const muscle = document.getElementById('muscleFilter').value;
-      if (muscle === 'All') {
-        populateExerciseDropdown(EXERCISE_LIBRARY);
+    function openQuoteModal() { document.getElementById('quoteModal').classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    function handleSaveCustomQuote(e) {
+      e.preventDefault();
+      const txt = document.getElementById('quoteInputText').value.trim();
+      if (txt) {
+        appQuotes.push(txt);
+        saveStorage();
+        rotateQuoteDisplay();
+        closeModal('quoteModal');
+        document.getElementById('quoteInputText').value = '';
+      }
+    }
+
+    // --- ONBOARDING MODAL LOGIC ---
+    function openOnboardingModal() {
+      if (appProfile) {
+        document.getElementById('onboardExp').value = appProfile.experience;
+        document.getElementById('onboardAccess').value = appProfile.access;
+        document.getElementById('onboardGoal').value = appProfile.goal || 'Hypertrophy';
+      }
+      document.getElementById('onboardingModal').classList.remove('hidden');
+    }
+
+    function handleSaveProfile(e) {
+      e.preventDefault();
+      appProfile = {
+        experience: document.getElementById('onboardExp').value,
+        access: document.getElementById('onboardAccess').value,
+        goal: document.getElementById('onboardGoal').value
+      };
+      saveStorage();
+      updateProfileDisplay();
+      closeModal('onboardingModal');
+      renderExercisePickerDropdown();
+    }
+
+    // --- TAB 1: LOGGING ENGINE ---
+    function renderTemplateDropdown() {
+      const select = document.getElementById('templateSelect');
+      select.innerHTML = appTemplates.map(t => `<option value="${t.id}">${t.name} (${t.exercises.length} Exercises)</option>`).join('');
+    }
+
+    function loadSelectedTemplate() {
+      const id = document.getElementById('templateSelect').value;
+      const t = appTemplates.find(x => x.id === id);
+      if (t) {
+        activeWorkoutState.name = t.name;
+        activeWorkoutState.exercises = JSON.parse(JSON.stringify(t.exercises));
+        document.getElementById('workoutName').value = t.name;
+        renderActiveWorkoutLog();
+      }
+    }
+
+    function saveCurrentAsTemplate() {
+      const name = document.getElementById('newTemplateName').value.trim();
+      if (!name) {
+        alert('Please specify a template name');
+        return;
+      }
+      if (activeWorkoutState.exercises.length === 0) {
+        alert('No exercises in active log to save');
+        return;
+      }
+      const newTmpl = {
+        id: 'tmpl-' + Date.now(),
+        name: name,
+        exercises: JSON.parse(JSON.stringify(activeWorkoutState.exercises))
+      };
+      appTemplates.push(newTmpl);
+      saveStorage();
+      renderTemplateDropdown();
+      document.getElementById('newTemplateName').value = '';
+      alert(`Template "${name}" saved.`);
+    }
+
+    function filterExercisePicker() {
+      renderExercisePickerDropdown();
+    }
+
+    function renderExercisePickerDropdown() {
+      const muscleFilter = document.getElementById('exerciseMuscleFilter').value;
+      const equipFilter = document.getElementById('exerciseEquipmentFilter').value;
+      const select = document.getElementById('exercisePickerSelect');
+
+      let filtered = appExercises.filter(ex => {
+        const mMatch = (muscleFilter === 'ALL' || ex.muscle === muscleFilter);
+        const eMatch = (equipFilter === 'ALL' || ex.equipment === equipFilter);
+        return mMatch && eMatch;
+      });
+
+      if (filtered.length === 0) {
+        select.innerHTML = `<option value="">No matching exercises found</option>`;
       } else {
-        const filtered = EXERCISE_LIBRARY.filter(ex => ex.muscle === muscle);
-        populateExerciseDropdown(filtered);
+        select.innerHTML = filtered.map(ex => `<option value="${ex.id}">${ex.name} (${ex.muscle} • ${ex.equipment})</option>`).join('');
       }
     }
 
-    // LOGGING SYSTEM
-    function addLogEntry() {
-      const exercise = document.getElementById('logExercise').value;
-      const weight = parseFloat(document.getElementById('logWeight').value);
-      const reps = parseInt(document.getElementById('logReps').value);
-      const setType = document.getElementById('logSetType').value;
-      const date = document.getElementById('logDate').value;
+    function addSelectedExerciseToLog() {
+      const exId = document.getElementById('exercisePickerSelect').value;
+      if (!exId) return;
+      const exObj = appExercises.find(e => e.id === exId);
+      if (!exObj) return;
 
-      if (!exercise || isNaN(weight) || isNaN(reps) || !date) {
-        alert("Please complete weight, reps, date, and exercise fields.");
+      activeWorkoutState.exercises.push({
+        name: exObj.name,
+        muscle: exObj.muscle,
+        equipment: exObj.equipment,
+        sets: [
+          { type: 'Warmup', weight: 20, reps: 10 },
+          { type: 'Working', weight: 60, reps: 8 }
+        ]
+      });
+
+      renderActiveWorkoutLog();
+    }
+
+    function renderActiveWorkoutLog() {
+      const container = document.getElementById('workoutExercisesContainer');
+      let totalVolume = 0;
+      let totalWorkingSets = 0;
+
+      if (activeWorkoutState.exercises.length === 0) {
+        container.innerHTML = `
+          <div class="border border-dashed border-slate-800 rounded-xl p-8 text-center text-xs text-slate-500">
+            No exercises loaded. Select an exercise above or load a routine template.
+          </div>
+        `;
+        document.getElementById('sessionTotalVolume').innerText = '0 KG';
+        document.getElementById('sessionTotalSets').innerText = '0';
         return;
       }
 
-      // Epley Formula for 1RM
-      const est1RM = reps === 1 ? weight : Math.round(weight * (1 + reps / 30) * 10) / 10;
+      container.innerHTML = activeWorkoutState.exercises.map((ex, exIdx) => {
+        const setsRows = ex.sets.map((s, sIdx) => {
+          const est1RM = calculate1RM(s.weight, s.reps);
+          if (s.type === 'Working' || s.type === 'Failure' || s.type === 'Drop Set') {
+            totalVolume += (s.weight * s.reps);
+            totalWorkingSets++;
+          }
 
-      const newLog = {
-        id: Date.now(),
-        date,
-        exercise,
-        weight,
-        reps,
-        setType,
-        est1RM
-      };
+          let tagClass = 'border-amber-500/30 bg-amber-500/10 text-amber-400';
+          if (s.type === 'Working') tagClass = 'border-blue-500/30 bg-blue-500/10 text-blue-400';
+          if (s.type === 'Drop Set') tagClass = 'border-purple-500/30 bg-purple-500/10 text-purple-400';
+          if (s.type === 'Failure') tagClass = 'border-rose-500/30 bg-rose-500/10 text-rose-400';
 
-      appState.logs.unshift(newLog);
-      localStorage.setItem('it_logs', JSON.stringify(appState.logs));
+          return `
+            <tr class="border-b border-slate-800/60 hover:bg-slate-800/30 text-xs">
+              <td class="py-2.5 px-3 font-mono text-slate-400">${sIdx + 1}</td>
+              <td class="py-2.5 px-3">
+                <select onchange="updateSetData(${exIdx}, ${sIdx}, 'type', this.value)" class="border px-2 py-1 rounded-md text-xs font-semibold ${tagClass} outline-none">
+                  <option value="Warmup" ${s.type === 'Warmup' ? 'selected' : ''}>Warmup</option>
+                  <option value="Working" ${s.type === 'Working' ? 'selected' : ''}>Working</option>
+                  <option value="Drop Set" ${s.type === 'Drop Set' ? 'selected' : ''}>Drop Set</option>
+                  <option value="Failure" ${s.type === 'Failure' ? 'selected' : ''}>Failure</option>
+                </select>
+              </td>
+              <td class="py-2.5 px-3">
+                <input type="number" step="0.5" value="${s.weight}" onchange="updateSetData(${exIdx}, ${sIdx}, 'weight', parseFloat(this.value)||0)" class="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold text-white outline-none focus:border-blue-500">
+              </td>
+              <td class="py-2.5 px-3">
+                <input type="number" value="${s.reps}" onchange="updateSetData(${exIdx}, ${sIdx}, 'reps', parseInt(this.value)||0)" class="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold text-white outline-none focus:border-blue-500">
+              </td>
+              <td class="py-2.5 px-3 font-mono text-blue-400 text-xs font-bold">
+                ${est1RM > 0 ? est1RM.toFixed(1) + ' KG' : '-'}
+              </td>
+              <td class="py-2.5 px-3 text-right">
+                <button onclick="removeSet(${exIdx}, ${sIdx})" class="text-slate-500 hover:text-rose-400 transition-colors font-medium text-xs">✕</button>
+              </td>
+            </tr>
+          `;
+        }).join('');
 
-      // Reset inputs
-      document.getElementById('logWeight').value = '';
-      document.getElementById('logReps').value = '';
+        return `
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
+              <div class="flex items-center space-x-2">
+                <span class="font-bold text-sm text-white">${ex.name}</span>
+                <span class="bg-slate-800 text-slate-300 border border-slate-700 px-2.5 py-0.5 rounded-full text-[11px] font-medium">${ex.muscle}</span>
+                <span class="bg-slate-800 text-slate-300 border border-slate-700 px-2.5 py-0.5 rounded-full text-[11px] font-medium">${ex.equipment}</span>
+              </div>
+              <button onclick="removeExercise(${exIdx})" class="text-xs text-slate-400 hover:text-rose-400 transition-colors font-medium">Remove Lift</button>
+            </div>
 
-      renderLogsTable();
-      renderHeatmap();
-      renderCharts();
-      startRestTimer(90); // Auto start 90s timer
+            <div class="overflow-x-auto">
+              <table class="w-full text-left">
+                <thead>
+                  <tr class="border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <th class="pb-2 px-3">SET</th>
+                    <th class="pb-2 px-3">TYPE</th>
+                    <th class="pb-2 px-3">LOAD (KG)</th>
+                    <th class="pb-2 px-3">REPS</th>
+                    <th class="pb-2 px-3">EST. 1RM</th>
+                    <th class="pb-2 px-3 text-right">ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${setsRows}
+                </tbody>
+              </table>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-1">
+              <button onclick="addSetToExercise(${exIdx}, 'Working')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 transition-colors font-medium">+ Working Set</button>
+              <button onclick="addSetToExercise(${exIdx}, 'Warmup')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-400 transition-colors font-medium">+ Warmup Set</button>
+              <button onclick="addSetToExercise(${exIdx}, 'Drop Set')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-400 transition-colors font-medium">+ Drop Set</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('sessionTotalVolume').innerText = `${totalVolume.toLocaleString()} KG`;
+      document.getElementById('sessionTotalSets').innerText = `${totalWorkingSets}`;
     }
 
-    function deleteLog(id) {
-      appState.logs = appState.logs.filter(l => l.id !== id);
-      localStorage.setItem('it_logs', JSON.stringify(appState.logs));
-      renderLogsTable();
-      renderHeatmap();
-      renderCharts();
+    function updateSetData(exIdx, setIdx, field, val) {
+      activeWorkoutState.exercises[exIdx].sets[setIdx][field] = val;
+      renderActiveWorkoutLog();
     }
 
-    function clearAllLogs() {
-      if (confirm("Clear all workout history?")) {
-        appState.logs = [];
-        localStorage.setItem('it_logs', JSON.stringify([]));
-        renderLogsTable();
-        renderHeatmap();
-        renderCharts();
+    function addSetToExercise(exIdx, type) {
+      const ex = activeWorkoutState.exercises[exIdx];
+      const lastSet = ex.sets.length > 0 ? ex.sets[ex.sets.length - 1] : { weight: 50, reps: 8 };
+      ex.sets.push({ type: type, weight: lastSet.weight, reps: lastSet.reps });
+      renderActiveWorkoutLog();
+    }
+
+    function removeSet(exIdx, setIdx) {
+      activeWorkoutState.exercises[exIdx].sets.splice(setIdx, 1);
+      renderActiveWorkoutLog();
+    }
+
+    function removeExercise(exIdx) {
+      activeWorkoutState.exercises.splice(exIdx, 1);
+      renderActiveWorkoutLog();
+    }
+
+    function clearCurrentWorkout() {
+      if (confirm('Clear active workout session?')) {
+        activeWorkoutState.exercises = [];
+        renderActiveWorkoutLog();
       }
     }
 
-    function renderLogsTable() {
-      const tbody = document.getElementById('logsTableBody');
-      tbody.innerHTML = '';
+    function finalizeAndSaveWorkout() {
+      if (activeWorkoutState.exercises.length === 0) {
+        alert('Cannot save empty workout log.');
+        return;
+      }
 
-      let totalVolume = 0;
-      appState.logs.forEach(log => {
-        totalVolume += (log.weight * log.reps);
-        const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-700/30 transition';
-        tr.innerHTML = `
-          <td class="p-3 text-xs text-slate-400">${log.date}</td>
-          <td class="p-3 font-semibold text-white">${log.exercise}</td>
-          <td class="p-3"><span class="text-amber-400 font-bold">${log.weight} kg</span> × ${log.reps}</td>
-          <td class="p-3"><span class="text-xs px-2 py-0.5 rounded bg-slate-700 text-slate-300">${log.setType}</span></td>
-          <td class="p-3 font-mono text-xs text-slate-300">${log.est1RM} kg</td>
-          <td class="p-3 text-right">
-            <button onclick="deleteLog(${log.id})" class="text-xs text-rose-400 hover:text-rose-300"><i class="fa-solid fa-xmark"></i></button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+      const workoutDate = document.getElementById('workoutDate').value || new Date().toISOString().split('T')[0];
+      const workoutName = document.getElementById('workoutName').value || 'Workout Session';
 
-      document.getElementById('statTotalSets').textContent = appState.logs.length;
-      document.getElementById('statTotalVolume').textContent = `${totalVolume.toLocaleString()} kg`;
+      const logEntry = {
+        id: 'w-' + Date.now(),
+        date: workoutDate,
+        name: workoutName,
+        exercises: JSON.parse(JSON.stringify(activeWorkoutState.exercises))
+      };
+
+      appWorkouts.push(logEntry);
+      saveStorage();
+
+      alert(`Workout log saved successfully. Date: ${workoutDate}`);
+      
+      quickStartTimer(90);
+
+      populateAnalyticsExerciseSelect();
+      renderAnalyticsViews();
+      renderHeatmap();
     }
 
-    // REST TIMER & WEB AUDIO CHIME
-    function toggleTimerWidget() {
-      document.getElementById('timerContainer').classList.toggle('hidden');
+    function calculate1RM(weight, reps) {
+      if (!weight || !reps || reps <= 0) return 0;
+      if (reps === 1) return weight;
+      return weight * (1 + reps / 30);
     }
 
-    function startRestTimer(seconds) {
-      document.getElementById('timerContainer').classList.remove('hidden');
+    // --- REST TIMER CONTROLS ---
+    function quickStartTimer(secs) {
+      timerTotal = secs;
+      timerRemaining = secs;
+      startTimer();
+    }
+
+    function toggleTimer() {
+      if (timerRunning) {
+        pauseTimer();
+      } else {
+        if (timerRemaining <= 0) {
+          quickStartTimer(90);
+        } else {
+          startTimer();
+        }
+      }
+    }
+
+    function startTimer() {
       clearInterval(timerInterval);
-      timerSeconds = seconds;
-      updateTimerDisplay();
+      timerRunning = true;
+      document.getElementById('timerToggleBtn').innerText = 'PAUSE';
+      document.getElementById('timerToggleBtn').className = 'bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm';
 
       timerInterval = setInterval(() => {
-        timerSeconds--;
+        timerRemaining--;
         updateTimerDisplay();
-        if (timerSeconds <= 0) {
+
+        if (timerRemaining <= 0) {
           clearInterval(timerInterval);
-          playChimeSound();
+          timerRunning = false;
+          document.getElementById('timerToggleBtn').innerText = 'START';
+          document.getElementById('timerToggleBtn').className = 'bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm';
+          playTimerAudioChime();
         }
       }, 1000);
+      updateTimerDisplay();
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      document.getElementById('timerToggleBtn').innerText = 'START';
+      document.getElementById('timerToggleBtn').className = 'bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm';
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerRemaining = 0;
+      updateTimerDisplay();
+      document.getElementById('timerToggleBtn').innerText = 'START';
+      document.getElementById('timerToggleBtn').className = 'bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm';
     }
 
     function updateTimerDisplay() {
-      const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
-      const s = (timerSeconds % 60).toString().padStart(2, '0');
-      document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+      const mins = Math.floor(Math.max(0, timerRemaining) / 60);
+      const secs = Math.max(0, timerRemaining) % 60;
+      const fmt = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+      document.getElementById('timerDisplay').innerText = fmt;
     }
 
-    function playChimeSound() {
+    function playTimerAudioChime() {
       try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.6);
-      } catch (e) { console.log('Audio playback prevented'); }
-    }
-
-    // TEMPLATES
-    function renderTemplates() {
-      const container = document.getElementById('templatesContainer');
-      container.innerHTML = '';
-
-      PRESET_TEMPLATES.forEach(t => {
-        const card = document.createElement('div');
-        card.className = 'bg-slate-800 border border-slate-700 rounded-xl p-5 flex flex-col justify-between space-y-4';
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
         
-        let exListHTML = t.exercises.map(ex => `<li class="text-xs text-slate-300"><i class="fa-solid fa-angle-right text-amber-400 mr-1.5"></i>${ex}</li>`).join('');
-
-        card.innerHTML = `
-          <div>
-            <h3 class="font-bold text-white text-base mb-1">${t.name}</h3>
-            <p class="text-xs text-slate-400 mb-3">${t.desc}</p>
-            <ul class="space-y-1 bg-slate-900/60 p-3 rounded-lg">${exListHTML}</ul>
-          </div>
-          <button onclick="loadTemplate('${t.name}')" class="w-full py-2 bg-slate-700 hover:bg-slate-600 text-xs font-bold text-amber-300 rounded-lg transition">Load into Logger</button>
-        `;
-        container.appendChild(card);
-      });
-    }
-
-    function loadTemplate(templateName) {
-      const template = PRESET_TEMPLATES.find(t => t.name === templateName);
-      if (template) {
-        switchTab('log');
-        document.getElementById('logExercise').value = template.exercises[0];
-        alert(`Loaded routine "${templateName}". Set exercise to: ${template.exercises[0]}`);
+        [0, 0.2, 0.4].forEach(delay => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, ctx.currentTime + delay);
+          gain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.12);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + delay);
+          osc.stop(ctx.currentTime + delay + 0.12);
+        });
+      } catch (e) {
+        console.log('WebAudio chime unavailable', e);
       }
     }
 
-    // BARBELL PLATE CALCULATOR
-    function calculatePlates() {
+    // --- TAB 2: PLATE CALCULATOR LOGIC ---
+    function calculatePlateLoad() {
       const target = parseFloat(document.getElementById('calcTargetWeight').value) || 0;
-      const barWeight = 20;
-      const container = document.getElementById('platesDisplay');
-      container.innerHTML = '';
+      const bar = parseFloat(document.getElementById('calcBarWeight').value) || 20;
 
-      if (target < barWeight) {
-        container.innerHTML = `<span class="text-xs text-rose-400">Target weight must be at least 20 kg (barbell weight).</span>`;
-        return;
-      }
+      const checkedPlates = Array.from(document.querySelectorAll('.plate-check:checked'))
+        .map(cb => parseFloat(cb.value))
+        .sort((a, b) => b - a);
 
-      let sideWeight = (target - barWeight) / 2;
-      const availablePlates = [
-        { weight: 25, color: 'bg-red-600', width: 'w-10' },
-        { weight: 20, color: 'bg-blue-600', width: 'w-9' },
-        { weight: 15, color: 'bg-yellow-600', width: 'w-8' },
-        { weight: 10, color: 'bg-green-600', width: 'w-7' },
-        { weight: 5, color: 'bg-slate-500', width: 'w-6' },
-        { weight: 2.5, color: 'bg-slate-600', width: 'w-5' },
-        { weight: 1.25, color: 'bg-slate-700', width: 'w-4' }
-      ];
+      const sleeveWeight = Math.max(0, (target - bar) / 2);
+      document.getElementById('calcPerSideWeight').innerText = `${sleeveWeight.toFixed(1)} KG`;
 
-      const result = [];
-      availablePlates.forEach(p => {
-        while (sideWeight >= p.weight) {
-          result.push(p);
-          sideWeight -= p.weight;
+      let remaining = sleeveWeight;
+      const breakdown = [];
+
+      checkedPlates.forEach(p => {
+        if (remaining >= p) {
+          const qty = Math.floor(remaining / p);
+          remaining = parseFloat((remaining - qty * p).toFixed(2));
+          breakdown.push({ plate: p, countPerSide: qty });
         }
       });
 
-      if (result.length === 0) {
-        container.innerHTML = `<span class="text-xs text-slate-400">Bare Barbell (20 kg)</span>`;
-        return;
+      const achievedTotal = bar + ((sleeveWeight - remaining) * 2);
+      const exactMatch = Math.abs(achievedTotal - target) < 0.01;
+
+      const matchEl = document.getElementById('calcExactMatch');
+      if (exactMatch) {
+        matchEl.className = 'font-bold text-emerald-400';
+        matchEl.innerText = `YES (${achievedTotal.toFixed(1)} KG)`;
+      } else {
+        matchEl.className = 'font-bold text-rose-400';
+        matchEl.innerText = `NO (NEAREST: ${achievedTotal.toFixed(1)} KG | REM: ${remaining * 2} KG)`;
       }
 
-      result.forEach(p => {
-        const div = document.createElement('div');
-        div.className = `plate ${p.color} ${p.width}`;
-        div.textContent = `${p.weight}`;
-        container.appendChild(div);
-      });
+      const tbody = document.getElementById('plateBreakdownTableBody');
+      if (breakdown.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" class="py-3 text-slate-500 text-center">NO PLATES LOADED</td></tr>`;
+      } else {
+        tbody.innerHTML = breakdown.map(item => `
+          <tr class="border-b border-slate-700/50">
+            <td class="py-2 text-white font-bold">${item.plate} KG</td>
+            <td class="py-2 text-blue-400 font-bold">${item.countPerSide}</td>
+            <td class="py-2 text-slate-400">${item.countPerSide * 2}</td>
+            <td class="py-2 text-right text-slate-200">${(item.plate * item.countPerSide).toFixed(1)} KG</td>
+          </tr>
+        `).join('');
+      }
+
+      renderBarbellGraphic(breakdown, bar);
     }
 
-    // 1RM MATRIX
-    function render1RMMatrix() {
-      const rm = parseFloat(document.getElementById('calc1RM').value) || 100;
+    function adjustCalcWeight(delta) {
+      const input = document.getElementById('calcTargetWeight');
+      let val = parseFloat(input.value) || 0;
+      val = Math.max(0, val + delta);
+      input.value = val;
+      calculatePlateLoad();
+    }
+
+    function renderBarbellGraphic(breakdown, barWeight) {
+      const container = document.getElementById('barbellGraphic');
+      let html = `
+        <div class="h-16 w-3 bg-slate-600 border border-slate-400 rounded-sm shrink-0" title="Barbell Sleeve Base"></div>
+      `;
+
+      const heightMap = { 25: 'h-24', 20: 'h-20', 15: 'h-16', 10: 'h-14', 5: 'h-10', 2.5: 'h-8', 1.25: 'h-6' };
+      const colorMap = {
+        25: 'bg-gradient-to-b from-red-500 to-red-700 border-red-400 text-white',
+        20: 'bg-gradient-to-b from-blue-500 to-blue-700 border-blue-400 text-white',
+        15: 'bg-gradient-to-b from-amber-400 to-amber-600 border-amber-300 text-slate-950',
+        10: 'bg-gradient-to-b from-emerald-500 to-emerald-700 border-emerald-400 text-white',
+        5: 'bg-gradient-to-b from-slate-100 to-slate-300 border-slate-400 text-slate-900',
+        2.5: 'bg-gradient-to-b from-slate-700 to-slate-900 border-slate-600 text-white',
+        1.25: 'bg-gradient-to-b from-slate-400 to-slate-500 border-slate-300 text-slate-900'
+      };
+
+      breakdown.forEach(item => {
+        const h = heightMap[item.plate] || 'h-12';
+        const c = colorMap[item.plate] || 'bg-slate-700 border-slate-500 text-white';
+
+        for (let i = 0; i < item.countPerSide; i++) {
+          html += `
+            <div class="${h} w-6 ${c} border font-mono text-[9px] font-bold flex items-center justify-center rotate-90 shrink-0 rounded-sm shadow-md">
+              ${item.plate}
+            </div>
+          `;
+        }
+      });
+
+      html += `<div class="h-4 w-28 bg-slate-700 border-y border-slate-500 rounded-r-md shrink-0"></div>`;
+
+      container.innerHTML = html;
+    }
+
+    // --- TAB 3: ANALYTICS & 1RM MATRIX ---
+    function populateAnalyticsExerciseSelect() {
+      const select = document.getElementById('analyticsExerciseSelect');
+      const setOfNames = new Set();
+      appWorkouts.forEach(w => w.exercises.forEach(e => setOfNames.add(e.name)));
+      appExercises.forEach(e => setOfNames.add(e.name));
+
+      const nameList = Array.from(setOfNames).sort();
+      select.innerHTML = nameList.map(name => `<option value="${name}">${name}</option>`).join('');
+    }
+
+    function renderAnalyticsViews() {
+      const selectedExName = document.getElementById('analyticsExerciseSelect').value || 'Barbell Bench Press';
+      
+      let maxEst1RM = 0;
+      let maxRecord = { weight: 0, reps: 0 };
+
+      const historyPoints = [];
+
+      appWorkouts.forEach(w => {
+        w.exercises.forEach(e => {
+          if (e.name === selectedExName) {
+            let sessionMax1RM = 0;
+            let sessionVolume = 0;
+
+            e.sets.forEach(s => {
+              const est = calculate1RM(s.weight, s.reps);
+              if (est > sessionMax1RM) sessionMax1RM = est;
+              if (est > maxEst1RM) {
+                maxEst1RM = est;
+                maxRecord = { weight: s.weight, reps: s.reps };
+              }
+              if (s.type === 'Working' || s.type === 'Failure' || s.type === 'Drop Set') {
+                sessionVolume += (s.weight * s.reps);
+              }
+            });
+
+            if (sessionMax1RM > 0) {
+              historyPoints.push({
+                date: w.date,
+                est1RM: sessionMax1RM,
+                volume: sessionVolume
+              });
+            }
+          }
+        });
+      });
+
+      historyPoints.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      document.getElementById('prBestRecordDisplay').innerText = maxRecord.weight > 0 ? `${maxRecord.weight} KG x ${maxRecord.reps} REPS` : 'NO DATA RECORDED';
+      document.getElementById('prEst1RMDisplay').innerText = `ESTIMATED 1RM: ${maxEst1RM.toFixed(1)} KG`;
+
+      render1RMMatrixTable(maxEst1RM);
+      renderProgressionChart(historyPoints, selectedExName);
+    }
+
+    function render1RMMatrixTable(est1RM) {
       const tbody = document.getElementById('matrixTableBody');
-      tbody.innerHTML = '';
+      if (est1RM <= 0) {
+        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500">Log exercise sets to generate matrix</td></tr>`;
+        return;
+      }
 
       const percentages = [
-        { pct: 95, reps: 1 },
-        { pct: 90, reps: 3 },
-        { pct: 85, reps: 5 },
-        { pct: 80, reps: 8 },
-        { pct: 75, reps: 10 },
-        { pct: 65, reps: 15 }
+        { pct: 100, reps: '1 Rep Max' },
+        { pct: 90, reps: '3 - 4 Reps' },
+        { pct: 85, reps: '5 - 6 Reps' },
+        { pct: 80, reps: '7 - 8 Reps' },
+        { pct: 75, reps: '9 - 10 Reps' },
+        { pct: 65, reps: '12 - 15 Reps' },
+        { pct: 50, reps: 'Warmup / Speed' }
       ];
 
-      percentages.forEach(p => {
-        const weight = Math.round(rm * (p.pct / 100) * 10) / 10;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="p-2 font-bold text-amber-400">${p.pct}%</td>
-          <td class="p-2 font-mono">${weight} kg</td>
-          <td class="p-2 text-xs text-slate-400">~ ${p.reps} reps</td>
+      tbody.innerHTML = percentages.map(p => {
+        const rawWeight = est1RM * (p.pct / 100);
+        const roundedWeight = Math.round(rawWeight / 2.5) * 2.5;
+
+        return `
+          <tr class="hover:bg-slate-800/50 transition-colors">
+            <td class="p-3 text-blue-400 font-bold">${p.pct}%</td>
+            <td class="p-3 text-white font-bold">${roundedWeight.toFixed(1)} KG</td>
+            <td class="p-3 text-right text-slate-400">${p.reps}</td>
+          </tr>
         `;
-        tbody.appendChild(tr);
-      });
+      }).join('');
     }
 
-    // HEATMAP
-    function renderHeatmap() {
-      const grid = document.getElementById('heatmapGrid');
-      grid.innerHTML = '';
-      
-      const days = 28; // Last 28 days
-      const today = new Date();
-
-      for (let i = days - 1; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(today.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-
-        const count = appState.logs.filter(l => l.date === dateStr).length;
-        const cell = document.createElement('div');
-        cell.className = 'heatmap-cell transition';
-        cell.title = `${dateStr}: ${count} sets`;
-
-        if (count === 0) cell.classList.add('bg-slate-700/40');
-        else if (count <= 3) cell.classList.add('bg-amber-800');
-        else if (count <= 6) cell.classList.add('bg-amber-600');
-        else cell.classList.add('bg-amber-400');
-
-        grid.appendChild(cell);
-      }
+    function setChartMetric(metric) {
+      activeChartMetric = metric;
+      document.getElementById('btnMetric1RM').className = metric === '1rm' ? 'border border-blue-500 bg-blue-600/20 px-3 py-1 rounded-lg text-white font-semibold shadow-sm' : 'border border-slate-700 bg-slate-800 px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-colors';
+      document.getElementById('btnMetricVolume').className = metric === 'volume' ? 'border border-blue-500 bg-blue-600/20 px-3 py-1 rounded-lg text-white font-semibold shadow-sm' : 'border border-slate-700 bg-slate-800 px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-colors';
+      renderAnalyticsViews();
     }
 
-    // METRICS
-    function saveBodyMetric() {
-      const date = document.getElementById('metricDate').value;
-      const weight = parseFloat(document.getElementById('metricWeight').value);
-      const fat = parseFloat(document.getElementById('metricFat').value);
-      const waist = parseFloat(document.getElementById('metricWaist').value);
+    function renderProgressionChart(historyPoints, liftName) {
+      document.getElementById('chartDataPointsCount').innerText = historyPoints.length;
 
-      if (!date || isNaN(weight)) {
-        alert("Please specify date and body weight.");
-        return;
-      }
+      const ctx = document.getElementById('progressionChartCanvas').getContext('2d');
+      if (chartProgressionInstance) chartProgressionInstance.destroy();
 
-      appState.bodyMetrics.push({ date, weight, fat, waist });
-      localStorage.setItem('it_metrics', JSON.stringify(appState.bodyMetrics));
-      renderMetricsChart();
-      alert("Body metric logged!");
-    }
+      const labels = historyPoints.map(p => p.date);
+      const dataValues = historyPoints.map(p => activeChartMetric === '1rm' ? p.est1RM.toFixed(1) : p.volume);
 
-    function renderMetricsChart() {
-      const ctx = document.getElementById('chartMetrics').getContext('2d');
-      const sorted = [...appState.bodyMetrics].sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      if (metricChart) metricChart.destroy();
-
-      metricChart = new Chart(ctx, {
+      chartProgressionInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: sorted.map(s => s.date),
+          labels: labels,
           datasets: [{
-            label: 'Body Weight (kg)',
-            data: sorted.map(s => s.weight),
-            borderColor: '#f59e0b',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            label: activeChartMetric === '1rm' ? `${liftName} Est. 1RM (KG)` : `${liftName} Volume (KG)`,
+            data: dataValues,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.15)',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#3b82f6',
             fill: true,
             tension: 0.3
           }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
           scales: {
-            x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-            y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+            x: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } }
+            },
+            y: {
+              grid: { color: '#1e293b' },
+              ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } }
+            }
           }
         }
       });
     }
 
-    // CHARTS
-    function renderCharts() {
-      const ctxVol = document.getElementById('chartVolume').getContext('2d');
-      const ctx1RM = document.getElementById('chart1RM').getContext('2d');
-      const selectedEx = document.getElementById('chartExerciseSelect').value || "Barbell Bench Press";
+    // --- TAB 4: METRICS & HEATMAP LOGIC ---
+    function renderHeatmap() {
+      const grid = document.getElementById('heatmapGrid');
+      grid.innerHTML = '';
 
-      // Group Volume by Date
-      const volMap = {};
-      appState.logs.forEach(l => {
-        volMap[l.date] = (volMap[l.date] || 0) + (l.weight * l.reps);
+      const days = 60;
+      const today = new Date();
+      let activeStreak = 0;
+      let totalLogsCount = appWorkouts.length;
+
+      const dateCounts = {};
+      appWorkouts.forEach(w => {
+        dateCounts[w.date] = (dateCounts[w.date] || 0) + 1;
       });
-      const sortedDates = Object.keys(volMap).sort();
 
-      if (volumeChart) volumeChart.destroy();
-      volumeChart = new Chart(ctxVol, {
-        type: 'bar',
-        data: {
-          labels: sortedDates,
-          datasets: [{
-            label: 'Total Volume (kg)',
-            data: sortedDates.map(d => volMap[d]),
-            backgroundColor: '#f59e0b',
-            borderRadius: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-            y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
-          }
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(today);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        const count = dateCounts[dateStr] || 0;
+
+        let bgClass = 'bg-slate-800/80 border-slate-700/50';
+        if (count === 1) bgClass = 'bg-blue-600/40 border-blue-500/50 text-white';
+        if (count >= 2) bgClass = 'bg-blue-500 border-blue-400 text-white shadow-md shadow-blue-500/30';
+
+        grid.innerHTML += `
+          <div class="grid-cell border rounded-md ${bgClass} flex flex-col items-center justify-center p-1 text-[10px] font-mono transition-all hover:scale-105" title="${dateStr}: ${count} session(s)">
+            <span class="text-slate-400 text-[8px]">${dateStr.slice(8)}</span>
+            <span class="font-bold">${count > 0 ? count : ''}</span>
+          </div>
+        `;
+      }
+
+      let checkDate = new Date();
+      while (true) {
+        const dateStr = checkDate.toISOString().split('T')[0];
+        if (dateCounts[dateStr]) {
+          activeStreak++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
         }
-      });
+      }
 
-      // Filter 1RM by exercise
-      const exLogs = appState.logs.filter(l => l.exercise === selectedEx).sort((a, b) => new Date(a.date) - new Date(b.date));
-      
-      if (rmChart) rmChart.destroy();
-      rmChart = new Chart(ctx1RM, {
+      document.getElementById('currentStreakText').innerText = `${activeStreak} DAYS`;
+      document.getElementById('totalSessionsCountText').innerText = totalLogsCount;
+    }
+
+    function handleSaveBodyMetric(e) {
+      e.preventDefault();
+      const newM = {
+        date: document.getElementById('metricDate').value,
+        weight: parseFloat(document.getElementById('metricWeight').value) || 0,
+        bodyFat: parseFloat(document.getElementById('metricBodyFat').value) || 0,
+        waist: parseFloat(document.getElementById('metricWaist').value) || 0,
+        chest: parseFloat(document.getElementById('metricChest').value) || 0,
+        arms: parseFloat(document.getElementById('metricArms').value) || 0
+      };
+
+      appMetrics.push(newM);
+      saveStorage();
+      renderBodyMetrics();
+
+      document.getElementById('metricWeight').value = '';
+      document.getElementById('metricBodyFat').value = '';
+      document.getElementById('metricWaist').value = '';
+      document.getElementById('metricChest').value = '';
+      document.getElementById('metricArms').value = '';
+    }
+
+    function deleteBodyMetric(idx) {
+      appMetrics.splice(idx, 1);
+      saveStorage();
+      renderBodyMetrics();
+    }
+
+    function renderBodyMetrics() {
+      appMetrics.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+      const tbody = document.getElementById('bodyMetricsTableBody');
+      if (appMetrics.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No body metric entries recorded</td></tr>`;
+      } else {
+        tbody.innerHTML = appMetrics.map((m, idx) => `
+          <tr class="hover:bg-slate-800/50 transition-colors">
+            <td class="p-2.5 font-bold text-white">${m.date}</td>
+            <td class="p-2.5 text-blue-400 font-bold">${m.weight > 0 ? m.weight + ' KG' : '-'}</td>
+            <td class="p-2.5 text-slate-300">${m.bodyFat > 0 ? m.bodyFat + ' %' : '-'}</td>
+            <td class="p-2.5 text-slate-300">${m.waist > 0 ? m.waist + ' CM' : '-'}</td>
+            <td class="p-2.5 text-slate-300">${m.chest > 0 ? m.chest + ' CM' : '-'}</td>
+            <td class="p-2.5 text-slate-300">${m.arms > 0 ? m.arms + ' CM' : '-'}</td>
+            <td class="p-2.5 text-right">
+              <button onclick="deleteBodyMetric(${idx})" class="text-slate-500 hover:text-rose-400 transition-colors">✕</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      renderBodyWeightChart();
+    }
+
+    function renderBodyWeightChart() {
+      const ctx = document.getElementById('bodyWeightChartCanvas').getContext('2d');
+      if (chartBodyWeightInstance) chartBodyWeightInstance.destroy();
+
+      const labels = appMetrics.map(m => m.date);
+      const weights = appMetrics.map(m => m.weight);
+
+      chartBodyWeightInstance = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: exLogs.map(l => l.date),
+          labels: labels,
           datasets: [{
-            label: `${selectedEx} Est. 1RM (kg)`,
-            data: exLogs.map(l => l.est1RM),
-            borderColor: '#38bdf8',
-            tension: 0.2
+            label: 'Body Weight (KG)',
+            data: weights,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.15)',
+            borderWidth: 2,
+            pointRadius: 4,
+            fill: true,
+            tension: 0.3
           }]
         },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
           scales: {
-            x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-            y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+            x: { grid: { color: '#1e293b' }, ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } } },
+            y: { grid: { color: '#1e293b' }, ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } } }
           }
         }
       });
     }
 
-    // AI COACH ENGINE
-    function generateAICoachAdvice() {
-      const output = document.getElementById('aiCoachOutput');
-      const totalSets = appState.logs.length;
-      const setup = appState.profile ? appState.profile.setup : 'Unknown';
-      const exp = appState.profile ? appState.profile.experience : 'Unknown';
+    // --- TAB 5: AI ADVISOR DIAGNOSTIC ENGINE ---
+    function saveApiKey() {
+      const key = document.getElementById('userApiKeyInput').value.trim();
+      localStorage.setItem(STORAGE_KEY_API_KEY, key);
+      alert('LLM API key stored locally in browser.');
+    }
 
-      if (totalSets === 0) {
-        output.innerHTML = `
-          <div class="text-amber-400 font-bold mb-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Insufficient Log Data</div>
-          <p>Please log a few workout sets first so the AI engine can calculate your training volume, frequency, and maximum strength trends.</p>
+    function runAIDiagnosticEngine() {
+      const outputBox = document.getElementById('aiReportOutput');
+      outputBox.innerHTML = `<div class="text-center py-16 text-blue-400 font-medium animate-pulse">Running inference engine &amp; parsing training volumes...</div>`;
+
+      setTimeout(() => {
+        const exp = appProfile ? appProfile.experience : 'Intermediate';
+        const access = appProfile ? appProfile.access : 'Full Commercial Gym';
+        const totalLogs = appWorkouts.length;
+        
+        let totalTonnage = 0;
+        const liftPRs = {};
+
+        appWorkouts.forEach(w => {
+          w.exercises.forEach(e => {
+            let maxEst = 0;
+            e.sets.forEach(s => {
+              const est = calculate1RM(s.weight, s.reps);
+              if (est > maxEst) maxEst = est;
+              if (s.type === 'Working' || s.type === 'Failure' || s.type === 'Drop Set') {
+                totalTonnage += (s.weight * s.reps);
+              }
+            });
+            if (!liftPRs[e.name] || maxEst > liftPRs[e.name]) {
+              liftPRs[e.name] = maxEst;
+            }
+          });
+        });
+
+        let prListHtml = Object.keys(liftPRs).slice(0, 4).map(k => `<li class="flex justify-between border-b border-slate-800 pb-1.5"><span class="text-slate-300">${k}:</span> <strong class="text-white font-mono">${liftPRs[k].toFixed(1)} KG Est. 1RM</strong></li>`).join('') || '<li class="text-slate-500">No lift PR data logged</li>';
+
+        outputBox.innerHTML = `
+          <div class="space-y-5 text-xs">
+            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
+              <span class="text-blue-400 font-bold uppercase tracking-wider">[DIAGNOSTIC REPORT GENERATED]</span>
+              <span class="text-slate-400 font-mono">${new Date().toLocaleString()}</span>
+            </div>
+
+            <!-- Profile Summary Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3">
+              <div><span class="text-slate-400 block text-[10px] font-semibold uppercase">Experience</span><span class="text-white font-bold">${exp}</span></div>
+              <div><span class="text-slate-400 block text-[10px] font-semibold uppercase">Facility</span><span class="text-white font-bold">${access}</span></div>
+              <div><span class="text-slate-400 block text-[10px] font-semibold uppercase">Logged Sessions</span><span class="text-white font-bold">${totalLogs}</span></div>
+              <div><span class="text-slate-400 block text-[10px] font-semibold uppercase">Total Tonnage</span><span class="text-blue-400 font-bold font-mono">${totalTonnage.toLocaleString()} KG</span></div>
+            </div>
+
+            <!-- Section 1 -->
+            <div class="space-y-1.5 border-l-2 border-blue-500 pl-3">
+              <h3 class="text-white font-bold text-sm">1. Facility &amp; Equipment Optimization</h3>
+              <p class="text-slate-300 leading-relaxed">Configured for <strong>${access}</strong>. Progressive overload trajectory should prioritize compound barbell/dumbbell resistance, supplemented with mechanical tension isolation on cable systems where available.</p>
+            </div>
+
+            <!-- Section 2 -->
+            <div class="space-y-1.5 border-l-2 border-blue-500 pl-3">
+              <h3 class="text-white font-bold text-sm">2. Volume Trajectory &amp; Fatigue Audit</h3>
+              <p class="text-slate-300 leading-relaxed">Cumulative workload calculated at <strong class="font-mono text-blue-400">${totalTonnage.toLocaleString()} KG</strong> across ${totalLogs} logged training session(s). Current volume distribution indicates adequate stimulus for neurological motor unit recruitment.</p>
+            </div>
+
+            <!-- Section 3 -->
+            <div class="space-y-2 border-l-2 border-blue-500 pl-3">
+              <h3 class="text-white font-bold text-sm">3. Estimated 1RM Peak Metrics</h3>
+              <ul class="space-y-1 bg-slate-900 border border-slate-800 rounded-xl p-3">
+                ${prListHtml}
+              </ul>
+            </div>
+
+            <!-- Section 4 -->
+            <div class="bg-gradient-to-r from-slate-900 to-slate-900/80 border border-emerald-500/30 rounded-xl p-4 space-y-2 shadow-sm">
+              <h3 class="text-emerald-400 font-bold text-xs uppercase tracking-wider">[14-DAY TACTICAL ACTION PLAN]</h3>
+              <ol class="list-decimal list-inside space-y-1.5 text-slate-300 leading-relaxed">
+                <li><strong>Intensity Target:</strong> Maintain working set load between 75% - 85% 1RM for primary compound lifts.</li>
+                <li><strong>Volume Rate:</strong> Cap weekly working sets per major muscle group at 12–16 sets to prevent central nervous system overreach.</li>
+                <li><strong>Progression Micro-Cycle:</strong> Increment primary lift load by 2.5 kg once top-end target repetitions are achieved with RPE &le; 8.5.</li>
+              </ol>
+            </div>
+          </div>
         `;
+      }, 300);
+    }
+
+    // --- TAB 6: EXERCISE DIRECTORY & CUSTOM EXERCISE ---
+    function renderExerciseDirectory() {
+      const search = (document.getElementById('dirSearchInput').value || '').toLowerCase();
+      const muscle = document.getElementById('dirMuscleFilter').value;
+      const equip = document.getElementById('dirEquipmentFilter').value;
+
+      const grid = document.getElementById('exerciseDirectoryGrid');
+
+      const filtered = appExercises.filter(e => {
+        const sMatch = e.name.toLowerCase().includes(search);
+        const mMatch = (muscle === 'ALL' || e.muscle === muscle);
+        const eMatch = (equip === 'ALL' || e.equipment === equip);
+        return sMatch && mMatch && eMatch;
+      });
+
+      if (filtered.length === 0) {
+        grid.innerHTML = `<div class="col-span-full border border-slate-800 rounded-xl p-8 text-center text-xs text-slate-500">No exercises match filters</div>`;
         return;
       }
 
-      // Calculate primary lift highlights
-      const topLog = [...appState.logs].sort((a,b) => b.est1RM - a.est1RM)[0];
-
-      output.innerHTML = `
-        <div class="space-y-3">
-          <div class="flex items-center text-amber-400 font-bold text-base border-b border-slate-700 pb-2">
-            <i class="fa-solid fa-brain mr-2"></i> AI Performance Assessment
+      grid.innerHTML = filtered.map(ex => `
+        <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 transition-all shadow-sm flex flex-col justify-between space-y-3">
+          <div>
+            <div class="flex justify-between items-start gap-2">
+              <h3 class="font-bold text-sm text-white">${ex.name}</h3>
+              <span class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full text-slate-300 font-medium shrink-0">${ex.equipment}</span>
+            </div>
+            <span class="inline-block mt-2 text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full uppercase">${ex.muscle}</span>
           </div>
-          <p><strong>Training Context:</strong> Experience Level: <span class="text-amber-300">${exp}</span> | Facility Setup: <span class="text-amber-300">${setup}</span></p>
-          <p><strong>Peak Lift Highlight:</strong> Your recorded best strength intensity is on <span class="text-white font-semibold">${topLog.exercise}</span> with an estimated 1RM of <span class="text-amber-400 font-bold">${topLog.est1RM} kg</span> (${topLog.weight} kg x ${topLog.reps} reps).</p>
-          
-          <div class="bg-slate-800 p-4 rounded-lg border border-slate-700 space-y-2 text-xs">
-            <h4 class="font-bold text-white uppercase tracking-wider text-slate-300">Actionable Guidance & Programming Strategy</h4>
-            <ul class="list-disc list-inside space-y-1 text-slate-300">
-              <li><strong>Progressive Overload:</strong> Aim to add 1-2 reps per working set or increment weight by 2.5% once you reach the top of your target rep range.</li>
-              <li><strong>Facility Optimization (${setup}):</strong> Prioritize multi-joint heavy compound movements first in your session before moving to machine isolation isolations.</li>
-              <li><strong>Rest Management:</strong> Ensure rest intervals between heavy failure sets remain between 120s–180s to maximize ATP replenishment.</li>
-            </ul>
+
+          <div class="border-t border-slate-800 pt-3 flex justify-between items-center text-xs">
+            <button onclick="quickAddExerciseToLog('${ex.id}')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-200 font-medium text-xs transition-colors">+ Add to Session</button>
+            <button onclick="deleteCustomExercise('${ex.id}')" class="text-slate-500 hover:text-rose-400 text-xs transition-colors">Delete</button>
           </div>
         </div>
-      `;
+      `).join('');
     }
 
-    // IMPORT / EXPORT
-    function exportJSON() {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(appState));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `irontrack_backup_${new Date().toISOString().split('T')[0]}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
+    function quickAddExerciseToLog(exId) {
+      const exObj = appExercises.find(e => e.id === exId);
+      if (!exObj) return;
 
-    function exportCSV() {
-      if (appState.logs.length === 0) { alert("No logs to export."); return; }
-      let csv = "Date,Exercise,Weight(kg),Reps,SetType,Est1RM\n";
-      appState.logs.forEach(l => {
-        csv += `"${l.date}","${l.exercise}",${l.weight},${l.reps},"${l.setType}",${l.est1RM}\n`;
+      activeWorkoutState.exercises.push({
+        name: exObj.name,
+        muscle: exObj.muscle,
+        equipment: exObj.equipment,
+        sets: [{ type: 'Working', weight: 50, reps: 8 }]
       });
 
-      const dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+      switchTab('logging');
+      renderActiveWorkoutLog();
+    }
+
+    function openCustomExerciseModal() { document.getElementById('customExerciseModal').classList.remove('hidden'); }
+
+    function handleSaveCustomExercise(e) {
+      e.preventDefault();
+      const newEx = {
+        id: 'ex-' + Date.now(),
+        name: document.getElementById('custExName').value.trim(),
+        muscle: document.getElementById('custExMuscle').value,
+        equipment: document.getElementById('custExEquipment').value
+      };
+
+      if (newEx.name) {
+        appExercises.push(newEx);
+        saveStorage();
+        renderExerciseDirectory();
+        renderExercisePickerDropdown();
+        closeModal('customExerciseModal');
+        document.getElementById('custExName').value = '';
+      }
+    }
+
+    function deleteCustomExercise(exId) {
+      appExercises = appExercises.filter(e => e.id !== exId);
+      saveStorage();
+      renderExerciseDirectory();
+      renderExercisePickerDropdown();
+    }
+
+    // --- DATA PORTABILITY: JSON EXPORT & IMPORT ---
+    function exportDataJSON() {
+      const fullData = {
+        profile: appProfile,
+        workouts: appWorkouts,
+        templates: appTemplates,
+        exercises: appExercises,
+        metrics: appMetrics,
+        quotes: appQuotes,
+        exportTimestamp: new Date().toISOString()
+      };
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `irontrack_logs_${new Date().toISOString().split('T')[0]}.csv`);
+      downloadAnchor.setAttribute("download", `athletic_data_backup_${new Date().toISOString().split('T')[0]}.json`);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
     }
 
-    function importJSON() {
-      const fileInput = document.getElementById('importFile');
-      if (!fileInput.files.length) { alert("Please select a JSON backup file."); return; }
-      const file = fileInput.files[0];
+    function importDataJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
       const reader = new FileReader();
       reader.onload = function(e) {
         try {
           const imported = JSON.parse(e.target.result);
-          if (imported.logs) localStorage.setItem('it_logs', JSON.stringify(imported.logs));
-          if (imported.profile) localStorage.setItem('it_profile', JSON.stringify(imported.profile));
-          if (imported.bodyMetrics) localStorage.setItem('it_metrics', JSON.stringify(imported.bodyMetrics));
-          location.reload();
+          if (imported.workouts && imported.exercises) {
+            appProfile = imported.profile || appProfile;
+            appWorkouts = imported.workouts || [];
+            appTemplates = imported.templates || DEFAULT_TEMPLATES;
+            appExercises = imported.exercises || DEFAULT_EXERCISES;
+            appMetrics = imported.metrics || [];
+            appQuotes = imported.quotes || DEFAULT_QUOTES;
+
+            saveStorage();
+            updateProfileDisplay();
+            renderAllViews();
+            alert('Data backup imported successfully.');
+          } else {
+            alert('Invalid data schema in JSON file.');
+          }
         } catch (err) {
-          alert("Invalid backup JSON file format.");
+          alert('Error parsing JSON file.');
         }
       };
       reader.readAsText(file);
     }
   </script>
+
 </body>
 </html>

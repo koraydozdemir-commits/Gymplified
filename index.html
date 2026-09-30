@@ -1,228 +1,988 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light" data-color="blue" data-contrast="normal" data-motion="normal" data-font="default" data-scale="md">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>PULSE — Training Log</title>
+<title>Gymplified — Training Log & Muscle Tracker</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
-:root{
- --bg:#f4f4f1;--panel:#fff;--ink:#171918;--muted:#6d726d;--line:#d9dcd7;
- --brand:#315c4a;--brand2:#e5eee9;--red:#a74338;--yellow:#a06c20;
- --max:1060px;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+  --bg: #f4f4f2;
+  --panel: #ffffff;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #cbd5e1;
+  --brand: #2563eb;
+  --brand-light: #eff6ff;
+  --brand-ink: #ffffff;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --max: 1120px;
+  --radius: 6px;
+  --font-base: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: "Space Grotesk", sans-serif;
+  --scale: 1rem;
 }
-*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;color:var(--ink);font-family:"DM Sans",sans-serif}
-button,input,select{font:inherit}.app{max-width:var(--max);margin:auto;min-height:100vh}
-.topbar{height:64px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 22px;background:#f4f4f1ee;position:sticky;top:0;z-index:20;backdrop-filter:blur(12px)}
-.brand{font-family:"Space Grotesk";font-weight:700;letter-spacing:-.04em;font-size:21px}.brand em{font-style:normal;color:var(--brand)}
-.topright{display:flex;align-items:center;gap:10px}.dateTag{font-size:12px;color:var(--muted);border-left:1px solid var(--line);padding-left:12px}
-.iconBtn{height:34px;width:34px;border:1px solid var(--line);background:var(--panel);border-radius:6px;cursor:pointer}
-.layout{display:grid;grid-template-columns:185px 1fr;min-height:calc(100vh - 64px)}
-aside{border-right:1px solid var(--line);padding:22px 12px;position:sticky;top:64px;height:calc(100vh - 64px)}
-.navlabel{text-transform:uppercase;font-size:9px;font-weight:700;letter-spacing:.12em;color:#969b96;padding:0 10px 8px}
-nav button{display:block;width:100%;text-align:left;border:0;background:transparent;padding:9px 10px;border-radius:5px;color:#666b66;cursor:pointer;font-size:13px;margin:2px 0}
-nav button:hover{background:#e9ebe7}nav button.active{background:var(--ink);color:#fff}
-main{padding:27px 28px 50px;min-width:0}.screen{display:none}.screen.active{display:block}
-.eyebrow{text-transform:uppercase;font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--brand);margin-bottom:7px}
-h1,h2,h3,p{margin:0}h1{font-family:"Space Grotesk";font-size:28px;letter-spacing:-.035em;margin-bottom:4px}h2{font-family:"Space Grotesk";font-size:16px;letter-spacing:-.02em}h3{font-size:14px}
-.subtitle{font-size:13px;color:var(--muted);margin-bottom:22px}
-.gridTop{display:grid;grid-template-columns:1.35fr .65fr;gap:12px;margin-bottom:12px}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:7px}.pad{padding:18px}
-.metricHeader{display:flex;justify-content:space-between;align-items:start;margin-bottom:18px}.metricValue{font-family:"Space Grotesk";font-size:35px;letter-spacing:-.05em}.metricUnit{font-size:12px;color:var(--muted)}
-.progress{height:6px;background:#e7e9e5;border-radius:2px;overflow:hidden}.progress i{display:block;height:100%;background:var(--brand)}
-.metaRow{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:8px}
-.quick{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line);margin-top:18px}.quick div{padding:13px 10px;border-right:1px solid var(--line)}.quick div:last-child{border:0}.quick b{display:block;font-size:17px}.quick span{font-size:10px;color:var(--muted)}
-.streak{font-family:"Space Grotesk";font-size:40px;letter-spacing:-.06em;margin:8px 0}.streak small{font:500 12px "DM Sans";color:var(--muted);letter-spacing:0}
-.section{margin-top:12px}.sectionHead{height:48px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.sectionHead .action{font-size:12px;color:var(--brand);font-weight:700;background:none;border:0;cursor:pointer}
-.row{display:grid;grid-template-columns:42px 1fr auto;gap:12px;align-items:center;padding:12px 4px;border-bottom:1px solid var(--line)}.row:last-child{border-bottom:0}
-.number{font:600 12px "Space Grotesk";color:#8b908b}.row p{font-size:11px;color:var(--muted);margin-top:3px}.status{font-size:11px;color:var(--muted)}
-.check{width:25px;height:25px;border:1px solid #bfc4bd;background:#fff;border-radius:4px;cursor:pointer}.check.done{background:var(--brand);color:#fff;border-color:var(--brand)}
-.week{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid var(--line);background:var(--panel)}.week div{min-height:67px;padding:9px;border-right:1px solid var(--line)}.week div:last-child{border:0}.week small{display:block;color:var(--muted);font-size:9px;text-transform:uppercase}.week b{display:block;font-size:16px;margin-top:5px}.week .today{background:var(--brand2)}.week .doneDot:after{content:"";display:block;width:5px;height:5px;border-radius:50%;background:var(--brand);margin-top:8px}
-.twocol{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.macro{padding:14px 0;border-bottom:1px solid var(--line)}.macro:last-child{border:0}.macroTop{display:flex;justify-content:space-between;font-size:12px;margin-bottom:7px}.macroTop span{color:var(--muted)}
-.mealGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.meal{border:1px solid var(--line);padding:14px;background:#fff;border-radius:5px;cursor:pointer}.meal:hover{border-color:#9ca39c}.meal h3{margin-bottom:5px}.meal p{font-size:11px;color:var(--muted);line-height:1.4}.mealMeta{display:flex;gap:9px;margin-top:10px;font-size:10px;color:var(--brand);font-weight:700}
-.filter{display:flex;gap:7px;margin:15px 0}.filter button{border:1px solid var(--line);background:#fff;border-radius:5px;padding:7px 10px;font-size:11px;cursor:pointer}.filter button.active{background:var(--ink);color:#fff}
-.muscleTable{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);font-size:12px}.muscleTable th,.muscleTable td{text-align:left;padding:11px;border-bottom:1px solid var(--line)}.muscleTable th{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}.bar{width:120px;height:5px;background:#e7e9e5}.bar i{display:block;height:100%;background:var(--brand)}
-.kpiGrid{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);background:#fff}.kpi{padding:15px;border-right:1px solid var(--line)}.kpi:last-child{border:0}.kpi b{font:600 23px "Space Grotesk"}.kpi span{display:block;font-size:10px;color:var(--muted);margin-top:3px}
-.formGrid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:10px;font-weight:700;color:var(--muted);margin-bottom:5px}.field input,.field select{width:100%;height:39px;border:1px solid var(--line);background:#fff;border-radius:5px;padding:0 10px;outline:none}.saveBtn{height:39px;border:0;background:var(--ink);color:#fff;border-radius:5px;padding:0 17px;font-weight:700;cursor:pointer}
-.modal{display:none;position:fixed;inset:0;background:#1118;z-index:50;align-items:center;justify-content:center;padding:20px}.modal.show{display:flex}.dialog{width:min(480px,100%);background:#fff;border:1px solid #bbb;border-radius:7px;padding:20px}.dialogHead{display:flex;justify-content:space-between;margin-bottom:18px}.close{border:0;background:none;font-size:20px;cursor:pointer}.dialog .field{margin-bottom:10px}.dialog .saveBtn{width:100%;margin-top:6px}
-.toast{position:fixed;right:20px;bottom:20px;background:var(--ink);color:#fff;padding:10px 14px;border-radius:5px;font-size:12px;opacity:0;transform:translateY(8px);transition:.2s;z-index:80}.toast.show{opacity:1;transform:none}
-@media(max-width:760px){.layout{display:block}aside{position:fixed;z-index:30;bottom:0;top:auto;height:60px;width:100%;border:0;border-top:1px solid var(--line);padding:5px;background:#f8f8f5f2;backdrop-filter:blur(12px)}aside .navlabel{display:none}nav{display:grid;grid-template-columns:repeat(6,1fr);gap:3px}nav button{text-align:center;font-size:10px;padding:9px 2px;margin:0}main{padding:20px 15px 80px}.topbar{padding:0 15px}.dateTag{display:none}.gridTop,.twocol{grid-template-columns:1fr}.mealGrid{grid-template-columns:1fr}.kpiGrid{grid-template-columns:1fr 1fr}.kpi:nth-child(2){border-right:0}.kpi:nth-child(-n+2){border-bottom:1px solid var(--line)}.week div{padding:8px 5px}.week b{font-size:14px}}
 
-.mealPhoto{height:142px;background-size:cover;background-position:center;border-bottom:1px solid var(--line)}
-.mealBody{padding:13px}
-.progressChart{height:190px;display:flex;align-items:end;gap:8px;padding:18px 4px 0;border-bottom:1px solid var(--line)}
-.chartCol{height:100%;flex:1;display:flex;flex-direction:column;justify-content:end;align-items:center;gap:6px}
-.chartBar{width:100%;max-width:28px;background:var(--brand);border-radius:3px 3px 0 0;min-height:3px}
-.chartCol small{font-size:9px;color:var(--muted)}
-.chartValue{font-size:9px;color:var(--muted)}
-.pbGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line)}
-.pb{background:#fff;padding:15px}
-.pb b{font-family:"Space Grotesk",sans-serif;font-size:22px}
-.pb span{display:block;font-size:10px;color:var(--muted);margin-top:4px}
-.trend{font-size:10px;color:var(--brand);font-weight:700;margin-top:8px}
-.danger{border:1px solid #d6b7b7!important;color:#9a2e2e!important;background:#fff!important}
-.resetBox{border:1px solid #e4caca;background:#fff8f8;padding:14px;border-radius:6px;margin-top:14px}
-@media(max-width:800px){.pbGrid{grid-template-columns:repeat(2,1fr)}}
+/* Color Themes */
+html[data-color="blue"] { --brand: #2563eb; --brand-light: #eff6ff; }
+html[data-color="emerald"] { --brand: #059669; --brand-light: #ecfdf5; }
+html[data-color="slate"] { --brand: #334155; --brand-light: #f1f5f9; }
+html[data-color="crimson"] { --brand: #dc2626; --brand-light: #fef2f2; }
+html[data-color="amber"] { --brand: #d97706; --brand-light: #fffbeb; }
+html[data-color="violet"] { --brand: #7c3aed; --brand-light: #f5f3ff; }
 
+/* Dark Mode Overrides */
+html[data-theme="dark"] {
+  --bg: #090d16;
+  --panel: #131c2e;
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+  --line: #26334d;
+  --brand-light: #1e293b;
+}
+
+/* High Contrast Mode */
+html[data-contrast="high"] {
+  --line: #000000;
+  --muted: #1e293b;
+}
+html[data-theme="dark"][data-contrast="high"] {
+  --line: #ffffff;
+  --muted: #cbd5e1;
+}
+
+/* Dyslexia / Accessible Font */
+html[data-font="accessible"] {
+  --font-base: "Comic Sans MS", "Chalkboard SE", sans-serif;
+  --font-heading: "Comic Sans MS", "Chalkboard SE", sans-serif;
+}
+
+/* Font Scales */
+html[data-scale="sm"] { --scale: 0.875rem; }
+html[data-scale="md"] { --scale: 1rem; }
+html[data-scale="lg"] { --scale: 1.125rem; }
+html[data-scale="xl"] { --scale: 1.25rem; }
+
+/* Reduced Motion */
+html[data-motion="reduced"] * {
+  transition: none !important;
+  animation: none !important;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); font-size: var(--scale); }
+body { color: var(--ink); font-family: var(--font-base); line-height: 1.45; background: var(--bg); min-height: 100vh; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+.app { max-width: var(--max); margin: 0 auto; min-height: 100vh; border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--bg); }
+
+/* Topbar */
+.topbar { height: 60px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--panel); position: sticky; top: 0; z-index: 30; }
+.brand { font-family: var(--font-heading); font-weight: 700; font-size: 20px; letter-spacing: -0.03em; color: var(--ink); }
+.brand span { color: var(--brand); }
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.date-tag { font-size: 12px; font-weight: 600; color: var(--muted); padding-right: 12px; border-right: 1px solid var(--line); }
+.btn-icon { height: 36px; padding: 0 12px; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.btn-icon:hover { border-color: var(--brand); color: var(--brand); }
+.btn-primary { background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); padding: 8px 14px; border-radius: var(--radius); font-weight: 600; font-size: 13px; cursor: pointer; }
+.btn-primary:hover { opacity: 0.9; }
+
+/* Layout */
+.layout { display: grid; grid-template-columns: 200px 1fr; min-height: calc(100vh - 60px); }
+aside { border-right: 1px solid var(--line); padding: 20px 12px; background: var(--panel); position: sticky; top: 60px; height: calc(100vh - 60px); }
+.nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 10px; padding: 0 8px; }
+nav button { display: block; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; padding: 10px 12px; border-radius: var(--radius); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 4px; }
+nav button:hover { background: var(--bg); color: var(--ink); }
+nav button.active { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+
+main { padding: 24px 28px 60px; min-width: 0; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* Headings */
+.eyebrow { text-transform: uppercase; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--brand); margin-bottom: 4px; }
+h1 { font-family: var(--font-heading); font-size: 26px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
+
+/* Dashboard Grids */
+.grid-2 { display: grid; grid-template-columns: 1.3fr 0.7fr; gap: 16px; margin-bottom: 16px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 16px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
+
+/* Cards & Components */
+.metric-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.metric-num { font-family: var(--font-heading); font-size: 32px; font-weight: 700; letter-spacing: -0.04em; }
+.metric-unit { font-size: 12px; color: var(--muted); font-weight: 500; }
+.progress-bar { height: 8px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin: 8px 0; }
+.progress-bar i { display: block; height: 100%; background: var(--brand); width: 0%; transition: width 0.3s ease; }
+.meta-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+.macro-pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; border-top: 1px solid var(--line); padding-top: 14px; }
+.macro-pill { text-align: center; }
+.macro-pill strong { display: block; font-size: 16px; font-family: var(--font-heading); }
+.macro-pill span { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; }
+
+/* High Density Table & Rows */
+.section-title { font-family: var(--font-heading); font-size: 15px; font-weight: 700; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.data-table th { background: var(--bg); padding: 10px 12px; border: 1px solid var(--line); font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--muted); }
+.data-table td { padding: 10px 12px; border: 1px solid var(--line); vertical-align: middle; }
+
+.item-row { display: grid; grid-template-columns: 32px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.item-row:last-child { border-bottom: 0; }
+.row-idx { font-family: var(--font-heading); font-size: 12px; font-weight: 700; color: var(--muted); }
+
+/* Forms & Inputs */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 12px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.field input, .field select, .field textarea { width: 100%; height: 38px; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); padding: 0 10px; color: var(--ink); outline: none; }
+.field input:focus, .field select:focus { border-color: var(--brand); }
+
+/* Machine Library & Muscle Diagram */
+.machine-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.machine-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--panel); cursor: pointer; transition: border-color 0.2s; }
+.machine-card:hover, .machine-card.active { border-color: var(--brand); }
+.machine-card h3 { font-size: 14px; margin-bottom: 4px; font-weight: 700; }
+.machine-card p { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.tag-list { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); }
+.tag.primary { background: var(--brand-light); color: var(--brand); border-color: var(--brand); }
+
+/* Human Body Muscle Heatmap SVG Visualizer */
+.body-visualizer { display: flex; justify-content: center; align-items: center; gap: 20px; padding: 20px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
+.muscle-svg { height: 260px; width: auto; fill: var(--line); stroke: var(--bg); stroke-width: 1.5; }
+.muscle-path { transition: fill 0.3s; cursor: pointer; }
+.muscle-path.active { fill: var(--brand) !important; }
+.muscle-path.secondary { fill: #93c5fd !important; }
+
+/* Settings Options */
+.settings-group { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; background: var(--panel); margin-bottom: 16px; }
+.settings-group h3 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.settings-group p { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+.color-picker { display: flex; gap: 10px; margin-top: 8px; }
+.color-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.color-dot.active { border-color: var(--ink); transform: scale(1.1); }
+
+.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.toggle-row:last-child { border-bottom: 0; }
+.toggle-row label { font-size: 13px; font-weight: 600; }
+
+/* Empty state banner */
+.empty-box { text-align: center; padding: 32px 16px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--panel); }
+.empty-box p { color: var(--muted); font-size: 13px; margin-bottom: 12px; }
+
+/* Checkbox button */
+.check-btn { width: 28px; height: 28px; border: 1px solid var(--line); background: var(--panel); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--brand-ink); }
+.check-btn.done { background: var(--brand); border-color: var(--brand); }
+
+/* Responsive */
+@media (max-width: 820px) {
+  .layout { grid-template-columns: 1fr; }
+  aside { position: fixed; bottom: 0; top: auto; height: 60px; width: 100%; border-right: 0; border-top: 1px solid var(--line); padding: 6px; z-index: 40; }
+  aside .nav-label { display: none; }
+  nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+  nav button { text-align: center; font-size: 10px; padding: 8px 2px; margin: 0; }
+  main { padding: 16px 14px 80px; }
+  .grid-2, .grid-3, .machine-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
+
 <div class="app">
-<header class="topbar"><div class="brand">PULSE<span>.</span></div><div class="topright"><span class="dateTag" id="topDate"></span><button class="iconBtn" onclick="openWorkout()">+</button></div></header>
-<div class="layout">
-<aside><div class="navlabel">Workspace</div><nav>
-<button class="active" onclick="show('dashboard',this)">Dashboard</button>
-<button onclick="show('training',this)">Training</button>
-<button onclick="show('meals',this)">Meals</button>
-<button onclick="show('muscles',this)">Muscles</button>
-<button onclick="show('history',this)">History</button>
-</nav></aside>
-<main>
-<section id="dashboard" class="screen active">
-<div class="eyebrow">Daily log</div><h1>Wednesday, September 23</h1><p class="subtitle">Record the work. Keep the numbers current.</p>
-<div class="gridTop">
-<div class="panel pad"><div class="metricHeader"><div><div class="eyebrow">Calories</div><div class="metricValue" id="dashCal">1,840 <span class="metricUnit">/ 2,500 kcal</span></div></div><button class="iconBtn" onclick="show('meals',document.querySelectorAll('nav button')[2])">+</button></div><div class="progress"><i id="dashCalBar" style="width:74%"></i></div><div class="metaRow"><span>660 kcal remaining</span><span id="calPct">74%</span></div><div class="quick"><div><b id="proteinQ">128g</b><span>PROTEIN</span></div><div><b id="carbQ">174g</b><span>CARBS</span></div><div><b id="fatQ">56g</b><span>FAT</span></div></div></div>
-<div class="panel pad"><div class="eyebrow">Consistency</div><div class="streak">4 <small>days</small></div><p style="font-size:12px;color:var(--muted)">Current training streak</p><div class="metaRow" style="margin-top:20px"><span>This week</span><b>3 / 5</b></div></div>
-</div>
-<div class="section"><div class="sectionHead"><h2>Training week</h2><span class="status">3 sessions logged</span></div><div class="week" id="week"></div></div>
-<div class="section panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Today's session</h2><button class="action" onclick="openWorkout()">Add exercise</button></div><div id="dashWorkouts"></div></div>
-<div class="section twocol">
-<div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Next meal</h2><button class="action" onclick="show('meals',document.querySelectorAll('nav button')[2])">View meals</button></div><div style="padding-top:15px" id="nextMeal"></div></div>
-<div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Hydration</h2><button class="action" onclick="addWater()">+ 250 ml</button></div><div style="padding-top:15px"><div class="metricValue" id="water">1.75 <span class="metricUnit">L</span></div><div class="progress" style="margin-top:10px"><i id="waterBar" style="width:70%"></i></div><div class="metaRow"><span>Daily target</span><span>2.5 L</span></div></div></div>
-</div>
-</section>
-
-<section id="training" class="screen"><div class="eyebrow">Training</div><h1>Session log</h1><p class="subtitle">Check off completed exercises. Add sets as you go.</p><div class="kpiGrid" style="margin-bottom:12px"><div class="kpi"><b id="tDone">2</b><span>COMPLETED</span></div><div class="kpi"><b id="tSets">7</b><span>SETS</span></div><div class="kpi"><b>52 min</b><span>SESSION</span></div><div class="kpi"><b>Chest</b><span>FOCUS</span></div></div><div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Exercises</h2><button class="action" onclick="openWorkout()">Add exercise</button></div><div id="trainingList"></div></div></section>
-
-<section id="meals" class="screen"><div class="eyebrow">Nutrition</div><h1>Meal planner</h1><p class="subtitle">Suggestions are filtered by your calorie target and training needs.</p>
-<div class="twocol"><div class="panel pad"><div class="eyebrow">Remaining</div><div class="metricValue" id="remain">660 <span class="metricUnit">kcal</span></div><div class="metaRow"><span>Protein target</span><b>160 g</b></div><div class="progress" style="margin-top:8px"><i id="proteinBar" style="width:80%"></i></div></div><div class="panel pad"><div class="eyebrow">Meal plan</div><div style="font-size:13px;line-height:1.6">High protein<br>2,500 kcal target<br>3 meals + 1 snack</div></div></div>
-<div class="filter"><button class="active" onclick="filterMeals('all',this)">All</button><button onclick="filterMeals('breakfast',this)">Breakfast</button><button onclick="filterMeals('lunch',this)">Lunch</button><button onclick="filterMeals('dinner',this)">Dinner</button><button onclick="filterMeals('snack',this)">Snack</button></div>
-<div class="mealGrid" id="mealGrid"></div></section>
-
-<section id="muscles" class="screen"><div class="eyebrow">Coverage</div><h1>Muscle groups</h1><p class="subtitle">Weekly volume by muscle group.</p><table class="muscleTable"><thead><tr><th>Group</th><th>Sets</th><th>Weekly volume</th><th>Coverage</th></tr></thead><tbody id="muscleRows"></tbody></table></section>
-
-
-<section id="progress" class="screen">
-  <div class="eyebrow">Progress</div>
-  <h1>Performance</h1>
-  <p class="subtitle">Track changes in strength, body weight and training volume.</p>
-
-  <div class="kpiGrid" style="margin-bottom:12px">
-    <div class="kpi"><b>+12.5 kg</b><span>BENCH PRESS</span></div>
-    <div class="kpi"><b>+15 kg</b><span>SQUAT</span></div>
-    <div class="kpi"><b>+20 kg</b><span>DEADLIFT</span></div>
-    <div class="kpi"><b>18</b><span>SESSIONS</span></div>
-  </div>
-
-  <div class="twocol">
-    <div class="panel pad">
-      <div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Bench press</h2><span class="status">kg</span></div>
-      <div class="progressChart" id="strengthChart"></div>
-      <div class="metaRow"><span>Aug 26</span><span>Sep 23</span></div>
+  <!-- Topbar -->
+  <header class="topbar">
+    <div class="brand">Gymplified<span>.</span></div>
+    <div class="top-actions">
+      <span class="date-tag" id="currentDate">Today</span>
+      <button class="btn-icon" onclick="openLogModal()">+ Log Exercise</button>
+      <button class="btn-icon" onclick="showScreen('settings')">⚙ Settings</button>
     </div>
-    <div class="panel pad">
-      <div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Body weight</h2><span class="status">kg</span></div>
-      <div style="padding-top:18px">
-        <div class="metricValue">72.4 <span class="metricUnit">kg</span></div>
-        <p style="font-size:11px;color:var(--muted);margin-top:5px">Starting weight: 70.8 kg</p>
-        <div class="progress" style="margin-top:22px"><i style="width:38%"></i></div>
-        <div class="metaRow"><span>+1.6 kg</span><span>4 weeks</span></div>
+  </header>
+
+  <div class="layout">
+    <!-- Navigation Sidebar -->
+    <aside>
+      <div class="nav-label">Workspace</div>
+      <nav>
+        <button class="active" onclick="showScreen('dashboard', this)">Dashboard</button>
+        <button onclick="showScreen('training', this)">Training Log</button>
+        <button onclick="showScreen('machines', this)">Gym Machines</button>
+        <button onclick="showScreen('nutrition', this)">Nutrition</button>
+        <button onclick="showScreen('settings', this)">Settings Hub</button>
+      </nav>
+    </aside>
+
+    <!-- Main Screens -->
+    <main>
+      <!-- 1. DASHBOARD -->
+      <section id="dashboard" class="screen active">
+        <div class="eyebrow">Overview</div>
+        <h1>Daily Dashboard</h1>
+        <p class="subtitle">Real-time gym metrics, active sessions, and nutrition logs.</p>
+
+        <div class="grid-2">
+          <!-- Calorie Log Panel -->
+          <div class="panel">
+            <div class="metric-head">
+              <div>
+                <div class="eyebrow">Energy Intake</div>
+                <div class="metric-num"><span id="dashCal">0</span> <span class="metricUnit">/ <span id="dashCalTarget">2500</span> kcal</span></div>
+              </div>
+              <button class="btn-icon" onclick="openCalorieModal()">+ Add Food</button>
+            </div>
+            <div class="progress-bar"><i id="dashCalBar" style="width: 0%"></i></div>
+            <div class="meta-row">
+              <span id="dashCalRemain">2,500 kcal remaining</span>
+              <span id="dashCalPct">0%</span>
+            </div>
+            <div class="macro-pills">
+              <div class="macro-pill"><strong id="dashProtein">0g</strong><span>Protein</span></div>
+              <div class="macro-pill"><strong id="dashCarbs">0g</strong><span>Carbs</span></div>
+              <div class="macro-pill"><strong id="dashFat">0g</strong><span>Fat</span></div>
+            </div>
+          </div>
+
+          <!-- Hydration & Streak -->
+          <div class="panel">
+            <div class="metric-head">
+              <div>
+                <div class="eyebrow">Hydration Log</div>
+                <div class="metric-num"><span id="dashWater">0.00</span> <span class="metricUnit">/ 2.50 L</span></div>
+              </div>
+              <button class="btn-icon" onclick="addWater(0.25)">+ 250ml</button>
+            </div>
+            <div class="progress-bar"><i id="dashWaterBar" style="width: 0%"></i></div>
+            <div class="meta-row">
+              <span>Goal: 2.5 Liters</span>
+              <button class="btn-icon" style="padding:0 6px; font-size:10px" onclick="resetWater()">Reset</button>
+            </div>
+            <div style="margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line);">
+              <div class="eyebrow">Logged Today</div>
+              <div style="font-size: 20px; font-weight: 700; font-family: var(--font-heading);" id="dashWorkoutCount">0 Exercises</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Exercises Table -->
+        <div class="panel">
+          <div class="section-title">
+            <span>Today's Exercises</span>
+            <button class="btn-primary" onclick="openLogModal()">+ Add Exercise</button>
+          </div>
+          <div id="dashWorkoutsContainer">
+            <!-- Dynamic list -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. TRAINING LOG -->
+      <section id="training" class="screen">
+        <div class="eyebrow">Execution</div>
+        <h1>Training Session Log</h1>
+        <p class="subtitle">Add exercises, record completed sets, track weights, and write to local storage.</p>
+
+        <!-- Dynamic Direct Writer Form -->
+        <div class="panel" style="margin-bottom: 20px;">
+          <div class="section-title">Direct Exercise Recorder</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Exercise / Machine</label>
+              <input type="text" id="inputExName" placeholder="e.g. Leg Press, Lat Pulldown">
+            </div>
+            <div class="field">
+              <label>Muscle Target</label>
+              <select id="inputExMuscle">
+                <option value="Chest">Chest</option>
+                <option value="Lats">Lats / Upper Back</option>
+                <option value="Shoulders">Shoulders</option>
+                <option value="Quadriceps">Quadriceps</option>
+                <option value="Hamstrings">Hamstrings</option>
+                <option value="Biceps">Biceps</option>
+                <option value="Triceps">Triceps</option>
+                <option value="Calves">Calves</option>
+                <option value="Abs">Abs / Core</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Weight (kg)</label>
+              <input type="number" id="inputExWeight" value="50" min="0" step="2.5">
+            </div>
+            <div class="field">
+              <label>Target Sets</label>
+              <input type="number" id="inputExSets" value="3" min="1" max="10">
+            </div>
+            <div class="field">
+              <label>Target Reps</label>
+              <input type="number" id="inputExReps" value="10" min="1" max="100">
+            </div>
+          </div>
+          <button class="btn-primary" onclick="saveDirectExercise()">Save Exercise to Log</button>
+        </div>
+
+        <!-- Training List -->
+        <div class="panel">
+          <div class="section-title">
+            <span>Logged Session Exercises</span>
+            <button class="btn-icon" onclick="clearAllWorkouts()" style="color:var(--danger)">Clear Session</button>
+          </div>
+          <div id="trainingLogList">
+            <!-- Dynamic rendering -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. GYM MACHINES & MUSCLE GRAPH -->
+      <section id="machines" class="screen">
+        <div class="eyebrow">Anatomy & Equipment</div>
+        <h1>Gym Machines & Target Muscles</h1>
+        <p class="subtitle">Select popular gym machines to view targeted muscle groups on the anatomical visual graph.</p>
+
+        <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px;">
+          <!-- Machine Directory List -->
+          <div>
+            <div class="section-title">Popular Gym Machines</div>
+            <div class="machine-grid" id="machineList" style="grid-template-columns: 1fr;">
+              <!-- Dynamic machine cards -->
+            </div>
+          </div>
+
+          <!-- Visual Muscle Graph / Diagram -->
+          <div>
+            <div class="section-title">Target Muscle Visualizer</div>
+            <div class="body-visualizer">
+              <!-- Anatomical Muscle SVG Visual Diagram -->
+              <svg class="muscle-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+                <!-- Head & Outline -->
+                <circle cx="100" cy="25" r="14" fill="none" stroke="var(--line)" stroke-width="2"/>
+                <path d="M 85,42 Q 100,48 115,42 L 135,65 L 145,120 L 135,130 L 130,200 L 122,280 L 102,280 L 100,160 L 98,280 L 78,280 L 70,200 L 65,130 L 55,120 L 65,65 Z" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+                
+                <!-- Muscle Groups (Selectable SVG paths) -->
+                <!-- Chest -->
+                <path id="svg-chest" class="muscle-path" d="M 82,65 Q 100,70 118,65 L 120,88 Q 100,98 80,88 Z" title="Chest / Pectorals"/>
+                <!-- Lats / Back -->
+                <path id="svg-lats" class="muscle-path" d="M 72,90 Q 65,115 78,135 Q 100,120 122,135 Q 135,115 128,90 Q 100,102 72,90 Z" title="Lats / Upper Back"/>
+                <!-- Shoulders (Deltoids) -->
+                <path id="svg-shoulders" class="muscle-path" d="M 68,62 L 82,65 L 76,90 L 58,100 Z M 132,62 L 118,65 L 124,90 L 142,100 Z" title="Shoulders / Deltoids"/>
+                <!-- Biceps -->
+                <path id="svg-biceps" class="muscle-path" d="M 57,102 L 74,96 L 68,125 L 54,120 Z" title="Biceps"/>
+                <!-- Triceps -->
+                <path id="svg-triceps" class="muscle-path" d="M 143,102 L 126,96 L 132,125 L 146,120 Z" title="Triceps"/>
+                <!-- Abs / Core -->
+                <path id="svg-abs" class="muscle-path" d="M 82,94 Q 100,98 118,94 L 116,145 Q 100,150 84,145 Z" title="Abs / Core"/>
+                <!-- Quads -->
+                <path id="svg-quadriceps" class="muscle-path" d="M 74,155 L 97,155 L 94,220 L 76,215 Z M 103,155 L 126,155 L 124,215 L 106,220 Z" title="Quadriceps"/>
+                <!-- Hamstrings -->
+                <path id="svg-hamstrings" class="muscle-path" d="M 76,218 L 94,222 L 91,255 L 78,250 Z M 124,218 L 106,222 L 109,255 L 122,250 Z" title="Hamstrings"/>
+                <!-- Calves -->
+                <path id="svg-calves" class="muscle-path" d="M 78,254 L 91,257 L 88,285 L 80,285 Z M 122,254 L 109,257 L 112,285 L 120,285 Z" title="Calves"/>
+              </svg>
+            </div>
+
+            <!-- Active Machine Info Box -->
+            <div class="panel" style="margin-top: 12px;" id="machineDetailBox">
+              <h3 id="selectedMachineTitle" style="font-size: 15px; margin-bottom: 4px;">Click a machine to inspect</h3>
+              <p id="selectedMachineDesc" style="font-size: 12px; color: var(--muted);">Muscle activation diagram will highlight primary and secondary targeted muscles.</p>
+              <div id="selectedMachineTags" class="tag-list" style="margin-top: 10px;"></div>
+              <button id="addMachineToWorkoutBtn" class="btn-primary" style="margin-top: 12px; width: 100%; display: none;" onclick="addSelectedMachineToLog()">+ Add Machine to Workout Log</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. NUTRITION & MEALS -->
+      <section id="nutrition" class="screen">
+        <div class="eyebrow">Fueling</div>
+        <h1>Nutrition & Calories</h1>
+        <p class="subtitle">Record meal macros and track daily caloric balance without preloaded mock entries.</p>
+
+        <div class="panel" style="margin-bottom: 20px;">
+          <div class="section-title">Add Custom Food / Meal</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Food Item</label>
+              <input type="text" id="inputFoodName" placeholder="e.g. Grilled Chicken & Rice">
+            </div>
+            <div class="field">
+              <label>Calories (kcal)</label>
+              <input type="number" id="inputFoodCal" value="450">
+            </div>
+            <div class="field">
+              <label>Protein (g)</label>
+              <input type="number" id="inputFoodProtein" value="35">
+            </div>
+            <div class="field">
+              <label>Carbs (g)</label>
+              <input type="number" id="inputFoodCarbs" value="40">
+            </div>
+            <div class="field">
+              <label>Fat (g)</label>
+              <input type="number" id="inputFoodFat" value="10">
+            </div>
+          </div>
+          <button class="btn-primary" onclick="saveFoodEntry()">Log Meal Intake</button>
+        </div>
+
+        <div class="panel">
+          <div class="section-title">
+            <span>Logged Food Items Today</span>
+            <button class="btn-icon" onclick="clearFoodLogs()" style="color:var(--danger)">Reset Food Logs</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Meal / Item</th>
+                <th>Calories</th>
+                <th>Protein</th>
+                <th>Carbs</th>
+                <th>Fat</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="foodTableBody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 5. SETTINGS HUB & ACCESSIBILITY OPTIONS -->
+      <section id="settings" class="screen">
+        <div class="eyebrow">Preferences</div>
+        <h1>Settings & Accessibility Hub</h1>
+        <p class="subtitle">Customize interface contrast, color accents, font scales, motion preferences, and manage local data.</p>
+
+        <!-- UI Themes & Dark Mode -->
+        <div class="settings-group">
+          <h3>Interface Appearance & Dark Mode</h3>
+          <p>Choose your base color scheme and accent highlight color.</p>
+          
+          <div class="toggle-row">
+            <label for="themeSelect">Theme Mode</label>
+            <select id="themeSelect" onchange="changeTheme(this.value)" style="width: 160px; height: 34px;">
+              <option value="light">Light Mode</option>
+              <option value="dark">Dark Mode</option>
+            </select>
+          </div>
+
+          <div style="margin-top: 14px;">
+            <label style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--muted);">Accent Color Palette</label>
+            <div class="color-picker">
+              <div class="color-dot active" style="background: #2563eb;" title="Electric Blue" onclick="changeColor('blue', this)"></div>
+              <div class="color-dot" style="background: #059669;" title="Emerald Green" onclick="changeColor('emerald', this)"></div>
+              <div class="color-dot" style="background: #334155;" title="Slate Monochrome" onclick="changeColor('slate', this)"></div>
+              <div class="color-dot" style="background: #dc2626;" title="Crimson Red" onclick="changeColor('crimson', this)"></div>
+              <div class="color-dot" style="background: #d97706;" title="Amber Gold" onclick="changeColor('amber', this)"></div>
+              <div class="color-dot" style="background: #7c3aed;" title="Violet Purple" onclick="changeColor('violet', this)"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accessibility Options -->
+        <div class="settings-group">
+          <h3>Accessibility Options</h3>
+          <p>Adjust text sizing, contrast borders, and motion settings for high readability.</p>
+
+          <div class="toggle-row">
+            <label for="scaleSelect">Text Scale</label>
+            <select id="scaleSelect" onchange="changeScale(this.value)" style="width: 160px; height: 34px;">
+              <option value="sm">Small (87.5%)</option>
+              <option value="md" selected>Default (100%)</option>
+              <option value="lg">Large (112.5%)</option>
+              <option value="xl">Extra Large (125%)</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <label for="fontSelect">Typography Style</label>
+            <select id="fontSelect" onchange="changeFont(this.value)" style="width: 160px; height: 34px;">
+              <option value="default">Standard Sans-Serif</option>
+              <option value="accessible">High-Legibility Font</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <label for="contrastToggle">High Contrast Borders</label>
+            <select id="contrastToggle" onchange="changeContrast(this.value)" style="width: 160px; height: 34px;">
+              <option value="normal">Normal Contrast</option>
+              <option value="high">High Contrast (1px Solid Sharp)</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <label for="motionToggle">UI Animation / Motion</label>
+            <select id="motionToggle" onchange="changeMotion(this.value)" style="width: 160px; height: 34px;">
+              <option value="normal">Enabled</option>
+              <option value="reduced">Reduced Motion</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Data Management -->
+        <div class="settings-group">
+          <h3>Data Management & Local State</h3>
+          <p>Gymplified starts clean by default. You can seed sample gym data for testing or clear all local browser data.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn-icon" onclick="seedSampleData()">Seed Sample Gym Data</button>
+            <button class="btn-icon" onclick="resetAllData()" style="color: var(--danger); border-color: var(--danger);">Reset All Local Data</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+
+<script>
+// --- APP STATE & STORAGE ---
+const STORAGE_KEY = 'gymplified_app_v1';
+
+// Initial CLEAN state (Starts without prefilled mock data by default)
+const cleanState = {
+  cal: 0,
+  calTarget: 2500,
+  protein: 0,
+  carbs: 0,
+  fat: 0,
+  water: 0,
+  workouts: [],
+  foods: [],
+  settings: {
+    theme: 'light',
+    color: 'blue',
+    scale: 'md',
+    font: 'default',
+    contrast: 'normal',
+    motion: 'normal'
+  }
+};
+
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || cleanState;
+
+// Popular Gym Exercise Machines Database
+const GYM_MACHINES = [
+  {
+    id: 'leg-press',
+    name: 'Leg Press Machine',
+    desc: 'Plate-loaded or pin-selected compound machine targeting quadriceps, glutes, and hamstrings.',
+    primary: ['quadriceps'],
+    secondary: ['hamstrings']
+  },
+  {
+    id: 'lat-pulldown',
+    name: 'Lat Pulldown Machine',
+    desc: 'Cable machine targeting the Latissimus Dorsi and upper back width.',
+    primary: ['lats'],
+    secondary: ['biceps']
+  },
+  {
+    id: 'pec-deck',
+    name: 'Pec Deck / Chest Fly Machine',
+    desc: 'Isolated chest machine emphasizing pectoral stretch and contraction.',
+    primary: ['chest'],
+    secondary: ['shoulders']
+  },
+  {
+    id: 'seated-row',
+    name: 'Seated Cable Row',
+    desc: 'Horizontal pulling machine targeting mid-back thickness and lats.',
+    primary: ['lats'],
+    secondary: ['biceps']
+  },
+  {
+    id: 'shoulder-press-m',
+    name: 'Seated Shoulder Press Machine',
+    desc: 'Overhead press guided machine targeting anterior and lateral deltoids.',
+    primary: ['shoulders'],
+    secondary: ['triceps']
+  },
+  {
+    id: 'leg-extension',
+    name: 'Leg Extension Machine',
+    desc: 'Isolation exercise focusing exclusively on quadriceps rectus femoris.',
+    primary: ['quadriceps'],
+    secondary: []
+  },
+  {
+    id: 'hamstring-curl',
+    name: 'Seated Hamstring Curl',
+    desc: 'Isolated knee flexion machine targeting posterior thigh hamstring muscles.',
+    primary: ['hamstrings'],
+    secondary: []
+  },
+  {
+    id: 'triceps-pushdown',
+    name: 'Cable Triceps Pushdown',
+    desc: 'Cable pulley machine isolation exercise for triceps muscle heads.',
+    primary: ['triceps'],
+    secondary: []
+  },
+  {
+    id: 'cable-curl',
+    name: 'Cable Biceps Curl Machine',
+    desc: 'Constant tension cable pulley targeting biceps brachii.',
+    primary: ['biceps'],
+    secondary: []
+  },
+  {
+    id: 'calf-raise-m',
+    name: 'Seated / Standing Calf Raise Machine',
+    desc: 'Targeting gastrocnemius and soleus calf muscles.',
+    primary: ['calves'],
+    secondary: []
+  },
+  {
+    id: 'ab-crunch-m',
+    name: 'Abdominal Crunch Machine',
+    desc: 'Resisted trunk flexion machine targeting rectus abdominis.',
+    primary: ['abs'],
+    secondary: []
+  }
+];
+
+let selectedMachine = null;
+
+// --- INITIALIZATION ---
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderAll();
+}
+
+function applySettings() {
+  const s = state.settings || cleanState.settings;
+  document.documentElement.setAttribute('data-theme', s.theme || 'light');
+  document.documentElement.setAttribute('data-color', s.color || 'blue');
+  document.documentElement.setAttribute('data-scale', s.scale || 'md');
+  document.documentElement.setAttribute('data-font', s.font || 'default');
+  document.documentElement.setAttribute('data-contrast', s.contrast || 'normal');
+  document.documentElement.setAttribute('data-motion', s.motion || 'normal');
+
+  // Update DOM selectors in Settings screen
+  if(document.getElementById('themeSelect')) document.getElementById('themeSelect').value = s.theme || 'light';
+  if(document.getElementById('scaleSelect')) document.getElementById('scaleSelect').value = s.scale || 'md';
+  if(document.getElementById('fontSelect')) document.getElementById('fontSelect').value = s.font || 'default';
+  if(document.getElementById('contrastToggle')) document.getElementById('contrastToggle').value = s.contrast || 'normal';
+  if(document.getElementById('motionToggle')) document.getElementById('motionToggle').value = s.motion || 'normal';
+
+  // Highlight active color dot
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.classList.remove('active');
+  });
+}
+
+// --- NAVIGATION ---
+function showScreen(screenId, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  if (btn) {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+}
+
+// --- RENDER FUNCTIONS ---
+function renderDashboard() {
+  // Calorie calculations
+  document.getElementById('dashCal').textContent = state.cal.toLocaleString();
+  document.getElementById('dashCalTarget').textContent = state.calTarget.toLocaleString();
+  const pct = Math.min(100, Math.round((state.cal / state.calTarget) * 100));
+  document.getElementById('dashCalBar').style.width = pct + '%';
+  document.getElementById('dashCalPct').textContent = pct + '%';
+  const remain = Math.max(0, state.calTarget - state.cal);
+  document.getElementById('dashCalRemain').textContent = remain.toLocaleString() + ' kcal remaining';
+
+  document.getElementById('dashProtein').textContent = state.protein + 'g';
+  document.getElementById('dashCarbs').textContent = state.carbs + 'g';
+  document.getElementById('dashFat').textContent = state.fat + 'g';
+
+  // Hydration
+  document.getElementById('dashWater').textContent = state.water.toFixed(2);
+  const waterPct = Math.min(100, Math.round((state.water / 2.5) * 100));
+  document.getElementById('dashWaterBar').style.width = waterPct + '%';
+
+  // Exercises overview
+  document.getElementById('dashWorkoutCount').textContent = state.workouts.length + ' Exercises';
+
+  const container = document.getElementById('dashWorkoutsContainer');
+  if (state.workouts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-box">
+        <p>No workouts recorded today. Click below or use the Training Log to add exercises.</p>
+        <button class="btn-primary" onclick="showScreen('training', document.querySelectorAll('nav button')[1])">Open Training Log</button>
+      </div>`;
+  } else {
+    container.innerHTML = state.workouts.map((w, i) => `
+      <div class="item-row">
+        <div class="row-idx">${String(i + 1).padStart(2, '0')}</div>
+        <div>
+          <strong style="display:block; font-size:14px;">${w.name}</strong>
+          <span style="font-size:12px; color:var(--muted);">${w.muscle} · ${w.weight}kg · ${w.sets} sets x ${w.reps} reps</span>
+        </div>
+        <button class="check-btn ${w.done ? 'done' : ''}" onclick="toggleWorkoutDone(${i})">${w.done ? '✓' : ''}</button>
+      </div>
+    `).join('');
+  }
+}
+
+function renderTrainingLog() {
+  const container = document.getElementById('trainingLogList');
+  if (state.workouts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-box">
+        <p>Your session log is empty. Use the Direct Exercise Recorder above to write exercises into memory.</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = state.workouts.map((w, i) => `
+    <div class="item-row">
+      <div class="row-idx">${String(i + 1).padStart(2, '0')}</div>
+      <div>
+        <strong style="display:block; font-size:14px;">${w.name}</strong>
+        <span style="font-size:12px; color:var(--muted);">${w.muscle} target · ${w.weight} kg load</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:12px;">
+        <span style="font-size:12px; font-weight:700;">${w.sets} sets × ${w.reps} reps</span>
+        <button class="check-btn ${w.done ? 'done' : ''}" onclick="toggleWorkoutDone(${i})">${w.done ? '✓' : ''}</button>
+        <button class="btn-icon" style="color:var(--danger); padding:0 8px;" onclick="deleteWorkout(${i})">✕</button>
       </div>
     </div>
-  </div>
+  `).join('');
+}
 
-  <div class="section panel pad">
-    <div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Personal bests</h2><span class="status">Latest records</span></div>
-    <div class="pbGrid" style="margin-top:18px">
-      <div class="pb"><b>80 kg</b><span>BENCH PRESS · 1 REP</span><div class="trend">↑ 12.5 kg</div></div>
-      <div class="pb"><b>105 kg</b><span>BACK SQUAT · 1 REP</span><div class="trend">↑ 15 kg</div></div>
-      <div class="pb"><b>125 kg</b><span>DEADLIFT · 1 REP</span><div class="trend">↑ 20 kg</div></div>
-      <div class="pb"><b>32 kg</b><span>DB SHOULDER PRESS</span><div class="trend">↑ 4 kg</div></div>
-      <div class="pb"><b>60 kg</b><span>BARBELL ROW</span><div class="trend">↑ 10 kg</div></div>
-      <div class="pb"><b>18 kg</b><span>DB CURL</span><div class="trend">↑ 3 kg</div></div>
+function renderNutrition() {
+  const tableBody = document.getElementById('foodTableBody');
+  if (state.foods.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding: 20px;">No meals logged today. Use the form above to add custom foods.</td></tr>`;
+    return;
+  }
+
+  tableBody.innerHTML = state.foods.map((f, i) => `
+    <tr>
+      <td><strong>${f.name}</strong></td>
+      <td>${f.cal} kcal</td>
+      <td>${f.protein}g</td>
+      <td>${f.carbs}g</td>
+      <td>${f.fat}g</td>
+      <td><button class="btn-icon" style="color:var(--danger); padding:2px 8px; font-size:11px;" onclick="deleteFood(${i})">Delete</button></td>
+    </tr>
+  `).join('');
+}
+
+function renderMachines() {
+  const list = document.getElementById('machineList');
+  list.innerHTML = GYM_MACHINES.map(m => `
+    <div class="machine-card ${selectedMachine && selectedMachine.id === m.id ? 'active' : ''}" onclick="selectMachine('${m.id}')">
+      <h3>${m.name}</h3>
+      <p>${m.desc}</p>
+      <div class="tag-list">
+        ${m.primary.map(p => `<span class="tag primary">${p}</span>`).join('')}
+        ${m.secondary.map(s => `<span class="tag">${s}</span>`).join('')}
+      </div>
     </div>
-  </div>
-
-  <div class="resetBox">
-    <strong>Data</strong>
-    <div style="font-size:11px;color:var(--muted);margin:5px 0 10px">Your workout logs, preferences and saved progress are stored in this browser.</div>
-    <button class="btn danger" onclick="resetData()">Reset all saved data</button>
-  </div>
-</section>
-
-<section id="history" class="screen"><div class="eyebrow">Records</div><h1>Training history</h1><p class="subtitle">Completed sessions and personal records.</p><div class="twocol"><div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Sessions</h2></div><div id="historyRows"></div></div><div class="panel pad"><div class="sectionHead" style="margin:-18px -18px 0;padding:0 18px"><h2>Personal records</h2></div><div class="row"><div class="number">01</div><div><h3>Bench Press</h3><p>Last best set</p></div><b>80 kg</b></div><div class="row"><div class="number">02</div><div><h3>Squat</h3><p>Last best set</p></div><b>105 kg</b></div><div class="row"><div class="number">03</div><div><h3>Deadlift</h3><p>Last best set</p></div><b>125 kg</b></div></div></div></section>
-</main></div></div>
-
-<div class="modal" id="workoutModal" onclick="if(event.target===this)closeWorkout()"><div class="dialog"><div class="dialogHead"><h2>Add exercise</h2><button class="close" onclick="closeWorkout()">×</button></div><div class="field"><label>EXERCISE</label><input id="exName" placeholder="e.g. Incline dumbbell press"></div><div class="formGrid"><div class="field"><label>MUSCLE GROUP</label><select id="exGroup"><option>Chest</option><option>Back</option><option>Legs</option><option>Shoulders</option><option>Arms</option><option>Core</option></select></div><div class="field"><label>SETS</label><input id="exSets" type="number" value="3"></div></div><button class="saveBtn" onclick="addExercise()">Add to session</button></div></div>
-<div class="modal" id="mealModal" onclick="if(event.target===this)closeMeal()"><div class="dialog"><div class="dialogHead"><h2 id="mealTitle"></h2><button class="close" onclick="closeMeal()">×</button></div><p id="mealDesc" style="font-size:13px;line-height:1.6;color:var(--muted);margin-bottom:15px"></p><div class="kpiGrid"><div class="kpi"><b id="mealCal"></b><span>KCAL</span></div><div class="kpi"><b id="mealPro"></b><span>PROTEIN</span></div><div class="kpi"><b id="mealCarb"></b><span>CARBS</span></div><div class="kpi"><b id="mealFat"></b><span>FAT</span></div></div></div></div>
-<div class="toast" id="toast"></div>
-<script>
-const KEY='pulseV2';
-const state=JSON.parse(localStorage.getItem(KEY)||'null')||{
- cal:1840,protein:128,water:1.75,
- workouts:[
- {name:'Bench Press',group:'Chest',sets:4,done:true},
- {name:'Incline Dumbbell Press',group:'Chest',sets:3,done:true},
- {name:'Cable Fly',group:'Chest',sets:3,done:false},
- {name:'Triceps Pushdown',group:'Arms',sets:3,done:false}],
- history:[['Today','Chest & Triceps','10 sets'],['Yesterday','Back & Biceps','13 sets'],['Mon, Sep 21','Leg Day','15 sets'],['Sat, Sep 19','Shoulders','11 sets']],
-};
-const meals=[
-['breakfast','Greek yogurt bowl','Greek yogurt, oats, berries and honey',430,32,52,10],
-['breakfast','Egg & toast plate','3 eggs, wholegrain toast, spinach and fruit',510,31,42,24],
-['lunch','Chicken rice bowl','Chicken breast, jasmine rice, vegetables and yogurt sauce',620,55,68,12],
-['lunch','Tuna pasta','Tuna, wholewheat pasta, tomato, spinach and parmesan',590,46,63,15],
-['dinner','Salmon & potatoes','Salmon fillet, roasted potatoes, broccoli and lemon',670,43,55,28],
-['dinner','Turkey burrito','Lean turkey, rice, beans, salsa and avocado',640,49,66,18],
-['snack','Protein oats','Oats, milk, banana and whey protein',390,30,48,9],
-['snack','Cottage cheese & fruit','Cottage cheese, apple and a small handful of nuts',310,28,28,10]
-];
-function save(){localStorage.setItem(KEY,JSON.stringify(state))}
-function toast(t){let e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1400)}
-function show(id,btn){document.querySelectorAll('.screen').forEach(x=>x.classList.remove('active'));document.getElementById(id).classList.add('active');document.querySelectorAll('nav button').forEach(x=>x.classList.remove('active'));if(btn)btn.classList.add('active');render()}
-function openWorkout(){document.getElementById('workoutModal').classList.add('show')}
-function closeWorkout(){document.getElementById('workoutModal').classList.remove('show')}
-function addExercise(){let n=document.getElementById('exName').value.trim();if(!n)return;state.workouts.push({name:n,group:document.getElementById('exGroup').value,sets:+document.getElementById('exSets').value||3,done:false});save();document.getElementById('exName').value='';closeWorkout();toast('Exercise added');render()}
-function toggle(i){state.workouts[i].done=!state.workouts[i].done;save();render()}
-function addWater(){state.water=Math.min(5,Math.round((state.water+.25)*100)/100);save();toast('250 ml added');render()}
-function filterMeals(type,btn){document.querySelectorAll('.filter button').forEach(x=>x.classList.remove('active'));btn.classList.add('active');renderMeals(type)}
-function openMeal(i){let m=meals[i];document.getElementById('mealTitle').textContent=m[1];document.getElementById('mealDesc').textContent=m[2];['mealCal','mealPro','mealCarb','mealFat'].forEach((id,j)=>document.getElementById(id).textContent=m[j+4]+(j?' g':''));document.getElementById('mealModal').classList.add('show')}
-function closeMeal(){document.getElementById('mealModal').classList.remove('show')}
-function renderMeals(type='all'){let list=type==='all'?meals:meals.filter(x=>x[0]===type);document.getElementById('mealGrid').innerHTML=list.map(m=>{let i=meals.indexOf(m);return `<div class="meal" onclick="openMeal(${i})"><h3>${m[1]}</h3><p>${m[2]}</p><div class="mealMeta"><span>${m[3]} kcal</span><span>${m[4]}g protein</span></div></div>`}).join('')}
-function render(){
-let now=new Date();document.getElementById('topDate').textContent=now.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});
-document.getElementById('dashCal').innerHTML=`${state.cal.toLocaleString()} <span class="metricUnit">/ 2,500 kcal</span>`;let cp=Math.min(100,state.cal/2500*100);document.getElementById('dashCalBar').style.width=cp+'%';document.getElementById('calPct').textContent=Math.round(cp)+'%';document.getElementById('proteinQ').textContent=state.protein+'g';document.getElementById('carbQ').textContent=Math.round(state.cal*.095)+'g';document.getElementById('fatQ').textContent=Math.round(state.cal*.03)+'g';
-document.getElementById('water').innerHTML=`${state.water.toFixed(2)} <span class="metricUnit">L</span>`;document.getElementById('waterBar').style.width=Math.min(100,state.water/2.5*100)+'%';
-document.getElementById('week').innerHTML=['M','T','W','T','F','S','S'].map((d,i)=>`<div class="${i===2?'today':''} ${i<2?'doneDot':''}"><small>${d}</small><b>${21+i}</b></div>`).join('');
-let renderRow=(w,i)=>`<div class="row"><div class="number">${String(i+1).padStart(2,'0')}</div><div><h3>${w.name}</h3><p>${w.group} · ${w.sets} sets</p></div><button class="check ${w.done?'done':''}" onclick="toggle(${i})">${w.done?'✓':''}</button></div>`;
-document.getElementById('dashWorkouts').innerHTML=state.workouts.slice(0,4).map(renderRow).join('');document.getElementById('trainingList').innerHTML=state.workouts.map(renderRow).join('');
-let done=state.workouts.filter(x=>x.done).length,sets=state.workouts.filter(x=>x.done).reduce((a,x)=>a+x.sets,0);document.getElementById('tDone').textContent=done;document.getElementById('tSets').textContent=sets;
-let remain=Math.max(0,2500-state.cal);document.getElementById('remain').innerHTML=`${remain.toLocaleString()} <span class="metricUnit">kcal</span>`;document.getElementById('proteinBar').style.width=Math.min(100,state.protein/160*100)+'%';
-document.getElementById('nextMeal').innerHTML=`<h3>${meals[4][1]}</h3><p style="font-size:11px;color:var(--muted);margin-top:5px">${meals[4][3]} kcal · ${meals[4][4]}g protein</p><button class="action" style="margin-top:13px;border:0;background:none;padding:0;cursor:pointer" onclick="openMeal(4)">View meal →</button>`;
-let groups=['Chest','Back','Legs','Shoulders','Arms','Core'];document.getElementById('muscleRows').innerHTML=groups.map((g,i)=>{let s=state.workouts.filter(x=>x.group===g).reduce((a,x)=>a+x.sets,0)+(i===2?12:i===1?8:0);return `<tr><td><b>${g}</b></td><td>${s}</td><td>${s*8} total reps</td><td><div class="bar"><i style="width:${Math.min(100,s/16*100)}%"></i></div></td></tr>`}).join('');
-document.getElementById('historyRows').innerHTML=state.history.map(x=>`<div class="row"><div class="number">${x[0].slice(0,3)}</div><div><h3>${x[1]}</h3><p>${x[0]}</p></div><span class="status">${x[2]}</span></div>`).join('');
-renderMeals();
-}
-render();
-
-function resetData(){
-  if(!confirm('Reset all saved gym data? This cannot be undone.')) return;
-  try {
-    localStorage.clear();
-    sessionStorage.clear();
-  } catch(e) {}
-  location.reload();
+  `).join('');
 }
 
+function selectMachine(id) {
+  selectedMachine = GYM_MACHINES.find(m => m.id === id);
+  renderMachines();
 
-(function(){
-  const el=document.getElementById('strengthChart');
-  if(!el) return;
-  const vals=[67.5,70,72.5,72.5,75,77.5,80], max=Math.max(...vals);
-  el.innerHTML=vals.map((v,i)=>`<div class="chartCol"><span class="chartValue">${v}</span><div class="chartBar" style="height:${Math.max(5,v/max*135)}px"></div><small>W${i+1}</small></div>`).join('');
-})();
+  // Reset muscle visualizer SVGs
+  document.querySelectorAll('.muscle-path').forEach(el => {
+    el.classList.remove('active', 'secondary');
+  });
 
+  if (selectedMachine) {
+    document.getElementById('selectedMachineTitle').textContent = selectedMachine.name;
+    document.getElementById('selectedMachineDesc').textContent = selectedMachine.desc;
+    document.getElementById('selectedMachineTags').innerHTML = `
+      <strong>Primary:</strong> ${selectedMachine.primary.map(p => `<span class="tag primary">${p}</span>`).join(' ')}
+      <strong style="margin-left:8px;">Secondary:</strong> ${selectedMachine.secondary.length ? selectedMachine.secondary.map(s => `<span class="tag">${s}</span>`).join(' ') : 'None'}
+    `;
+    document.getElementById('addMachineToWorkoutBtn').style.display = 'block';
+
+    // Highlight SVGs
+    selectedMachine.primary.forEach(p => {
+      const svgEl = document.getElementById('svg-' + p);
+      if (svgEl) svgEl.classList.add('active');
+    });
+    selectedMachine.secondary.forEach(s => {
+      const svgEl = document.getElementById('svg-' + s);
+      if (svgEl) svgEl.classList.add('secondary');
+    });
+  }
+}
+
+function addSelectedMachineToLog() {
+  if (!selectedMachine) return;
+  state.workouts.push({
+    name: selectedMachine.name,
+    muscle: selectedMachine.primary[0] ? selectedMachine.primary[0].toUpperCase() : 'GENERAL',
+    weight: 40,
+    sets: 3,
+    reps: 10,
+    done: false
+  });
+  saveState();
+  alert(selectedMachine.name + ' added to training session log!');
+}
+
+function renderAll() {
+  applySettings();
+  renderDashboard();
+  renderTrainingLog();
+  renderNutrition();
+  renderMachines();
+  
+  // Date display
+  const now = new Date();
+  document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+}
+
+// --- WRITE CONTROLS & ACTIONS ---
+function saveDirectExercise() {
+  const name = document.getElementById('inputExName').value.trim();
+  const muscle = document.getElementById('inputExMuscle').value;
+  const weight = parseFloat(document.getElementById('inputExWeight').value) || 0;
+  const sets = parseInt(document.getElementById('inputExSets').value) || 1;
+  const reps = parseInt(document.getElementById('inputExReps').value) || 1;
+
+  if (!name) {
+    alert('Please enter an exercise or machine name.');
+    return;
+  }
+
+  state.workouts.push({ name, muscle, weight, sets, reps, done: false });
+  document.getElementById('inputExName').value = '';
+  saveState();
+}
+
+function toggleWorkoutDone(index) {
+  state.workouts[index].done = !state.workouts[index].done;
+  saveState();
+}
+
+function deleteWorkout(index) {
+  state.workouts.splice(index, 1);
+  saveState();
+}
+
+function clearAllWorkouts() {
+  if (confirm('Clear all logged workouts for today?')) {
+    state.workouts = [];
+    saveState();
+  }
+}
+
+function saveFoodEntry() {
+  const name = document.getElementById('inputFoodName').value.trim();
+  const cal = parseInt(document.getElementById('inputFoodCal').value) || 0;
+  const protein = parseInt(document.getElementById('inputFoodProtein').value) || 0;
+  const carbs = parseInt(document.getElementById('inputFoodCarbs').value) || 0;
+  const fat = parseInt(document.getElementById('inputFoodFat').value) || 0;
+
+  if (!name) {
+    alert('Please enter a food or meal name.');
+    return;
+  }
+
+  state.foods.push({ name, cal, protein, carbs, fat });
+  state.cal += cal;
+  state.protein += protein;
+  state.carbs += carbs;
+  state.fat += fat;
+
+  document.getElementById('inputFoodName').value = '';
+  saveState();
+}
+
+function deleteFood(index) {
+  const f = state.foods[index];
+  state.cal = Math.max(0, state.cal - f.cal);
+  state.protein = Math.max(0, state.protein - f.protein);
+  state.carbs = Math.max(0, state.carbs - f.carbs);
+  state.fat = Math.max(0, state.fat - f.fat);
+  state.foods.splice(index, 1);
+  saveState();
+}
+
+function clearFoodLogs() {
+  if (confirm('Reset food intake logs for today?')) {
+    state.foods = [];
+    state.cal = 0;
+    state.protein = 0;
+    state.carbs = 0;
+    state.fat = 0;
+    saveState();
+  }
+}
+
+function addWater(amount) {
+  state.water = parseFloat((state.water + amount).toFixed(2));
+  saveState();
+}
+
+function resetWater() {
+  state.water = 0;
+  saveState();
+}
+
+function openLogModal() {
+  showScreen('training', document.querySelectorAll('nav button')[1]);
+  document.getElementById('inputExName').focus();
+}
+
+function openCalorieModal() {
+  showScreen('nutrition', document.querySelectorAll('nav button')[3]);
+  document.getElementById('inputFoodName').focus();
+}
+
+// --- SETTINGS HUB CONTROLS ---
+function changeTheme(val) { state.settings.theme = val; saveState(); }
+function changeColor(val, el) { 
+  state.settings.color = val; 
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+  if (el) el.classList.add('active');
+  saveState(); 
+}
+function changeScale(val) { state.settings.scale = val; saveState(); }
+function changeFont(val) { state.settings.font = val; saveState(); }
+function changeContrast(val) { state.settings.contrast = val; saveState(); }
+function changeMotion(val) { state.settings.motion = val; saveState(); }
+
+function seedSampleData() {
+  if (confirm('Load sample gym workout and meal entries?')) {
+    state.workouts = [
+      { name: 'Leg Press Machine', muscle: 'Quadriceps', weight: 120, sets: 4, reps: 10, done: true },
+      { name: 'Lat Pulldown Machine', muscle: 'Lats', weight: 65, sets: 3, reps: 12, done: true },
+      { name: 'Seated Shoulder Press', muscle: 'Shoulders', weight: 45, sets: 3, reps: 10, done: false }
+    ];
+    state.foods = [
+      { name: 'Oatmeal & Whey Protein', cal: 420, protein: 32, carbs: 55, fat: 8 },
+      { name: 'Chicken Breast & Rice Bowl', cal: 650, protein: 50, carbs: 70, fat: 12 }
+    ];
+    state.cal = 1070;
+    state.protein = 82;
+    state.carbs = 125;
+    state.fat = 20;
+    state.water = 1.25;
+    saveState();
+  }
+}
+
+function resetAllData() {
+  if (confirm('Reset all local data? Gymplified will start clean with empty logs.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    state = JSON.parse(JSON.stringify(cleanState));
+    saveState();
+  }
+}
+
+// Run on boot
+renderAll();
 </script>
+
 </body>
 </html>

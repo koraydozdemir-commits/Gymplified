@@ -1,2161 +1,1383 @@
-```html
-<!DOCTYPE html>
-<html lang="en" class="dark">
+<!doctype html>
+<html lang="en" data-theme="dark" data-color="blue" data-contrast="normal" data-motion="normal" data-font="default" data-scale="md">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gymplified - Smart Workout &amp; Fitness Analytics Engine</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Google Fonts: Inter & JetBrains Mono -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-  
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['"Inter"', 'sans-serif'],
-            mono: ['"JetBrains Mono"', 'monospace'],
-          },
-          colors: {
-            bg: '#0b0f17',
-            panel: '#111827',
-            subpanel: '#1f2937',
-            border: '#374151',
-            borderHighlight: '#4b5563',
-            accent: '#3b82f6',
-            accentHover: '#2563eb',
-            accentGreen: '#10b981',
-            accentRed: '#ef4444',
-            accentAmber: '#f59e0b',
-            accentPurple: '#8b5cf6',
-            textPrimary: '#f9fafb',
-            textMuted: '#9ca3af',
-          },
-          borderRadius: {
-            DEFAULT: '0.5rem',
-            sm: '0.375rem',
-            md: '0.5rem',
-            lg: '0.75rem',
-            xl: '1rem',
-            '2xl': '1.25rem',
-          }
-        }
-      }
-    }
-  </script>
-  <style>
-    body {
-      background-color: #0b0f17;
-      color: #f9fafb;
-      font-family: 'Inter', sans-serif;
-    }
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0b0f17;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #374151;
-      border-radius: 9999px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #4b5563;
-    }
-    .grid-cell {
-      aspect-ratio: 1 / 1;
-    }
-    .scrollbar-none::-webkit-scrollbar {
-      display: none;
-    }
-    .scrollbar-none {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Gymplified — Training Log, PR Tracker & Muscle Diagram</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+  --bg: #0b0f17;
+  --panel: #111827;
+  --panel-hover: #1f2937;
+  --ink: #f9fafb;
+  --muted: #9ca3af;
+  --line: #1e293b;
+  --brand: #2563eb;
+  --brand-light: #1e293b;
+  --brand-ink: #ffffff;
+  --danger: #ef4444;
+  --success: #10b981;
+  --gold: #f59e0b;
+  --max: 1160px;
+  --radius: 6px;
+  --font-base: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: "Space Grotesk", sans-serif;
+  --scale: 1rem;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Light Theme Overrides */
+html[data-theme="light"] {
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --panel-hover: #f1f5f9;
+  --ink: #0f172a;
+  --muted: #64748b;
+  --line: #e2e8f0;
+  --brand-light: #eff6ff;
+  --brand-ink: #ffffff;
+}
+
+/* Color Accents */
+html[data-color="blue"] { --brand: #2563eb; }
+html[data-color="emerald"] { --brand: #059669; }
+html[data-color="slate"] { --brand: #475569; }
+html[data-color="crimson"] { --brand: #dc2626; }
+html[data-color="amber"] { --brand: #d97706; }
+html[data-color="violet"] { --brand: #7c3aed; }
+
+/* High Contrast Mode */
+html[data-contrast="high"] {
+  --line: #334155;
+  --muted: #cbd5e1;
+}
+html[data-theme="light"][data-contrast="high"] {
+  --line: #000000;
+  --muted: #334155;
+}
+
+/* Accessible Font */
+html[data-font="accessible"] {
+  --font-base: "Comic Sans MS", "Chalkboard SE", sans-serif;
+  --font-heading: "Comic Sans MS", "Chalkboard SE", sans-serif;
+}
+
+/* Font Scales */
+html[data-scale="sm"] { --scale: 0.875rem; }
+html[data-scale="md"] { --scale: 1rem; }
+html[data-scale="lg"] { --scale: 1.125rem; }
+html[data-scale="xl"] { --scale: 1.25rem; }
+
+/* Reduced Motion */
+html[data-motion="reduced"] *, html[data-motion="reduced"] *::before, html[data-motion="reduced"] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { background: var(--bg); font-size: var(--scale); transition: background-color 0.25s var(--ease-out); }
+body { color: var(--ink); font-family: var(--font-base); line-height: 1.45; background: var(--bg); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+
+.app { max-width: var(--max); margin: 0 auto; min-height: 100vh; border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--bg); transition: border-color 0.25s var(--ease-out); }
+
+/* Topbar Header */
+.topbar { height: 62px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--panel); position: sticky; top: 0; z-index: 40; transition: background-color 0.25s var(--ease-out), border-color 0.25s var(--ease-out); }
+.brand { font-family: var(--font-heading); font-weight: 700; font-size: 21px; letter-spacing: -0.04em; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.brand-dot { width: 8px; height: 8px; background: var(--brand); border-radius: 50%; display: inline-block; transition: background-color 0.25s var(--ease-out); }
+
+.top-actions { display: flex; align-items: center; gap: 10px; }
+.date-tag { font-size: 12px; font-weight: 600; color: var(--muted); padding-right: 14px; border-right: 1px solid var(--line); font-family: var(--font-heading); letter-spacing: -0.01em; }
+
+/* Buttons & Micro-interactions */
+.btn { height: 36px; padding: 0 14px; border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.15s var(--ease-out); }
+.btn:hover { border-color: var(--brand); color: var(--brand); background: var(--panel-hover); transform: translateY(-1px); }
+.btn:active { transform: translateY(0) scale(0.98); }
+
+.btn-primary { background: var(--brand); color: var(--brand-ink); border: 1px solid var(--brand); }
+.btn-primary:hover { opacity: 0.92; background: var(--brand); color: var(--brand-ink); transform: translateY(-1px); }
+
+.btn-gold { background: rgba(245, 158, 11, 0.12); color: var(--gold); border: 1px solid rgba(245, 158, 11, 0.3); }
+.btn-gold:hover { background: rgba(245, 158, 11, 0.22); color: var(--gold); border-color: var(--gold); }
+
+.btn-icon-only { width: 36px; padding: 0; }
+
+/* Layout Grid */
+.layout { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 62px); }
+
+/* Sidebar Navigation */
+aside { border-right: 1px solid var(--line); padding: 20px 12px; background: var(--panel); position: sticky; top: 62px; height: calc(100vh - 62px); transition: background-color 0.25s var(--ease-out), border-color 0.25s var(--ease-out); }
+.nav-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 12px; padding: 0 10px; }
+
+nav button { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid transparent; background: transparent; padding: 10px 12px; border-radius: var(--radius); color: var(--muted); font-size: 13px; font-weight: 600; cursor: pointer; margin-bottom: 4px; transition: all 0.18s var(--ease-out); position: relative; }
+nav button svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.18s var(--ease-out); }
+nav button:hover { background: var(--panel-hover); color: var(--ink); }
+nav button.active { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); font-weight: 700; }
+nav button.active svg { stroke: var(--brand-ink); }
+
+/* Main Screen Transitions */
+main { padding: 28px 32px 60px; min-width: 0; }
+.screen { display: none; opacity: 0; transform: translateY(8px); transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out); }
+.screen.active { display: block; opacity: 1; transform: translateY(0); animation: screenIn 0.3s var(--ease-out) forwards; }
+
+@keyframes screenIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Headings */
+.eyebrow { text-transform: uppercase; font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--brand); margin-bottom: 4px; }
+h1 { font-family: var(--font-heading); font-size: 28px; font-weight: 700; letter-spacing: -0.04em; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+
+/* Dashboard & Panels */
+.grid-2 { display: grid; grid-template-columns: 1.35fr 0.65fr; gap: 16px; margin-bottom: 16px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; transition: border-color 0.2s var(--ease-out), background-color 0.25s var(--ease-out); position: relative; }
+.panel:hover { border-color: rgba(255, 255, 255, 0.15); }
+html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
+
+/* MOTIVATION & QUOTE BANNER */
+.motivation-card {
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(17, 24, 39, 0.95) 100%);
+  border: 1px solid var(--brand);
+  border-left: 4px solid var(--brand);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  margin-bottom: 22px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s var(--ease-out);
+}
+.quote-icon { position: absolute; right: 20px; top: 12px; opacity: 0.06; font-size: 96px; line-height: 1; font-family: Georgia, serif; pointer-events: none; color: var(--ink); }
+.quote-body { position: relative; z-index: 2; transition: opacity 0.22s var(--ease-out), transform 0.22s var(--ease-out); }
+.quote-body.changing { opacity: 0; transform: translateY(-4px); }
+.quote-text { font-family: var(--font-heading); font-size: 17px; font-weight: 600; line-height: 1.45; letter-spacing: -0.01em; color: var(--ink); margin-bottom: 8px; }
+.quote-author { font-size: 12px; font-weight: 700; color: var(--brand); text-transform: uppercase; letter-spacing: 0.08em; display: flex; align-items: center; gap: 8px; }
+.quote-author::before { content: ""; display: inline-block; width: 14px; height: 2px; background: var(--brand); }
+.motivation-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+
+/* Metrics & Animated Bars */
+.metric-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
+.metric-num { font-family: var(--font-heading); font-size: 34px; font-weight: 700; letter-spacing: -0.05em; line-height: 1; }
+.metric-unit { font-size: 12px; color: var(--muted); font-weight: 500; font-family: var(--font-base); letter-spacing: 0; }
+
+.progress-bar { height: 7px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; margin: 10px 0; }
+.progress-bar i { display: block; height: 100%; background: var(--brand); width: 0%; transition: width 0.6s var(--ease-out); }
+
+.meta-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+.macro-pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 18px; border-top: 1px solid var(--line); padding-top: 16px; }
+.macro-pill { text-align: center; }
+.macro-pill strong { display: block; font-size: 17px; font-family: var(--font-heading); font-weight: 700; }
+.macro-pill span { font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Table & Interactive List Rows */
+.section-title { font-family: var(--font-heading); font-size: 15px; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; letter-spacing: -0.02em; }
+
+.item-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--line); border-radius: 4px; transition: background 0.15s var(--ease-out); }
+.item-row:last-child { border-bottom: 0; }
+.item-row:hover { background: var(--panel-hover); }
+.row-idx { font-family: var(--font-heading); font-size: 12px; font-weight: 700; color: var(--muted); }
+
+/* Form Controls */
+.form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 14px; }
+.field { margin-bottom: 12px; }
+.field label { display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 6px; }
+.field input, .field select { width: 100%; height: 38px; border: 1px solid var(--line); background: var(--bg); border-radius: var(--radius); padding: 0 12px; color: var(--ink); outline: none; transition: border-color 0.18s var(--ease-out), box-shadow 0.18s var(--ease-out); font-size: 13px; }
+.field input:focus, .field select:focus { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+
+/* Animated Checkbox */
+.check-btn { width: 30px; height: 30px; border: 1px solid var(--line); background: var(--panel); border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--brand-ink); transition: all 0.2s var(--ease-spring); }
+.check-btn:hover { border-color: var(--brand); transform: scale(1.05); }
+.check-btn.done { background: var(--brand); border-color: var(--brand); animation: checkBounce 0.3s var(--ease-spring); }
+
+@keyframes checkBounce {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.18); }
+  100% { transform: scale(1); }
+}
+
+/* PR Cards Grid */
+.pr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; margin-top: 14px; }
+.pr-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; background: var(--panel); transition: all 0.2s var(--ease-out); position: relative; overflow: hidden; }
+.pr-card:hover { border-color: var(--gold); transform: translateY(-2px); }
+.pr-card-badge { position: absolute; top: 12px; right: 12px; background: rgba(245, 158, 11, 0.15); color: var(--gold); border: 1px solid rgba(245, 158, 11, 0.3); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; font-family: var(--font-heading); }
+.pr-title { font-family: var(--font-heading); font-size: 16px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; padding-right: 50px; }
+.pr-metric { font-family: var(--font-heading); font-size: 26px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.pr-subtext { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Machine Library & Muscle Diagram Visualizer */
+.machine-grid { display: grid; grid-template-columns: 1fr; gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+.machine-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--panel); cursor: pointer; transition: all 0.2s var(--ease-out); position: relative; }
+.machine-card:hover { border-color: var(--brand); transform: translateX(3px); background: var(--panel-hover); }
+.machine-card.active { border-color: var(--brand); background: var(--brand-light); }
+.machine-card.active::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--brand); border-radius: 3px 0 0 3px; }
+.machine-card h3 { font-size: 14px; margin-bottom: 4px; font-weight: 700; }
+.machine-card p { font-size: 12px; color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
+
+.tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.tag.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+
+/* Human Muscle Heatmap SVG Visualizer */
+.body-visualizer { display: flex; justify-content: center; align-items: center; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-height: 380px; position: relative; }
+.muscle-svg { height: 320px; width: auto; fill: var(--line); stroke: var(--bg); stroke-width: 1.5; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2)); }
+
+.muscle-path { transition: fill 0.35s var(--ease-out), stroke 0.35s var(--ease-out), opacity 0.35s var(--ease-out); cursor: pointer; opacity: 0.6; }
+.muscle-path:hover { opacity: 0.9; stroke: var(--brand); }
+.muscle-path.active { fill: var(--brand) !important; opacity: 1 !important; stroke: var(--ink); stroke-width: 2; animation: musclePulse 2s infinite ease-in-out; }
+.muscle-path.secondary { fill: #60a5fa !important; opacity: 0.85 !important; }
+
+@keyframes musclePulse {
+  0% { filter: drop-shadow(0 0 0px var(--brand)); }
+  50% { filter: drop-shadow(0 0 8px var(--brand)); }
+  100% { filter: drop-shadow(0 0 0px var(--brand)); }
+}
+
+/* Settings Hub Controls */
+.settings-group { border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; background: var(--panel); margin-bottom: 16px; transition: border-color 0.2s var(--ease-out); }
+.settings-group h3 { font-size: 14px; font-weight: 700; margin-bottom: 2px; }
+.settings-group p { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+.toggle-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.toggle-row:last-child { border-bottom: 0; }
+.toggle-row label { font-size: 13px; font-weight: 600; }
+
+.color-picker { display: flex; gap: 12px; margin-top: 8px; }
+.color-dot { width: 34px; height: 34px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.2s var(--ease-spring), border-color 0.2s var(--ease-out); }
+.color-dot:hover { transform: scale(1.12); }
+.color-dot.active { border-color: var(--ink); transform: scale(1.15); box-shadow: 0 0 0 2px var(--bg); }
+
+/* Data Tables */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
+.data-table th { background: var(--bg); padding: 10px 14px; border: 1px solid var(--line); font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.06em; }
+.data-table td { padding: 12px 14px; border: 1px solid var(--line); vertical-align: middle; }
+.data-table tr { transition: background 0.15s var(--ease-out); }
+.data-table tbody tr:hover { background: var(--panel-hover); }
+
+/* Empty state banner */
+.empty-box { text-align: center; padding: 36px 20px; border: 1px dashed var(--line); border-radius: var(--radius); background: var(--panel); }
+.empty-box p { color: var(--muted); font-size: 13px; margin-bottom: 14px; }
+
+/* Toast Notifications */
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast { background: var(--ink); color: var(--bg); font-size: 12px; font-weight: 700; padding: 10px 16px; border-radius: var(--radius); border: 1px solid var(--line); opacity: 0; transform: translateY(12px) scale(0.95); transition: all 0.25s var(--ease-spring); pointer-events: auto; font-family: var(--font-heading); }
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
+
+/* Responsive adjustments */
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  aside { position: fixed; bottom: 0; top: auto; height: 60px; width: 100%; border-right: 0; border-top: 1px solid var(--line); padding: 6px; z-index: 50; }
+  aside .nav-label { display: none; }
+  nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+  nav button { text-align: center; font-size: 9px; padding: 6px 2px; flex-direction: column; gap: 4px; justify-content: center; margin: 0; }
+  nav button svg { width: 16px; height: 16px; }
+  main { padding: 18px 16px 80px; }
+  .grid-2, .machine-grid { grid-template-columns: 1fr; }
+}
+</style>
 </head>
-<body class="min-h-screen bg-bg text-textPrimary antialiased selection:bg-accent selection:text-white pb-12">
+<body>
 
-  <!-- TOP APP HEADER BAR -->
-  <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-4 py-3 sticky top-0 z-30 shadow-sm">
-    <div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-      <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-emerald-500 flex items-center justify-center font-black text-white shadow-lg shadow-blue-500/20 text-sm tracking-wider">
-          GYM
-        </div>
-        <div>
-          <span class="font-extrabold text-base tracking-tight text-white block leading-none">Gymplified</span>
-          <span class="text-[10px] font-mono text-slate-400">v4.2 Fitness Suite</span>
-        </div>
-        <span class="text-xs font-mono text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded-full px-2.5 py-0.5 hidden sm:inline-block ml-2" id="profileHeaderTag">
-          EXP: UNSET | ACCESS: UNSET
-        </span>
-      </div>
-
-      <!-- Header Quick Controls -->
-      <div class="flex items-center flex-wrap gap-2 text-xs">
-        <!-- Rest Timer Minimal Indicator -->
-        <div class="flex items-center bg-slate-800/80 border border-slate-700/80 rounded-lg px-3 py-1 space-x-2 shadow-inner">
-          <span class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider">REST:</span>
-          <span id="timerDisplay" class="font-mono text-sm font-bold text-blue-400 min-w-[45px]">00:00</span>
-          <div class="flex items-center space-x-1 border-l border-slate-700 pl-2">
-            <button onclick="quickStartTimer(60)" class="hover:bg-slate-700 text-slate-300 hover:text-white px-1.5 py-0.5 rounded text-xs transition-colors">60s</button>
-            <button onclick="quickStartTimer(90)" class="hover:bg-slate-700 text-slate-300 hover:text-white px-1.5 py-0.5 rounded text-xs transition-colors">90s</button>
-            <button onclick="quickStartTimer(180)" class="hover:bg-slate-700 text-slate-300 hover:text-white px-1.5 py-0.5 rounded text-xs transition-colors">180s</button>
-          </div>
-          <button onclick="toggleTimer()" id="timerToggleBtn" class="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm">START</button>
-          <button onclick="resetTimer()" class="text-slate-400 hover:text-white px-1 text-xs">Reset</button>
-        </div>
-
-        <button onclick="switchTab('settings')" class="border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 text-slate-200 text-xs px-3 py-1.5 rounded-lg transition-all font-medium shadow-sm flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-          Settings
-        </button>
-        <button onclick="exportDataJSON()" class="border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 text-slate-200 text-xs px-3 py-1.5 rounded-lg transition-all font-medium shadow-sm">
-          Export JSON
-        </button>
-        <label class="border border-slate-700 bg-slate-800/50 hover:bg-slate-800 hover:border-slate-600 text-slate-200 text-xs px-3 py-1.5 rounded-lg transition-all font-medium shadow-sm cursor-pointer">
-          Import JSON <input type="file" id="jsonFileInput" onchange="importDataJSON(event)" class="hidden" accept=".json">
-        </label>
-      </div>
+<div class="app">
+  <!-- Topbar Header -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-dot"></span> Gymplified
+    </div>
+    <div class="top-actions">
+      <span class="date-tag" id="currentDate">Today</span>
+      <button class="btn btn-primary" onclick="openLogModal()">+ Log Exercise</button>
+      <button class="btn btn-icon-only" title="Quick Theme Switcher" onclick="toggleQuickTheme()">◐</button>
     </div>
   </header>
 
-  <!-- MOTIVATION / DIRECTIVE BANNER -->
-  <div class="border-b border-slate-800/80 bg-slate-900/40 px-4 py-2 text-xs flex items-center justify-between">
-    <div class="max-w-7xl mx-auto w-full flex items-center justify-between">
-      <div class="flex items-center space-x-2 truncate pr-4">
-        <span class="text-blue-400 font-semibold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 shrink-0 text-[11px]">GYMPLIFIED DIRECTIVE</span>
-        <span id="motivationText" class="truncate text-slate-300 italic">"Track variables, eliminate guesswork. Progressive overload is calculated."</span>
-      </div>
-      <button onclick="openQuoteModal()" class="shrink-0 text-xs text-slate-400 hover:text-blue-400 transition-colors font-medium">+ Add Directive</button>
-    </div>
-  </div>
+  <div class="layout">
+    <!-- Sidebar Navigation -->
+    <aside>
+      <div class="nav-label">Workspace</div>
+      <nav>
+        <button class="active" onclick="showScreen('dashboard', this)">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          Dashboard
+        </button>
+        <button onclick="showScreen('prs', this)">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          PR Records
+        </button>
+        <button onclick="showScreen('training', this)">
+          <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M10 12h4"/></svg>
+          Training Log
+        </button>
+        <button onclick="showScreen('machines', this)">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+          Gym Machines
+        </button>
+        <button onclick="showScreen('nutrition', this)">
+          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          Nutrition
+        </button>
+        <button onclick="showScreen('settings', this)">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings Hub
+        </button>
+      </nav>
+    </aside>
 
-  <!-- MAIN NAVIGATION TABS -->
-  <nav class="border-b border-slate-800 bg-slate-950/60 sticky top-[57px] z-20 backdrop-blur-md px-4">
-    <div class="max-w-7xl mx-auto flex space-x-2 overflow-x-auto text-xs font-medium py-2.5 scrollbar-none">
-      <button onclick="switchTab('logging')" id="tab-btn-logging" class="tab-btn active px-3.5 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/20 border border-blue-500 transition-all flex items-center gap-1.5 shrink-0">
-        <span>01.</span> Execution &amp; Logging
-      </button>
-      <button onclick="switchTab('calculator')" id="tab-btn-calculator" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
-        <span>02.</span> Plate Calculator
-      </button>
-      <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
-        <span>03.</span> Analytics &amp; 1RM Matrix
-      </button>
-      <button onclick="switchTab('metrics')" id="tab-btn-metrics" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
-        <span>04.</span> Metrics &amp; Heatmap
-      </button>
-      <button onclick="switchTab('advisor')" id="tab-btn-advisor" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
-        <span>05.</span> AI Advisor
-      </button>
-      <button onclick="switchTab('directory')" id="tab-btn-directory" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
-        <span>06.</span> Exercise Directory
-      </button>
-      <button onclick="switchTab('settings')" id="tab-btn-settings" class="tab-btn px-3.5 py-2 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all flex items-center gap-1.5 shrink-0">
-        <span>07.</span> Settings
-      </button>
-    </div>
-  </nav>
+    <!-- Main Screens -->
+    <main>
+      <!-- 1. DASHBOARD SCREEN -->
+      <section id="dashboard" class="screen active">
+        <div class="eyebrow">Overview</div>
+        <h1>Daily Dashboard</h1>
+        <p class="subtitle">Real-time metrics, active session logs, and nutrition tracking.</p>
 
-  <!-- MAIN CONTAINER -->
-  <main class="max-w-7xl mx-auto px-4 py-6">
-
-    <!-- ================================================================= -->
-    <!-- TAB 1: TRAINING EXECUTION & LOGGING -->
-    <!-- ================================================================= -->
-    <section id="tab-logging" class="tab-content space-y-5">
-      
-      <!-- Top Action Strip: Routine Template Selection -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
-        <div class="md:col-span-4">
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">ROUTINE TEMPLATES</label>
-          <select id="templateSelect" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none">
-            <!-- Populated via JS -->
-          </select>
-        </div>
-        <div class="md:col-span-3 flex items-end">
-          <button onclick="loadSelectedTemplate()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg py-2 px-3 shadow-md shadow-blue-600/20 transition-all">
-            Load Template to Log
-          </button>
-        </div>
-        <div class="md:col-span-5 flex items-end space-x-2">
-          <input type="text" id="newTemplateName" placeholder="Template Name (e.g. Upper Power)" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-500 outline-none focus:border-blue-500 w-full">
-          <button onclick="saveCurrentAsTemplate()" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 transition-all shrink-0 font-medium">
-            Save Active
-          </button>
-        </div>
-      </div>
-
-      <!-- Active Workout Session Area -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-md space-y-5">
-        
-        <!-- Session Header info -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-800 pb-4 gap-4">
-          <div class="space-y-1.5">
-            <span class="text-[11px] font-semibold text-blue-400 uppercase tracking-wider">ACTIVE LOGGING SESSION</span>
-            <div class="flex flex-wrap items-center gap-3">
-              <input type="text" id="workoutName" value="Chest & Tricep Hypertrophy" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-base font-bold text-white outline-none focus:border-blue-500 min-w-[240px]">
-              <input type="date" id="workoutDate" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-300 outline-none focus:border-blue-500">
+        <div class="grid-2">
+          <!-- Calorie Panel -->
+          <div class="panel">
+            <div class="metric-head">
+              <div>
+                <div class="eyebrow">Energy Intake</div>
+                <div class="metric-num"><span id="dashCal">0</span> <span class="metric-unit">/ <span id="dashCalTarget">2500</span> kcal</span></div>
+              </div>
+              <button class="btn" onclick="openCalorieModal()">+ Add Food</button>
+            </div>
+            <div class="progress-bar"><i id="dashCalBar" style="width: 0%"></i></div>
+            <div class="meta-row">
+              <span id="dashCalRemain">2,500 kcal remaining</span>
+              <span id="dashCalPct">0%</span>
+            </div>
+            <div class="macro-pills">
+              <div class="macro-pill"><strong id="dashProtein">0g</strong><span>Protein</span></div>
+              <div class="macro-pill"><strong id="dashCarbs">0g</strong><span>Carbs</span></div>
+              <div class="macro-pill"><strong id="dashFat">0g</strong><span>Fat</span></div>
             </div>
           </div>
-          
-          <div class="flex items-center space-x-4">
-            <div class="bg-slate-800/80 border border-slate-700/60 rounded-lg px-3.5 py-1.5 text-right">
-              <span class="block text-[10px] font-semibold text-slate-400 uppercase">Total Volume</span>
-              <span id="sessionTotalVolume" class="font-bold text-blue-400 text-base">0 KG</span>
+
+          <!-- Hydration & Active Workout Counter -->
+          <div class="panel">
+            <div class="metric-head">
+              <div>
+                <div class="eyebrow">Hydration Target</div>
+                <div class="metric-num"><span id="dashWater">0.00</span> <span class="metric-unit">/ 2.50 L</span></div>
+              </div>
+              <button class="btn" onclick="addWater(0.25)">+ 250ml</button>
             </div>
-            <div class="bg-slate-800/80 border border-slate-700/60 rounded-lg px-3.5 py-1.5 text-right">
-              <span class="block text-[10px] font-semibold text-slate-400 uppercase">Working Sets</span>
-              <span id="sessionTotalSets" class="font-bold text-white text-base">0</span>
+            <div class="progress-bar"><i id="dashWaterBar" style="width: 0%"></i></div>
+            <div class="meta-row">
+              <span>Goal: 2.50 Liters</span>
+              <button class="btn btn-icon-only" style="height:22px; width:22px; font-size:10px" onclick="resetWater()" title="Reset Water">↺</button>
             </div>
-            <button onclick="clearCurrentWorkout()" class="border border-rose-500/30 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 rounded-lg px-3 py-2 text-xs font-medium transition-colors">
-              Clear Log
+            <div style="margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);">
+              <div class="eyebrow">Logged Exercises</div>
+              <div style="font-size: 22px; font-weight: 700; font-family: var(--font-heading);" id="dashWorkoutCount">0 Exercises</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Exercises List Panel -->
+        <div class="panel">
+          <div class="section-title">
+            <span>Today's Logged Exercises</span>
+            <button class="btn btn-primary" onclick="openLogModal()">+ Log Exercise</button>
+          </div>
+          <div id="dashWorkoutsContainer">
+            <!-- Dynamic rows -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. PERSONAL RECORDS & MOTIVATION SCREEN -->
+      <section id="prs" class="screen">
+        <div class="eyebrow">Milestones & Mindset</div>
+        <h1>Personal Records & Motivation</h1>
+        <p class="subtitle">Track peak performance lifts, estimated 1-Rep Max calculations, and tactical wisdom.</p>
+
+        <!-- TOP MOTIVATION CARD WITH QUOTE POOL -->
+        <div class="motivation-card">
+          <div class="quote-icon">“</div>
+          <div class="motivation-header">
+            <div class="eyebrow" style="color: var(--brand);">Daily Mindset Strategy</div>
+            <button class="btn btn-gold" onclick="nextQuote()" title="Get New Random Quote">
+              <span>New Quote</span> ↺
             </button>
           </div>
-        </div>
-
-        <!-- Exercise Selector Strip (Direct Exercise Selection) -->
-        <div class="bg-slate-800/50 border border-slate-700/80 rounded-xl p-4 grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div class="md:col-span-4">
-            <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">SELECT EXERCISE FROM DATABASE</label>
-            <select id="exercisePickerSelect" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
-              <!-- JS Populated -->
-            </select>
-          </div>
-          <div class="md:col-span-3">
-            <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">FILTER MUSCLE</label>
-            <select id="exerciseMuscleFilter" onchange="filterExercisePicker()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none">
-              <option value="ALL">All Muscle Groups</option>
-              <option value="Chest">Chest</option>
-              <option value="Back">Back</option>
-              <option value="Legs">Legs</option>
-              <option value="Shoulders">Shoulders</option>
-              <option value="Arms">Arms</option>
-              <option value="Core">Core</option>
-            </select>
-          </div>
-          <div class="md:col-span-3">
-            <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">FILTER EQUIPMENT</label>
-            <select id="exerciseEquipmentFilter" onchange="filterExercisePicker()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none">
-              <option value="ALL">All Equipment</option>
-              <option value="Barbell">Barbell</option>
-              <option value="Dumbbell">Dumbbell</option>
-              <option value="Machine">Machine</option>
-              <option value="Cable">Cable</option>
-              <option value="Bodyweight">Bodyweight</option>
-            </select>
-          </div>
-          <div class="md:col-span-2">
-            <button onclick="addSelectedExerciseToLog()" class="w-full bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg py-2 px-3 shadow-md shadow-blue-600/20 transition-all">
-              + Add Lift
-            </button>
+          <div class="quote-body" id="quoteBox">
+            <div class="quote-text" id="quoteText">"He who conquers himself is the mightiest warrior."</div>
+            <div class="quote-author" id="quoteAuthor">Sun Tzu</div>
           </div>
         </div>
 
-        <!-- Logged Exercises Container -->
-        <div id="workoutExercisesContainer" class="space-y-4 min-h-[160px]">
-          <!-- Active Exercise Cards Render Here -->
-        </div>
-
-        <!-- Submit Session Button -->
-        <div class="border-t border-slate-800 pt-4 flex justify-end">
-          <button onclick="finalizeAndSaveWorkout()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-3 px-6 rounded-xl shadow-lg shadow-emerald-600/20 transition-all tracking-wide uppercase flex items-center gap-2">
-            Complete &amp; Store Workout Log
-          </button>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================================================================= -->
-    <!-- TAB 2: PLATE BARBELL CALCULATOR -->
-    <!-- ================================================================= -->
-    <section id="tab-calculator" class="tab-content hidden space-y-5">
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
-        
-        <!-- Controls Column -->
-        <div class="md:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5 shadow-sm">
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">BARBELL PLATE LOAD CALCULATOR</h2>
-          
-          <div class="space-y-2">
-            <label class="block text-xs font-semibold text-slate-400 uppercase">TARGET TOTAL WEIGHT (<span class="unit-label">KG</span>)</label>
-            <div class="flex items-center space-x-2">
-              <input type="number" id="calcTargetWeight" value="100" step="2.5" oninput="calculatePlateLoad()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xl font-mono font-bold text-white outline-none focus:border-blue-500">
-              <button onclick="adjustCalcWeight(-2.5)" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-700 font-semibold text-xs transition-colors">-2.5</button>
-              <button onclick="adjustCalcWeight(2.5)" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-700 font-semibold text-xs transition-colors">+2.5</button>
+        <!-- Log PR Direct Form -->
+        <div class="panel" style="margin-bottom: 20px;">
+          <div class="section-title">Record New Personal Best</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Lift / Exercise</label>
+              <input type="text" id="inputPRName" placeholder="e.g. Barbell Squat, Bench Press">
+            </div>
+            <div class="field">
+              <label>Weight (kg)</label>
+              <input type="number" id="inputPRWeight" value="100" min="0" step="2.5">
+            </div>
+            <div class="field">
+              <label>Reps Performed</label>
+              <input type="number" id="inputPRReps" value="5" min="1" max="50">
+            </div>
+            <div class="field">
+              <label>Date Achieved</label>
+              <input type="date" id="inputPRDate">
             </div>
           </div>
-
-          <div class="space-y-2">
-            <label class="block text-xs font-semibold text-slate-400 uppercase">BARBELL BASE WEIGHT (<span class="unit-label">KG</span>)</label>
-            <select id="calcBarWeight" onchange="calculatePlateLoad()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
-              <!-- JS Populated based on weight unit -->
-            </select>
-          </div>
-
-          <div class="border-t border-slate-800 pt-4 space-y-2">
-            <span class="block text-xs font-semibold text-slate-400 uppercase">AVAILABLE PLATE INVENTORY</span>
-            <div class="grid grid-cols-2 gap-2 text-xs font-mono" id="plateInventoryContainer">
-              <!-- Checkboxes populated dynamically -->
-            </div>
-          </div>
-
-          <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 font-mono space-y-2">
-            <div class="flex justify-between text-xs">
-              <span class="text-slate-400">PER SIDE SLEEVE LOAD:</span>
-              <span id="calcPerSideWeight" class="font-bold text-blue-400">40.0 KG</span>
-            </div>
-            <div class="flex justify-between text-xs">
-              <span class="text-slate-400">EXACT TARGET REACHED:</span>
-              <span id="calcExactMatch" class="font-bold text-emerald-400">YES (100.0 KG)</span>
-            </div>
-          </div>
+          <button class="btn btn-primary" onclick="savePRRecord()">+ Save Personal Record</button>
         </div>
 
-        <!-- Plate Display Visualizer Column -->
-        <div class="md:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between space-y-5 shadow-sm">
+        <!-- PR Display Cards Grid -->
+        <div class="panel">
+          <div class="section-title">
+            <span>Peak Lifter Hall of Fame</span>
+            <button class="btn" onclick="clearAllPRs()" style="color:var(--danger)">Reset All PRs</button>
+          </div>
+          <div id="prListContainer">
+            <!-- Dynamic PR cards -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. TRAINING LOG SCREEN -->
+      <section id="training" class="screen">
+        <div class="eyebrow">Execution</div>
+        <h1>Training Session Log</h1>
+        <p class="subtitle">Directly record exercises, set goals, loads, and check off completed sets.</p>
+
+        <!-- Direct Form Writer -->
+        <div class="panel" style="margin-bottom: 20px;">
+          <div class="section-title">Direct Exercise Recorder</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Exercise / Machine</label>
+              <input type="text" id="inputExName" placeholder="e.g. Leg Press, Cable Row">
+            </div>
+            <div class="field">
+              <label>Primary Muscle</label>
+              <select id="inputExMuscle">
+                <option value="Chest">Chest</option>
+                <option value="Lats">Lats / Back</option>
+                <option value="Shoulders">Shoulders</option>
+                <option value="Quadriceps">Quadriceps</option>
+                <option value="Hamstrings">Hamstrings</option>
+                <option value="Biceps">Biceps</option>
+                <option value="Triceps">Triceps</option>
+                <option value="Calves">Calves</option>
+                <option value="Abs">Abs / Core</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Weight (kg)</label>
+              <input type="number" id="inputExWeight" value="50" min="0" step="2.5">
+            </div>
+            <div class="field">
+              <label>Sets</label>
+              <input type="number" id="inputExSets" value="3" min="1" max="15">
+            </div>
+            <div class="field">
+              <label>Reps per Set</label>
+              <input type="number" id="inputExReps" value="10" min="1" max="100">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveDirectExercise()">Save Exercise to Log</button>
+        </div>
+
+        <!-- Interactive Log List -->
+        <div class="panel">
+          <div class="section-title">
+            <span>Logged Session Exercises</span>
+            <button class="btn" onclick="clearAllWorkouts()" style="color:var(--danger)">Clear Session</button>
+          </div>
+          <div id="trainingLogList">
+            <!-- Dynamic rendering -->
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. GYM MACHINES & VISUAL MUSCLE DIAGRAM -->
+      <section id="machines" class="screen">
+        <div class="eyebrow">Anatomy & Equipment</div>
+        <h1>Gym Machines & Target Muscles</h1>
+        <p class="subtitle">Select popular equipment to highlight target muscle groups on the vector anatomical diagram.</p>
+
+        <div style="display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px;">
+          <!-- Machine Directory -->
           <div>
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">SLEEVE LOADING SCHEMATIC</h2>
-            <p class="text-xs text-slate-400 mt-2">Plates listed from inside collar outward to sleeve tip.</p>
-          </div>
-
-          <!-- Barbell Visual Graphic -->
-          <div class="bg-slate-950 border border-slate-800 rounded-xl p-6 flex flex-col items-center justify-center min-h-[220px] overflow-x-auto shadow-inner">
-            <div id="barbellGraphic" class="flex items-center space-x-1 py-4 px-2">
-              <!-- Generated Barbell Sleeve Graphic -->
+            <div class="section-title">Popular Gym Equipment</div>
+            <div class="machine-grid" id="machineList">
+              <!-- Dynamic machine cards -->
             </div>
           </div>
 
-          <!-- Plate Breakdown List Table -->
-          <div class="border border-slate-800 bg-slate-800/40 rounded-xl p-4">
-            <span class="block text-xs font-semibold text-slate-400 uppercase mb-3">REQUIRED PLATES (PER SIDE)</span>
-            <table class="w-full text-left font-mono text-xs">
-              <thead>
-                <tr class="border-b border-slate-700 text-slate-400 text-[10px]">
-                  <th class="pb-2">PLATE WEIGHT</th>
-                  <th class="pb-2">COUNT (PER SIDE)</th>
-                  <th class="pb-2">TOTAL PLATES</th>
-                  <th class="pb-2 text-right">SUBTOTAL</th>
-                </tr>
-              </thead>
-              <tbody id="plateBreakdownTableBody">
-                <!-- JS populated -->
-              </tbody>
-            </table>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ================================================================= -->
-    <!-- TAB 3: ANALYTICS & 1RM TRAINING MATRIX -->
-    <!-- ================================================================= -->
-    <section id="tab-analytics" class="tab-content hidden space-y-5">
-      
-      <!-- Top Bar Controls -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col md:flex-row justify-between items-center gap-3 shadow-sm">
-        <div class="flex items-center space-x-3 w-full md:w-auto">
-          <label class="text-xs font-semibold text-slate-400 uppercase shrink-0">SELECT LIFT:</label>
-          <select id="analyticsExerciseSelect" onchange="renderAnalyticsViews()" class="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500 w-full md:w-64">
-            <!-- Populated via JS -->
-          </select>
-        </div>
-        <div class="text-xs font-mono text-slate-400">
-          1RM FORMULA: <span class="text-slate-200 font-bold">EPLEY (W × (1 + R/30))</span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
-        
-        <!-- 1RM Percentage Matrix Panel -->
-        <div class="md:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm">
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">1RM PERCENTAGE MATRIX</h2>
-          
-          <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-4 font-mono space-y-1">
-            <span class="text-[10px] text-slate-400 uppercase font-semibold">BEST LOGGED RECORD FOR SELECTED LIFT</span>
-            <div class="text-base font-bold text-white" id="prBestRecordDisplay">100.0 KG x 5 REPS</div>
-            <div class="text-xs text-blue-400 font-bold" id="prEst1RMDisplay">ESTIMATED 1RM: 116.7 KG</div>
-          </div>
-
-          <div class="overflow-x-auto rounded-xl border border-slate-800">
-            <table class="w-full text-left font-mono text-xs">
-              <thead class="bg-slate-800/80 text-[10px] text-slate-400 uppercase border-b border-slate-800">
-                <tr>
-                  <th class="p-3">INTENSITY %</th>
-                  <th class="p-3">TARGET WEIGHT</th>
-                  <th class="p-3 text-right">REP RANGE</th>
-                </tr>
-              </thead>
-              <tbody id="matrixTableBody" class="divide-y divide-slate-800/60 bg-slate-900">
-                <!-- JS Populated -->
-              </tbody>
-            </table>
-          </div>
-          <p class="text-[11px] text-slate-400 italic">Weights automatically rounded to nearest standard plate increment.</p>
-        </div>
-
-        <!-- Visual Line Chart Panel -->
-        <div class="md:col-span-7 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 flex flex-col justify-between shadow-sm">
-          <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider">PROGRESSION TRAJECTORY</h2>
-            <div class="flex space-x-2 text-xs">
-              <button onclick="setChartMetric('1rm')" id="btnMetric1RM" class="border border-blue-500 bg-blue-600/20 px-3 py-1 rounded-lg text-white font-semibold shadow-sm">Est. 1RM</button>
-              <button onclick="setChartMetric('volume')" id="btnMetricVolume" class="border border-slate-700 bg-slate-800 px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-colors">Volume</button>
-            </div>
-          </div>
-
-          <!-- Canvas Container -->
-          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 h-72 relative">
-            <canvas id="progressionChartCanvas"></canvas>
-          </div>
-
-          <div class="text-xs font-mono text-slate-400 flex justify-between">
-            <span>DATA POINTS: <span id="chartDataPointsCount" class="text-white font-bold">0</span></span>
-            <span>TIMELINE: ALL HISTORICAL LOGS</span>
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================================================================= -->
-    <!-- TAB 4: METRICS & HEATMAP -->
-    <!-- ================================================================= -->
-    <section id="tab-metrics" class="tab-content hidden space-y-5">
-      
-      <!-- Top Row: Consistency Heatmap -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm">
-        <div class="flex flex-col md:flex-row justify-between md:items-center border-b border-slate-800 pb-3 gap-2">
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider">CONSISTENCY HEATMAP (PAST 60 DAYS)</h2>
-          <div class="flex items-center space-x-3 text-xs text-slate-400">
-            <div class="flex items-center space-x-1.5">
-              <span class="w-3 h-3 bg-slate-800 border border-slate-700 rounded-sm"></span>
-              <span>0 Logs</span>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <span class="w-3 h-3 bg-blue-600/50 border border-blue-500 rounded-sm"></span>
-              <span>1 Log</span>
-            </div>
-            <div class="flex items-center space-x-1.5">
-              <span class="w-3 h-3 bg-blue-500 border border-blue-400 rounded-sm shadow-sm"></span>
-              <span>2+ Logs</span>
-            </div>
-          </div>
-        </div>
-
-        <div id="heatmapGrid" class="grid grid-cols-10 sm:grid-cols-12 md:grid-cols-20 gap-2 pt-2">
-          <!-- JS Populated 60 Grid Cells -->
-        </div>
-
-        <div class="flex justify-between items-center text-xs text-slate-400 pt-3 border-t border-slate-800">
-          <span>Active Streak: <span id="currentStreakText" class="text-emerald-400 font-bold">0 DAYS</span></span>
-          <span>Total Logged Sessions: <span id="totalSessionsCountText" class="text-white font-bold">0</span></span>
-        </div>
-      </div>
-
-      <!-- Bottom Row: Body Metrics Tracker Split -->
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
-        
-        <!-- Metrics Log Form -->
-        <div class="md:col-span-4 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm">
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">LOG BODY METRICS</h2>
-          
-          <form onsubmit="handleSaveBodyMetric(event)" class="space-y-3 text-xs">
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">DATE</label>
-              <input type="date" id="metricDate" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">BODY WEIGHT (<span class="unit-label">KG</span>)</label>
-              <input type="number" step="0.1" id="metricWeight" placeholder="e.g. 81.5" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">BODY FAT % (ESTIMATED / DEXA)</label>
-              <input type="number" step="0.1" id="metricBodyFat" placeholder="e.g. 15.0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">WAIST CIRCUMFERENCE (CM)</label>
-              <input type="number" step="0.5" id="metricWaist" placeholder="e.g. 82.0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">CHEST CIRCUMFERENCE (CM)</label>
-              <input type="number" step="0.5" id="metricChest" placeholder="e.g. 104.0" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">ARM CIRCUMFERENCE (CM)</label>
-              <input type="number" step="0.5" id="metricArms" placeholder="e.g. 38.5" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            </div>
-
-            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-2.5 rounded-lg shadow-md shadow-blue-600/20 transition-all uppercase mt-3">
-              Record Metric Entry
-            </button>
-          </form>
-        </div>
-
-        <!-- Historical Body Metrics Table & Chart -->
-        <div class="md:col-span-8 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-sm">
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3">BODY WEIGHT &amp; COMPOSITION HISTORICAL LOG</h2>
-
-          <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 h-48 relative">
-            <canvas id="bodyWeightChartCanvas"></canvas>
-          </div>
-
-          <div class="overflow-x-auto max-h-56 rounded-xl border border-slate-800">
-            <table class="w-full text-left font-mono text-xs">
-              <thead class="bg-slate-800/80 text-[10px] text-slate-400 uppercase border-b border-slate-800 sticky top-0">
-                <tr>
-                  <th class="p-2.5">DATE</th>
-                  <th class="p-2.5">WEIGHT (<span class="unit-label">KG</span>)</th>
-                  <th class="p-2.5">BODY FAT %</th>
-                  <th class="p-2.5">WAIST (CM)</th>
-                  <th class="p-2.5">CHEST (CM)</th>
-                  <th class="p-2.5">ARMS (CM)</th>
-                  <th class="p-2.5 text-right">ACTION</th>
-                </tr>
-              </thead>
-              <tbody id="bodyMetricsTableBody" class="divide-y divide-slate-800/60 bg-slate-900">
-                <!-- JS Populated -->
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================================================================= -->
-    <!-- TAB 5: AI TRAINING ADVISOR -->
-    <!-- ================================================================= -->
-    <section id="tab-advisor" class="tab-content hidden space-y-5">
-      
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5 shadow-sm">
-        
-        <div class="flex flex-col md:flex-row justify-between md:items-center border-b border-slate-800 pb-4 gap-3">
+          <!-- Anatomical Muscle Visualizer -->
           <div>
-            <h2 class="text-sm font-bold text-white uppercase tracking-wider">GYMPLIFIED INFERENCE ENGINE &amp; PROGRAM ADVISOR</h2>
-            <p class="text-xs text-slate-400 mt-1">Automated algorithmic analysis of logged tonnage, recovery status, and strength progression trajectories.</p>
-          </div>
-
-          <button onclick="runAIDiagnosticEngine()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-bold py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-blue-600/20 uppercase tracking-wider shrink-0">
-            Run Diagnostic Evaluation
-          </button>
-        </div>
-
-        <!-- Optional LLM API Key Box -->
-        <div class="bg-slate-800/50 border border-slate-700/80 rounded-xl p-4 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
-          <div class="space-y-0.5 w-full md:w-auto">
-            <span class="text-white font-semibold block">EXTERNAL LLM ENGINE (OPTIONAL)</span>
-            <p class="text-[11px] text-slate-400">Supply an OpenAI/Anthropic compatible key for custom LLM query synthesis. If left empty, Gymplified heuristics engine executes.</p>
-          </div>
-          <div class="flex items-center space-x-2 w-full md:w-auto shrink-0">
-            <input type="password" id="userApiKeyInput" placeholder="sk-..." class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white outline-none w-full md:w-48 focus:border-blue-500">
-            <button onclick="saveApiKey()" class="bg-slate-700 hover:bg-slate-600 px-3.5 py-1.5 rounded-lg text-white uppercase text-xs font-semibold">Save Key</button>
-          </div>
-        </div>
-
-        <!-- Synthetic Report Output Box -->
-        <div class="border border-slate-800 bg-slate-950 rounded-xl p-5 space-y-4 min-h-[300px]" id="aiReportOutput">
-          <div class="text-center py-16 text-slate-500 space-y-2">
-            <p class="text-sm font-semibold">NO DIAGNOSTIC RUN CURRENTLY LOADED.</p>
-            <p class="text-xs">Click <strong class="text-slate-300">"Run Diagnostic Evaluation"</strong> above to parse user profile, active lift PRs, and session volume.</p>
-          </div>
-        </div>
-
-      </div>
-
-    </section>
-
-    <!-- ================================================================= -->
-    <!-- TAB 6: EXERCISE DIRECTORY & SEARCH -->
-    <!-- ================================================================= -->
-    <section id="tab-directory" class="tab-content hidden space-y-5">
-      
-      <!-- Filters and Add custom exercise -->
-      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 grid grid-cols-1 md:grid-cols-12 gap-3 items-end shadow-sm">
-        <div class="md:col-span-4">
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">SEARCH EXERCISES</label>
-          <input type="text" id="dirSearchInput" oninput="renderExerciseDirectory()" placeholder="Filter by lift name..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-blue-500">
-        </div>
-        <div class="md:col-span-3">
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">TARGET MUSCLE</label>
-          <select id="dirMuscleFilter" onchange="renderExerciseDirectory()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none">
-            <option value="ALL">All Muscles</option>
-            <option value="Chest">Chest</option>
-            <option value="Back">Back</option>
-            <option value="Legs">Legs</option>
-            <option value="Shoulders">Shoulders</option>
-            <option value="Arms">Arms</option>
-            <option value="Core">Core</option>
-          </select>
-        </div>
-        <div class="md:col-span-3">
-          <label class="block text-[11px] font-semibold text-slate-400 uppercase mb-1">EQUIPMENT TYPE</label>
-          <select id="dirEquipmentFilter" onchange="renderExerciseDirectory()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-300 outline-none">
-            <option value="ALL">All Equipment</option>
-            <option value="Barbell">Barbell</option>
-            <option value="Dumbbell">Dumbbell</option>
-            <option value="Machine">Machine</option>
-            <option value="Cable">Cable</option>
-            <option value="Bodyweight">Bodyweight</option>
-          </select>
-        </div>
-        <div class="md:col-span-2">
-          <button onclick="openCustomExerciseModal()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-semibold py-2 px-3 rounded-lg transition-all uppercase">
-            + Create Custom
-          </button>
-        </div>
-      </div>
-
-      <!-- Exercise Database Cards Grid -->
-      <div id="exerciseDirectoryGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        <!-- JS Populated -->
-      </div>
-
-    </section>
-
-    <!-- ================================================================= -->
-    <!-- TAB 7: GYMPLIFIED SETTINGS & PREFERENCES -->
-    <!-- ================================================================= -->
-    <section id="tab-settings" class="tab-content hidden space-y-5">
-      
-      <div class="grid grid-cols-1 md:grid-cols-12 gap-5">
-        
-        <!-- App Preferences Column -->
-        <div class="md:col-span-6 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5 shadow-sm">
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-2">
-            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
-            APP PREFERENCES &amp; UNITS
-          </h2>
-
-          <div class="space-y-4 text-xs">
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">PREFERRED WEIGHT UNIT</label>
-              <select id="settingUnit" onchange="handleSaveSettings()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-                <option value="KG">Kilograms (KG)</option>
-                <option value="LBS">Pounds (LBS)</option>
-              </select>
-              <p class="text-[11px] text-slate-500 mt-1">Updates plate calculator presets, log labels, and metrics across Gymplified.</p>
+            <div class="section-title">Target Muscle Visualizer</div>
+            <div class="body-visualizer">
+              <svg class="muscle-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
+                <!-- Head & Torso Silhouette -->
+                <circle cx="100" cy="25" r="13" fill="none" stroke="var(--line)" stroke-width="2"/>
+                <path d="M 85,42 Q 100,48 115,42 L 135,65 L 145,120 L 135,130 L 130,200 L 122,280 L 102,280 L 100,160 L 98,280 L 78,280 L 70,200 L 65,130 L 55,120 L 65,65 Z" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+                
+                <!-- Target Muscle SVG Paths -->
+                <!-- Chest -->
+                <path id="svg-chest" class="muscle-path" d="M 82,65 Q 100,70 118,65 L 120,88 Q 100,98 80,88 Z" title="Chest / Pectorals"/>
+                <!-- Lats / Back -->
+                <path id="svg-lats" class="muscle-path" d="M 72,90 Q 65,115 78,135 Q 100,120 122,135 Q 135,115 128,90 Q 100,102 72,90 Z" title="Lats / Back"/>
+                <!-- Shoulders (Deltoids) -->
+                <path id="svg-shoulders" class="muscle-path" d="M 68,62 L 82,65 L 76,90 L 58,100 Z M 132,62 L 118,65 L 124,90 L 142,100 Z" title="Shoulders / Deltoids"/>
+                <!-- Biceps -->
+                <path id="svg-biceps" class="muscle-path" d="M 57,102 L 74,96 L 68,125 L 54,120 Z" title="Biceps"/>
+                <!-- Triceps -->
+                <path id="svg-triceps" class="muscle-path" d="M 143,102 L 126,96 L 132,125 L 146,120 Z" title="Triceps"/>
+                <!-- Abs / Core -->
+                <path id="svg-abs" class="muscle-path" d="M 82,94 Q 100,98 118,94 L 116,145 Q 100,150 84,145 Z" title="Abs / Core"/>
+                <!-- Quads -->
+                <path id="svg-quadriceps" class="muscle-path" d="M 74,155 L 97,155 L 94,220 L 76,215 Z M 103,155 L 126,155 L 124,215 L 106,220 Z" title="Quadriceps"/>
+                <!-- Hamstrings -->
+                <path id="svg-hamstrings" class="muscle-path" d="M 76,218 L 94,222 L 91,255 L 78,250 Z M 124,218 L 106,222 L 109,255 L 122,250 Z" title="Hamstrings"/>
+                <!-- Calves -->
+                <path id="svg-calves" class="muscle-path" d="M 78,254 L 91,257 L 88,285 L 80,285 Z M 122,254 L 109,257 L 112,285 L 120,285 Z" title="Calves"/>
+              </svg>
             </div>
 
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">DEFAULT REST TIMER DURATION</label>
-              <select id="settingTimerDefault" onchange="handleSaveSettings()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-                <option value="60">60 Seconds (1 Min)</option>
-                <option value="90" selected>90 Seconds (1.5 Mins)</option>
-                <option value="120">120 Seconds (2 Mins)</option>
-                <option value="180">180 Seconds (3 Mins)</option>
-              </select>
+            <!-- Active Equipment Info Box -->
+            <div class="panel" style="margin-top: 12px;" id="machineDetailBox">
+              <h3 id="selectedMachineTitle" style="font-size: 15px; margin-bottom: 4px;">Click an exercise machine to inspect</h3>
+              <p id="selectedMachineDesc" style="font-size: 12px; color: var(--muted);">Muscle activation heatmaps will highlight primary and secondary targeted areas.</p>
+              <div id="selectedMachineTags" class="tag-list" style="margin-top: 10px;"></div>
+              <button id="addMachineToWorkoutBtn" class="btn btn-primary" style="margin-top: 14px; width: 100%; display: none;" onclick="addSelectedMachineToLog()">+ Add Equipment to Training Log</button>
             </div>
+          </div>
+        </div>
+      </section>
 
-            <div>
-              <label class="block text-slate-400 font-semibold uppercase mb-1">TIMER CHIME AUDIO ALERT</label>
-              <select id="settingChimeEnabled" onchange="handleSaveSettings()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-                <option value="true">Enabled (WebAudio Synthesizer)</option>
-                <option value="false">Muted</option>
-              </select>
+      <!-- 5. NUTRITION SCREEN -->
+      <section id="nutrition" class="screen">
+        <div class="eyebrow">Fueling</div>
+        <h1>Nutrition & Macro Tracker</h1>
+        <p class="subtitle">Record meal macros and monitor daily caloric balance.</p>
+
+        <div class="panel" style="margin-bottom: 20px;">
+          <div class="section-title">Add Custom Food Item</div>
+          <div class="form-grid">
+            <div class="field">
+              <label>Food Item Name</label>
+              <input type="text" id="inputFoodName" placeholder="e.g. Grilled Salmon & Quinoa">
             </div>
+            <div class="field">
+              <label>Calories (kcal)</label>
+              <input type="number" id="inputFoodCal" value="500">
+            </div>
+            <div class="field">
+              <label>Protein (g)</label>
+              <input type="number" id="inputFoodProtein" value="40">
+            </div>
+            <div class="field">
+              <label>Carbs (g)</label>
+              <input type="number" id="inputFoodCarbs" value="45">
+            </div>
+            <div class="field">
+              <label>Fat (g)</label>
+              <input type="number" id="inputFoodFat" value="12">
+            </div>
+          </div>
+          <button class="btn btn-primary" onclick="saveFoodEntry()">Log Food Intake</button>
+        </div>
 
-            <div class="border-t border-slate-800 pt-4">
-              <label class="block text-slate-400 font-semibold uppercase mb-1">LLM / AI ADVISOR API KEY</label>
-              <div class="flex items-center space-x-2">
-                <input type="password" id="settingApiKey" placeholder="sk-..." class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-                <button onclick="handleSaveSettings()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold uppercase shrink-0">Save</button>
-              </div>
+        <div class="panel">
+          <div class="section-title">
+            <span>Logged Meals Today</span>
+            <button class="btn" onclick="clearFoodLogs()" style="color:var(--danger)">Reset Meal Logs</button>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Meal / Item</th>
+                <th>Calories</th>
+                <th>Protein</th>
+                <th>Carbs</th>
+                <th>Fat</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="foodTableBody">
+              <!-- Dynamic rows -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 6. SETTINGS HUB & ACCESSIBILITY OPTIONS -->
+      <section id="settings" class="screen">
+        <div class="eyebrow">Preferences</div>
+        <h1>Settings & Accessibility Hub</h1>
+        <p class="subtitle">Configure dark mode, accent palettes, accessibility contrast, motion toggles, and data persistence.</p>
+
+        <!-- Dark Mode & Appearance -->
+        <div class="settings-group">
+          <h3>Interface Theme & Dark Mode</h3>
+          <p>Switch between light and dark display modes or adjust your accent color.</p>
+          
+          <div class="toggle-row">
+            <label for="themeSelect">Display Theme Mode</label>
+            <select id="themeSelect" onchange="changeTheme(this.value)" style="width: 170px;">
+              <option value="dark">Dark Mode (Default)</option>
+              <option value="light">Light Mode</option>
+            </select>
+          </div>
+
+          <div style="margin-top: 14px;">
+            <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">UI Accent Palette</label>
+            <div class="color-picker">
+              <div class="color-dot active" style="background: #2563eb;" title="Electric Blue" onclick="changeColor('blue', this)"></div>
+              <div class="color-dot" style="background: #059669;" title="Emerald Green" onclick="changeColor('emerald', this)"></div>
+              <div class="color-dot" style="background: #475569;" title="Slate Gray" onclick="changeColor('slate', this)"></div>
+              <div class="color-dot" style="background: #dc2626;" title="Crimson Red" onclick="changeColor('crimson', this)"></div>
+              <div class="color-dot" style="background: #d97706;" title="Amber Gold" onclick="changeColor('amber', this)"></div>
+              <div class="color-dot" style="background: #7c3aed;" title="Violet Purple" onclick="changeColor('violet', this)"></div>
             </div>
           </div>
         </div>
 
-        <!-- Profile & Data Controls Column -->
-        <div class="md:col-span-6 bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5 shadow-sm">
-          <h2 class="text-sm font-bold text-white uppercase tracking-wider border-b border-slate-800 pb-3 flex items-center gap-2">
-            <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-            ATHLETIC PROFILE &amp; DATA BACKUP
-          </h2>
+        <!-- Accessibility Options -->
+        <div class="settings-group">
+          <h3>Accessibility Options</h3>
+          <p>Optimize text sizes, structural border contrast, and UI motion settings.</p>
 
-          <div class="space-y-4 text-xs">
-            <div class="bg-slate-800/50 border border-slate-700/80 rounded-xl p-4 space-y-3">
-              <span class="font-bold text-white block uppercase">Current Profile Settings</span>
-              <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-300">
-                <div>Experience: <strong id="settingsDispExp" class="text-blue-400">Intermediate</strong></div>
-                <div>Access: <strong id="settingsDispAccess" class="text-blue-400">Commercial Gym</strong></div>
-                <div class="col-span-2">Goal: <strong id="settingsDispGoal" class="text-blue-400">Hypertrophy</strong></div>
-              </div>
-              <button onclick="openOnboardingModal()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold py-2 rounded-lg transition-all uppercase">
-                Reconfigure Profile
-              </button>
-            </div>
+          <div class="toggle-row">
+            <label for="scaleSelect">Text & UI Scale</label>
+            <select id="scaleSelect" onchange="changeScale(this.value)" style="width: 170px;">
+              <option value="sm">Compact (87.5%)</option>
+              <option value="md" selected>Default (100%)</option>
+              <option value="lg">Large (112.5%)</option>
+              <option value="xl">Extra Large (125%)</option>
+            </select>
+          </div>
 
-            <div class="border-t border-slate-800 pt-4 space-y-3">
-              <span class="font-bold text-white block uppercase">Data Import &amp; Export</span>
-              <div class="flex flex-col sm:flex-row gap-2">
-                <button onclick="exportDataJSON()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold py-2.5 rounded-lg transition-all uppercase">
-                  Export Data JSON
-                </button>
-                <label class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white font-semibold py-2.5 rounded-lg transition-all uppercase text-center cursor-pointer">
-                  Import Data JSON
-                  <input type="file" onchange="importDataJSON(event)" class="hidden" accept=".json">
-                </label>
-              </div>
-            </div>
+          <div class="toggle-row">
+            <label for="fontSelect">Typography Style</label>
+            <select id="fontSelect" onchange="changeFont(this.value)" style="width: 170px;">
+              <option value="default">Standard Sans-Serif</option>
+              <option value="accessible">High-Legibility Font</option>
+            </select>
+          </div>
 
-            <div class="border-t border-slate-800 pt-4 space-y-2">
-              <span class="font-bold text-rose-400 block uppercase">Danger Zone</span>
-              <button onclick="resetAllAppData()" class="w-full border border-rose-500/40 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold py-2.5 rounded-lg transition-all uppercase">
-                Reset All Local Gymplified Data
-              </button>
-            </div>
+          <div class="toggle-row">
+            <label for="contrastToggle">Sharp Border Contrast</label>
+            <select id="contrastToggle" onchange="changeContrast(this.value)" style="width: 170px;">
+              <option value="normal">Normal Contrast</option>
+              <option value="high">High Sharp Contrast</option>
+            </select>
+          </div>
+
+          <div class="toggle-row">
+            <label for="motionToggle">UI Animation / Motion</label>
+            <select id="motionToggle" onchange="changeMotion(this.value)" style="width: 170px;">
+              <option value="normal">Enabled (Smooth Transitions)</option>
+              <option value="reduced">Reduced Motion</option>
+            </select>
           </div>
         </div>
 
-      </div>
-
-    </section>
-
-  </main>
-
-  <!-- ================================================================= -->
-  <!-- MODALS -->
-  <!-- ================================================================= -->
-
-  <!-- ONBOARDING MODAL -->
-  <div id="onboardingModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl">
-      <div class="border-b border-slate-800 pb-3">
-        <h2 class="text-base font-bold text-white uppercase tracking-wider">ATHLETIC PROFILE SETUP</h2>
-        <p class="text-xs text-slate-400 mt-1">Configure baseline variables to optimize exercise recommendations and AI diagnostic reports.</p>
-      </div>
-
-      <form onsubmit="handleSaveProfile(event)" class="space-y-4 text-xs">
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1">GYM EXPERIENCE DURATION</label>
-          <select id="onboardExp" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            <option value="< 6 Months">&lt; 6 Months (Novice)</option>
-            <option value="6 - 24 Months" selected>6 - 24 Months (Intermediate)</option>
-            <option value="2+ Years">2+ Years (Advanced Lifting)</option>
-          </select>
+        <!-- Data Management -->
+        <div class="settings-group">
+          <h3>Data Management & Browser Storage</h3>
+          <p>Gymplified starts clean by default. Seed sample gym logs for testing or reset all browser memory.</p>
+          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <button class="btn" onclick="seedSampleData()">Seed Sample Gym Data</button>
+            <button class="btn" onclick="resetAllData()" style="color: var(--danger); border-color: var(--danger);">Clear All Browser Data</button>
+          </div>
         </div>
-
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1">FACILITY / EQUIPMENT ACCESS</label>
-          <select id="onboardAccess" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            <option value="Full Commercial Gym" selected>Full Commercial Gym (Barbells, Dumbbells, Machines, Cables)</option>
-            <option value="Home Gym (Barbell & Rack)">Home Gym (Barbell, Plates, Squat Rack)</option>
-            <option value="Dumbbells & Bench Only">Dumbbells &amp; Adjustable Bench Only</option>
-            <option value="Bodyweight / Calisthenics">Bodyweight / Minimal Equipment</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1">PRIMARY GOAL</label>
-          <select id="onboardGoal" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            <option value="Hypertrophy">Hypertrophy (Muscle Mass Building)</option>
-            <option value="Strength Powerlifting">Strength / Powerlifting (1RM Maxima)</option>
-            <option value="General Athleticism">General Athletic Conditioning</option>
-          </select>
-        </div>
-
-        <div class="pt-2 flex justify-end space-x-2">
-          <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl text-xs shadow-md shadow-blue-600/20 uppercase transition-all">
-            Initialize Engine
-          </button>
-        </div>
-      </form>
-    </div>
+      </section>
+    </main>
   </div>
+</div>
 
-  <!-- ADD CUSTOM EXERCISE MODAL -->
-  <div id="customExerciseModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
-      <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
-        <h2 class="text-sm font-bold text-white uppercase">ADD CUSTOM EXERCISE LIFT</h2>
-        <button onclick="closeModal('customExerciseModal')" class="text-slate-400 hover:text-white">✕</button>
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// --- POOL OF 100 MOTIVATIONAL QUOTES ---
+const MOTIVATIONAL_QUOTES = [
+  { text: "He who conquers himself is the mightiest warrior.", author: "Sun Tzu" },
+  { text: "The resistance that you fight physically in the gym and the resistance that you fight in life can only build a strong character.", author: "Arnold Schwarzenegger" },
+  { text: "In the midst of chaos, there is also opportunity.", author: "Sun Tzu" },
+  { text: "Strength does not come from winning. Your struggles develop your strengths.", author: "Arnold Schwarzenegger" },
+  { text: "You have power over your mind - not outside events. Realize this, and you will find strength.", author: "Marcus Aurelius" },
+  { text: "Victorious warriors win first and then go to war, while defeated warriors go to war first and then seek to win.", author: "Sun Tzu" },
+  { text: "Difficulties strengthen the mind, as labor does the body.", author: "Seneca" },
+  { text: "The worst thing I can be is the same as everybody else. I hate that.", author: "Arnold Schwarzenegger" },
+  { text: "At dawn, when you have trouble getting out of bed, tell yourself: 'I have to go to work — as a human being.'", author: "Marcus Aurelius" },
+  { text: "Don't stop when you're tired, stop when you're done.", author: "David Goggins" },
+  { text: "Ponder and deliberate before you make a move.", author: "Sun Tzu" },
+  { text: "Where the mind goes the body will follow.", author: "Arnold Schwarzenegger" },
+  { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius" },
+  { text: "Everybody wants to be a bodybuilder, but nobody wants to lift no heavy-ass weights.", author: "Ronnie Coleman" },
+  { text: "Luck is what happens when preparation meets opportunity.", author: "Seneca" },
+  { text: "I hated every minute of training, but I said, 'Don't quit. Suffer now and live the rest of your life as a champion.'", author: "Muhammad Ali" },
+  { text: "Waste no more time arguing about what a good man should be. Be one.", author: "Marcus Aurelius" },
+  { text: "Do not pray for an easy life, pray for the strength to endure a difficult one.", author: "Bruce Lee" },
+  { text: "We suffer more often in imagination than in reality.", author: "Seneca" },
+  { text: "When you think you're done, you're only at 40% of your body's capability.", author: "David Goggins" },
+  { text: "He who is not courageous enough to take risks will accomplish nothing in life.", author: "Muhammad Ali" },
+  { text: "Knowing is not enough, we must apply. Willing is not enough, we must do.", author: "Bruce Lee" },
+  { text: "No man is free who is not master of himself.", author: "Epictetus" },
+  { text: "Rest at the end, not in the middle.", author: "Kobe Bryant" },
+  { text: "Believe you can and you're halfway there.", author: "Theodore Roosevelt" },
+  { text: "Energy can be harnessed and willingness can be cultivated.", author: "Sun Tzu" },
+  { text: "It is hard to fail, but it is worse never to have tried to succeed.", author: "Theodore Roosevelt" },
+  { text: "Discipline equals freedom.", author: "Jocko Willink" },
+  { text: "If you're going through hell, keep going.", author: "Winston Churchill" },
+  { text: "I fear not the man who has practiced 10,000 kicks once, but I fear the man who has practiced one kick 10,000 times.", author: "Bruce Lee" },
+  { text: "Continuous effort — not strength or intelligence — is the key to unlocking our potential.", author: "Winston Churchill" },
+  { text: "Veni, vidi, vici. (I came, I saw, I conquered.)", author: "Julius Caesar" },
+  { text: "There is nothing impossible to him who will try.", author: "Alexander the Great" },
+  { text: "Discipline is doing what you hate to do, but doing it like you love it.", author: "Mike Tyson" },
+  { text: "Blood, sweat and respect. First two you give, last one you earn.", author: "Dwayne Johnson" },
+  { text: "Be humble. Be hungry. And always be the hardest worker in the room.", author: "Dwayne Johnson" },
+  { text: "There is nothing outside of yourself that can ever enable you to get better, stronger, richer, quicker, or cleverer. Everything is within.", author: "Miyamoto Musashi" },
+  { text: "Do nothing that is of no use.", author: "Miyamoto Musashi" },
+  { text: "Concentration, focus, and total dedication. That is what separates the winners.", author: "Dorian Yates" },
+  { text: "Set your goals high, and don't stop till you get there.", author: "Jay Cutler" },
+  { text: "If you want to build bigger muscles, you must push them past their limit.", author: "Franco Columbu" },
+  { text: "If I'm going to do something, I'm going to do it 100%.", author: "Lou Ferrigno" },
+  { text: "The squatter doesn't negotiate with the weight.", author: "Tom Platz" },
+  { text: "Don't count on motivation. Count on discipline.", author: "Jocko Willink" },
+  { text: "Overcome the weakness of your mind.", author: "Jocko Willink" },
+  { text: "Winners never quit and quitters never win.", author: "Vince Lombardi" },
+  { text: "It's not whether you get knocked down, it's whether you get up.", author: "Vince Lombardi" },
+  { text: "The dictionary is the only place where success comes before work.", author: "Vince Lombardi" },
+  { text: "I've failed over and over and over again in my life. And that is why I succeed.", author: "Michael Jordan" },
+  { text: "Some people want it to happen, some wish it would happen, others make it happen.", author: "Michael Jordan" },
+  { text: "Obstacles don't have to stop you. If you run into a wall, don't turn around and give up. Figure out how to climb it.", author: "Michael Jordan" },
+  { text: "I've grown most not from victories, but from setbacks.", author: "Serena Williams" },
+  { text: "Your love makes me strong. Your hate makes me unstoppable.", author: "Cristiano Ronaldo" },
+  { text: "Dedication, hard work all the time, and belief.", author: "Cristiano Ronaldo" },
+  { text: "I don't think limits.", author: "Usain Bolt" },
+  { text: "Easy is not an option. No days off. Never quit.", author: "Usain Bolt" },
+  { text: "There is a difference between a fighter and a martial artist. A martial artist trains for mastery.", author: "Georges St-Pierre" },
+  { text: "Hard work, discipline, and staying humble.", author: "Khabib Nurmagomedov" },
+  { text: "Impossible is a word to be found only in the dictionary of fools.", author: "Napoleon Bonaparte" },
+  { text: "Courage isn't having the strength to go on; it is going on when you don't have strength.", author: "Napoleon Bonaparte" },
+  { text: "I will prepare and someday my chance will come.", author: "Abraham Lincoln" },
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs" },
+  { text: "Stay hungry, stay foolish.", author: "Steve Jobs" },
+  { text: "He who has a why to live can bear almost any how.", author: "Friedrich Nietzsche" },
+  { text: "What does not kill me makes me stronger.", author: "Friedrich Nietzsche" },
+  { text: "A journey of a thousand miles begins with a single step.", author: "Lao Tzu" },
+  { text: "Mastering others is strength. Mastering yourself is true power.", author: "Lao Tzu" },
+  { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
+  { text: "The first and greatest victory is to conquer yourself.", author: "Plato" },
+  { text: "No man has the right to be an amateur in the matter of physical training. It is a shame for a man to grow old without seeing the beauty and strength of which his body is capable.", author: "Socrates" },
+  { text: "If you want to improve, be content to be thought foolish and stupid.", author: "Epictetus" },
+  { text: "Whether you think you can, or you think you can't — you're right.", author: "Henry Ford" },
+  { text: "When something is important enough, you do it even if the odds are not in your favor.", author: "Elon Musk" },
+  { text: "If you're afraid to fail, then you're probably going to fail.", author: "Kobe Bryant" },
+  { text: "Whatever it takes.", author: "Rich Piana" },
+  { text: "We're all gonna make it, brahs.", author: "Zyzz" },
+  { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+  { text: "It always seems impossible until it's done.", author: "Nelson Mandela" },
+  { text: "First say to yourself what you would be, and then do what you have to do.", author: "Epictetus" },
+  { text: "As long as you live, keep learning how to live.", author: "Seneca" },
+  { text: "Reject your sense of injury and the injury itself disappears.", author: "Marcus Aurelius" },
+  { text: "To know your Enemy, you must become your Enemy.", author: "Sun Tzu" },
+  { text: "Action is the foundational key to all success.", author: "Pablo Picasso" },
+  { text: "Success isn't owned. It's leased, and rent is due every day.", author: "J.J. Watt" },
+  { text: "Clear your mind of can't.", author: "Samuel Johnson" },
+  { text: "Small deeds done are better than great deeds planned.", author: "Peter Marshall" },
+  { text: "Great things are done by a series of small things brought together.", author: "Vincent van Gogh" },
+  { text: "Light weight, baby!", author: "Ronnie Coleman" },
+  { text: "If you don't find the time, if you don't do the work, you don't get the results.", author: "Arnold Schwarzenegger" },
+  { text: "Be like water, my friend.", author: "Bruce Lee" },
+  { text: "Great things come from hard work and perseverance. No excuses.", author: "Kobe Bryant" },
+  { text: "The credit belongs to the man who is actually in the arena.", author: "Theodore Roosevelt" },
+  { text: "Success is not final, failure is not fatal: it is the courage to continue that counts.", author: "Winston Churchill" },
+  { text: "I am not afraid of an army of lions led by a sheep; I am afraid of an army of sheep led by a lion.", author: "Alexander the Great" },
+  { text: "Everyone has a plan until they get punched in the mouth.", author: "Mike Tyson" },
+  { text: "Success isn't always about greatness. It's about consistency.", author: "Dwayne Johnson" },
+  { text: "You must understand that there is more than one path to the top of the mountain.", author: "Miyamoto Musashi" },
+  { text: "You are in danger of living a life so comfortable and soft, that you will die without ever realizing your true potential.", author: "David Goggins" },
+  { text: "The mind is the ultimate battleground.", author: "David Goggins" },
+  { text: "It's not bragging if you can back it up.", author: "Muhammad Ali" }
+];
+
+// --- APP STATE & STORAGE ---
+const STORAGE_KEY = 'gymplified_app_v2';
+
+const cleanState = {
+  cal: 0,
+  calTarget: 2500,
+  protein: 0,
+  carbs: 0,
+  fat: 0,
+  water: 0,
+  workouts: [],
+  foods: [],
+  prs: [],
+  settings: {
+    theme: 'dark',
+    color: 'blue',
+    scale: 'md',
+    font: 'default',
+    contrast: 'normal',
+    motion: 'normal'
+  }
+};
+
+let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || cleanState;
+if(!state.prs) state.prs = [];
+
+// Popular Gym Machines Dataset
+const GYM_MACHINES = [
+  {
+    id: 'leg-press',
+    name: 'Leg Press Machine',
+    desc: 'Plate-loaded compound machine targeting the quadriceps, glutes, and hamstring complex.',
+    primary: ['quadriceps'],
+    secondary: ['hamstrings']
+  },
+  {
+    id: 'lat-pulldown',
+    name: 'Lat Pulldown Machine',
+    desc: 'Cable machine targeting latissimus dorsi width and upper back thickness.',
+    primary: ['lats'],
+    secondary: ['biceps']
+  },
+  {
+    id: 'pec-deck',
+    name: 'Pec Deck Fly Machine',
+    desc: 'Chest isolation equipment providing constant tension across pectoralis major.',
+    primary: ['chest'],
+    secondary: ['shoulders']
+  },
+  {
+    id: 'seated-row',
+    name: 'Seated Cable Row',
+    desc: 'Horizontal pulling equipment targeting mid-back thickness, rhomboids, and lats.',
+    primary: ['lats'],
+    secondary: ['biceps']
+  },
+  {
+    id: 'shoulder-press-m',
+    name: 'Seated Shoulder Press Machine',
+    desc: 'Guided overhead press machine targeting anterior and lateral deltoid heads.',
+    primary: ['shoulders'],
+    secondary: ['triceps']
+  },
+  {
+    id: 'leg-extension',
+    name: 'Leg Extension Machine',
+    desc: 'Isolation machine focusing directly on quadriceps muscle isolation.',
+    primary: ['quadriceps'],
+    secondary: []
+  },
+  {
+    id: 'hamstring-curl',
+    name: 'Seated Hamstring Curl',
+    desc: 'Knee flexion isolation equipment for posterior thigh hamstrings.',
+    primary: ['hamstrings'],
+    secondary: []
+  },
+  {
+    id: 'triceps-pushdown',
+    name: 'Cable Triceps Pushdown',
+    desc: 'High-pulley cable machine isolation exercise for triceps extensions.',
+    primary: ['triceps'],
+    secondary: []
+  },
+  {
+    id: 'cable-curl',
+    name: 'Cable Biceps Curl Machine',
+    desc: 'Low-pulley constant tension cable machine targeting biceps brachii.',
+    primary: ['biceps'],
+    secondary: []
+  },
+  {
+    id: 'calf-raise-m',
+    name: 'Standing Calf Raise Machine',
+    desc: 'Ankle plantarflexion machine targeting gastrocnemius and soleus calf muscles.',
+    primary: ['calves'],
+    secondary: []
+  },
+  {
+    id: 'ab-crunch-m',
+    name: 'Abdominal Crunch Machine',
+    desc: 'Resisted spinal flexion equipment targeting rectus abdominis.',
+    primary: ['abs'],
+    secondary: []
+  }
+];
+
+let selectedMachine = null;
+
+// --- TOAST NOTIFICATIONS ---
+function showToast(message) {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  container.appendChild(toast);
+
+  setTimeout(() => toast.classList.add('show'), 20);
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 2200);
+}
+
+// --- PERSISTENCE & SETTINGS ---
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  renderAll();
+}
+
+function applySettings() {
+  const s = state.settings || cleanState.settings;
+  document.documentElement.setAttribute('data-theme', s.theme || 'dark');
+  document.documentElement.setAttribute('data-color', s.color || 'blue');
+  document.documentElement.setAttribute('data-scale', s.scale || 'md');
+  document.documentElement.setAttribute('data-font', s.font || 'default');
+  document.documentElement.setAttribute('data-contrast', s.contrast || 'normal');
+  document.documentElement.setAttribute('data-motion', s.motion || 'normal');
+
+  // Sync inputs in Settings Screen
+  if(document.getElementById('themeSelect')) document.getElementById('themeSelect').value = s.theme || 'dark';
+  if(document.getElementById('scaleSelect')) document.getElementById('scaleSelect').value = s.scale || 'md';
+  if(document.getElementById('fontSelect')) document.getElementById('fontSelect').value = s.font || 'default';
+  if(document.getElementById('contrastToggle')) document.getElementById('contrastToggle').value = s.contrast || 'normal';
+  if(document.getElementById('motionToggle')) document.getElementById('motionToggle').value = s.motion || 'normal';
+
+  // Active color dot highlight
+  document.querySelectorAll('.color-dot').forEach(dot => {
+    dot.classList.remove('active');
+  });
+}
+
+function toggleQuickTheme() {
+  state.settings.theme = state.settings.theme === 'dark' ? 'light' : 'dark';
+  saveState();
+  showToast(`Switched to ${state.settings.theme} mode`);
+}
+
+// --- NAVIGATION ---
+function showScreen(screenId, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(screenId).classList.add('active');
+  if (btn) {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+  if(screenId === 'prs') {
+    nextQuote();
+  }
+}
+
+// --- MOTIVATIONAL QUOTE ENGINE ---
+function getRandomQuote() {
+  const index = Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length);
+  return MOTIVATIONAL_QUOTES[index];
+}
+
+function nextQuote() {
+  const quoteBox = document.getElementById('quoteBox');
+  if(!quoteBox) return;
+  quoteBox.classList.add('changing');
+  setTimeout(() => {
+    const q = getRandomQuote();
+    document.getElementById('quoteText').textContent = `"${q.text}"`;
+    document.getElementById('quoteAuthor').textContent = q.author;
+    quoteBox.classList.remove('changing');
+  }, 200);
+}
+
+// --- ESTIMATED 1RM CALCULATOR (Epley Formula) ---
+function calculate1RM(weight, reps) {
+  if (reps === 1) return weight;
+  return Math.round(weight * (1 + reps / 30));
+}
+
+// --- RENDERING LOGIC ---
+function renderDashboard() {
+  document.getElementById('dashCal').textContent = state.cal.toLocaleString();
+  document.getElementById('dashCalTarget').textContent = state.calTarget.toLocaleString();
+  const pct = Math.min(100, Math.round((state.cal / state.calTarget) * 100));
+  document.getElementById('dashCalBar').style.width = pct + '%';
+  document.getElementById('dashCalPct').textContent = pct + '%';
+  const remain = Math.max(0, state.calTarget - state.cal);
+  document.getElementById('dashCalRemain').textContent = remain.toLocaleString() + ' kcal remaining';
+
+  document.getElementById('dashProtein').textContent = state.protein + 'g';
+  document.getElementById('dashCarbs').textContent = state.carbs + 'g';
+  document.getElementById('dashFat').textContent = state.fat + 'g';
+
+  document.getElementById('dashWater').textContent = state.water.toFixed(2);
+  const waterPct = Math.min(100, Math.round((state.water / 2.5) * 100));
+  document.getElementById('dashWaterBar').style.width = waterPct + '%';
+
+  document.getElementById('dashWorkoutCount').textContent = state.workouts.length + ' Exercises';
+
+  const container = document.getElementById('dashWorkoutsContainer');
+  if (state.workouts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-box">
+        <p>No workouts logged today. Add exercises using the direct log or Training tab.</p>
+        <button class="btn btn-primary" onclick="showScreen('training', document.querySelectorAll('nav button')[2])">Open Training Log</button>
+      </div>`;
+  } else {
+    container.innerHTML = state.workouts.map((w, i) => `
+      <div class="item-row">
+        <div class="row-idx">${String(i + 1).padStart(2, '0')}</div>
+        <div>
+          <strong style="display:block; font-size:14px;">${w.name}</strong>
+          <span style="font-size:12px; color:var(--muted);">${w.muscle} · ${w.weight}kg · ${w.sets} sets × ${w.reps} reps</span>
+        </div>
+        <button class="check-btn ${w.done ? 'done' : ''}" onclick="toggleWorkoutDone(${i})">${w.done ? '✓' : ''}</button>
       </div>
+    `).join('');
+  }
+}
 
-      <form onsubmit="handleSaveCustomExercise(event)" class="space-y-4 text-xs">
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1">EXERCISE NAME</label>
-          <input type="text" id="custExName" placeholder="e.g. Hack Squat Machine" required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-        </div>
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1">PRIMARY MUSCLE GROUP</label>
-          <select id="custExMuscle" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            <option value="Chest">Chest</option>
-            <option value="Back">Back</option>
-            <option value="Legs">Legs</option>
-            <option value="Shoulders">Shoulders</option>
-            <option value="Arms">Arms</option>
-            <option value="Core">Core</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1">EQUIPMENT CATEGORY</label>
-          <select id="custExEquipment" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500">
-            <option value="Barbell">Barbell</option>
-            <option value="Dumbbell">Dumbbell</option>
-            <option value="Machine">Machine</option>
-            <option value="Cable">Cable</option>
-            <option value="Bodyweight">Bodyweight</option>
-          </select>
-        </div>
+function renderPRs() {
+  const container = document.getElementById('prListContainer');
+  if (!state.prs || state.prs.length === 0) {
+    container.innerHTML = `
+      <div class="empty-box">
+        <p>No Personal Records saved yet. Record your heavy lifts using the form above.</p>
+      </div>`;
+    return;
+  }
 
-        <div class="pt-2 flex justify-end space-x-2">
-          <button type="button" onclick="closeModal('customExerciseModal')" class="border border-slate-700 bg-slate-800 px-4 py-2 rounded-lg text-slate-300">Cancel</button>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold uppercase shadow-md shadow-blue-600/20">Save Exercise</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- ADD CUSTOM DIRECTIVE/QUOTE MODAL -->
-  <div id="quoteModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl">
-      <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
-        <h2 class="text-sm font-bold text-white uppercase">ADD GYMPLIFIED DIRECTIVE</h2>
-        <button onclick="closeModal('quoteModal')" class="text-slate-400 hover:text-white">✕</button>
+  container.innerHTML = `<div class="pr-grid">` + state.prs.map((pr, i) => {
+    const est1RM = calculate1RM(pr.weight, pr.reps);
+    return `
+      <div class="pr-card">
+        <div class="pr-card-badge">🏆 EST. 1RM: ${est1RM} KG</div>
+        <div class="pr-title">${pr.name}</div>
+        <div class="pr-metric">${pr.weight} <span style="font-size:14px; color:var(--muted);">KG</span> × ${pr.reps} <span style="font-size:14px; color:var(--muted);">REPS</span></div>
+        <div class="pr-subtext">Achieved: ${pr.date || 'Today'}</div>
+        <button class="btn btn-icon-only" style="position:absolute; bottom:12px; right:12px; color:var(--danger); height:28px; width:28px; font-size:11px;" onclick="deletePR(${i})" title="Delete PR">✕</button>
       </div>
+    `;
+  }).join('') + `</div>`;
+}
 
-      <form onsubmit="handleSaveCustomQuote(event)" class="space-y-4 text-xs">
-        <div>
-          <label class="block text-slate-400 font-semibold uppercase mb-1">DIRECTIVE STATEMENT / QUOTE</label>
-          <textarea id="quoteInputText" rows="3" placeholder="e.g. Progressive volume drives enzymatic muscle protein synthesis." required class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"></textarea>
-        </div>
+function renderTrainingLog() {
+  const container = document.getElementById('trainingLogList');
+  if (state.workouts.length === 0) {
+    container.innerHTML = `
+      <div class="empty-box">
+        <p>Session log is clean. Record exercises above to write into browser memory.</p>
+      </div>`;
+    return;
+  }
 
-        <div class="pt-2 flex justify-end space-x-2">
-          <button type="button" onclick="closeModal('quoteModal')" class="border border-slate-700 bg-slate-800 px-4 py-2 rounded-lg text-slate-300">Cancel</button>
-          <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-semibold uppercase shadow-md shadow-blue-600/20">Store Directive</button>
-        </div>
-      </form>
+  container.innerHTML = state.workouts.map((w, i) => `
+    <div class="item-row">
+      <div class="row-idx">${String(i + 1).padStart(2, '0')}</div>
+      <div>
+        <strong style="display:block; font-size:14px;">${w.name}</strong>
+        <span style="font-size:12px; color:var(--muted);">${w.muscle} target · ${w.weight} kg load</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span style="font-size:12px; font-weight:700;">${w.sets} sets × ${w.reps} reps</span>
+        <button class="check-btn ${w.done ? 'done' : ''}" onclick="toggleWorkoutDone(${i})">${w.done ? '✓' : ''}</button>
+        <button class="btn btn-icon-only" style="color:var(--danger); height:30px; width:30px; font-size:12px;" onclick="deleteWorkout(${i})">✕</button>
+      </div>
     </div>
-  </div>
+  `).join('');
+}
 
-  <!-- ================================================================= -->
-  <!-- JAVASCRIPT APPLICATION LOGIC -->
-  <!-- ================================================================= -->
-  <script>
-    // --- GLOBAL STATE STORAGE KEYS ---
-    const STORAGE_KEY_PROFILE = 'gymplified_profile';
-    const STORAGE_KEY_LOGS = 'gymplified_logs';
-    const STORAGE_KEY_TEMPLATES = 'gymplified_templates';
-    const STORAGE_KEY_EXERCISES = 'gymplified_exercises';
-    const STORAGE_KEY_METRICS = 'gymplified_metrics';
-    const STORAGE_KEY_QUOTES = 'gymplified_quotes';
-    const STORAGE_KEY_SETTINGS = 'gymplified_settings';
+function renderNutrition() {
+  const tableBody = document.getElementById('foodTableBody');
+  if (state.foods.length === 0) {
+    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding: 24px;">No custom meals logged today. Use the form above to add foods.</td></tr>`;
+    return;
+  }
 
-    // --- DEFAULT INITIALIZATION DATA ---
-    const DEFAULT_EXERCISES = [
-      { id: 'ex-1', name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell' },
-      { id: 'ex-2', name: 'Incline Dumbbell Press', muscle: 'Chest', equipment: 'Dumbbell' },
-      { id: 'ex-3', name: 'Barbell Back Squat', muscle: 'Legs', equipment: 'Barbell' },
-      { id: 'ex-4', name: 'Conventional Deadlift', muscle: 'Back', equipment: 'Barbell' },
-      { id: 'ex-5', name: 'Standing Overhead Press', muscle: 'Shoulders', equipment: 'Barbell' },
-      { id: 'ex-6', name: 'Lat Pulldown', muscle: 'Back', equipment: 'Cable' },
-      { id: 'ex-7', name: 'Seated Cable Row', muscle: 'Back', equipment: 'Cable' },
-      { id: 'ex-8', name: 'Romanian Deadlift', muscle: 'Legs', equipment: 'Barbell' },
-      { id: 'ex-9', name: 'Leg Press', muscle: 'Legs', equipment: 'Machine' },
-      { id: 'ex-10', name: 'Lateral Cable Raise', muscle: 'Shoulders', equipment: 'Cable' },
-      { id: 'ex-11', name: 'Tricep Rope Pushdown', muscle: 'Arms', equipment: 'Cable' },
-      { id: 'ex-12', name: 'Barbell Bicep Curl', muscle: 'Arms', equipment: 'Barbell' }
-    ];
+  tableBody.innerHTML = state.foods.map((f, i) => `
+    <tr>
+      <td><strong>${f.name}</strong></td>
+      <td>${f.cal} kcal</td>
+      <td>${f.protein}g</td>
+      <td>${f.carbs}g</td>
+      <td>${f.fat}g</td>
+      <td><button class="btn" style="color:var(--danger); padding:2px 8px; font-size:11px;" onclick="deleteFood(${i})">Delete</button></td>
+    </tr>
+  `).join('');
+}
 
-    const DEFAULT_TEMPLATES = [
-      {
-        id: 'tmpl-1',
-        name: 'Push A (Heavy Bench Focus)',
-        exercises: [
-          { name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', sets: [{ type: 'Warmup', weight: 60, reps: 10 }, { type: 'Working', weight: 80, reps: 8 }, { type: 'Working', weight: 80, reps: 8 }, { type: 'Failure', weight: 80, reps: 6 }] },
-          { name: 'Standing Overhead Press', muscle: 'Shoulders', equipment: 'Barbell', sets: [{ type: 'Working', weight: 45, reps: 8 }, { type: 'Working', weight: 45, reps: 8 }] },
-          { name: 'Incline Dumbbell Press', muscle: 'Chest', equipment: 'Dumbbell', sets: [{ type: 'Working', weight: 28, reps: 10 }, { type: 'Working', weight: 28, reps: 10 }] },
-          { name: 'Lateral Cable Raise', muscle: 'Shoulders', equipment: 'Cable', sets: [{ type: 'Working', weight: 10, reps: 15 }, { type: 'Working', weight: 10, reps: 12 }] }
-        ]
-      },
-      {
-        id: 'tmpl-2',
-        name: 'Pull B (Lat & Chain)',
-        exercises: [
-          { name: 'Conventional Deadlift', muscle: 'Back', equipment: 'Barbell', sets: [{ type: 'Warmup', weight: 70, reps: 5 }, { type: 'Working', weight: 120, reps: 5 }, { type: 'Working', weight: 120, reps: 5 }] },
-          { name: 'Lat Pulldown', muscle: 'Back', equipment: 'Cable', sets: [{ type: 'Working', weight: 60, reps: 10 }, { type: 'Working', weight: 60, reps: 10 }] },
-          { name: 'Seated Cable Row', muscle: 'Back', equipment: 'Cable', sets: [{ type: 'Working', weight: 55, reps: 12 }, { type: 'Working', weight: 55, reps: 10 }] },
-          { name: 'Barbell Bicep Curl', muscle: 'Arms', equipment: 'Barbell', sets: [{ type: 'Working', weight: 30, reps: 10 }, { type: 'Failure', weight: 30, reps: 8 }] }
-        ]
-      },
-      {
-        id: 'tmpl-3',
-        name: 'Legs Heavy',
-        exercises: [
-          { name: 'Barbell Back Squat', muscle: 'Legs', equipment: 'Barbell', sets: [{ type: 'Warmup', weight: 60, reps: 8 }, { type: 'Working', weight: 100, reps: 6 }, { type: 'Working', weight: 100, reps: 6 }] },
-          { name: 'Romanian Deadlift', muscle: 'Legs', equipment: 'Barbell', sets: [{ type: 'Working', weight: 80, reps: 10 }, { type: 'Working', weight: 80, reps: 10 }] },
-          { name: 'Leg Press', muscle: 'Legs', equipment: 'Machine', sets: [{ type: 'Working', weight: 160, reps: 12 }, { type: 'Drop Set', weight: 120, reps: 15 }] }
-        ]
-      }
-    ];
+function renderMachines() {
+  const list = document.getElementById('machineList');
+  list.innerHTML = GYM_MACHINES.map(m => `
+    <div class="machine-card ${selectedMachine && selectedMachine.id === m.id ? 'active' : ''}" onclick="selectMachine('${m.id}')">
+      <h3>${m.name}</h3>
+      <p>${m.desc}</p>
+      <div class="tag-list">
+        ${m.primary.map(p => `<span class="tag primary">${p}</span>`).join('')}
+        ${m.secondary.map(s => `<span class="tag">${s}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
 
-    const DEFAULT_QUOTES = [
-      "Track variables, eliminate guesswork. Progressive overload is calculated.",
-      "Form determines muscle recruitment; weight determines adaptive stimulus.",
-      "Recovery efficiency dictates adaptive yield per unit tonnage.",
-      "Consistency compounds exponentially across 52-week training cycles."
-    ];
+function selectMachine(id) {
+  selectedMachine = GYM_MACHINES.find(m => m.id === id);
+  renderMachines();
 
-    const DEFAULT_SETTINGS = {
-      unit: 'KG',
-      timerDefault: '90',
-      chimeEnabled: 'true',
-      apiKey: ''
-    };
+  document.querySelectorAll('.muscle-path').forEach(el => {
+    el.classList.remove('active', 'secondary');
+  });
 
-    // --- APP STATE ---
-    let appProfile = null;
-    let appWorkouts = [];
-    let appTemplates = [];
-    let appExercises = [];
-    let appMetrics = [];
-    let appQuotes = [];
-    let appSettings = DEFAULT_SETTINGS;
+  if (selectedMachine) {
+    document.getElementById('selectedMachineTitle').textContent = selectedMachine.name;
+    document.getElementById('selectedMachineDesc').textContent = selectedMachine.desc;
+    document.getElementById('selectedMachineTags').innerHTML = `
+      <strong>Primary:</strong> ${selectedMachine.primary.map(p => `<span class="tag primary">${p}</span>`).join(' ')}
+      <strong style="margin-left:8px;">Secondary:</strong> ${selectedMachine.secondary.length ? selectedMachine.secondary.map(s => `<span class="tag">${s}</span>`).join(' ') : 'None'}
+    `;
+    document.getElementById('addMachineToWorkoutBtn').style.display = 'block';
 
-    let activeWorkoutState = {
-      name: 'Chest & Tricep Hypertrophy',
-      date: new Date().toISOString().split('T')[0],
-      exercises: []
-    };
-
-    // Analytics Chart instances
-    let chartProgressionInstance = null;
-    let chartBodyWeightInstance = null;
-    let activeChartMetric = '1rm'; // '1rm' or 'volume'
-
-    // Rest Countdown Timer State
-    let timerInterval = null;
-    let timerRemaining = 0;
-    let timerTotal = 0;
-    let timerRunning = false;
-
-    // --- INITIALIZATION ---
-    window.addEventListener('DOMContentLoaded', () => {
-      loadAllStorage();
-      initUI();
-      checkOnboarding();
-      loadDefaultWorkoutIfEmpty();
-      renderAllViews();
+    selectedMachine.primary.forEach(p => {
+      const svgEl = document.getElementById('svg-' + p);
+      if (svgEl) svgEl.classList.add('active');
     });
-
-    function loadAllStorage() {
-      appProfile = JSON.parse(localStorage.getItem(STORAGE_KEY_PROFILE)) || null;
-      appWorkouts = JSON.parse(localStorage.getItem(STORAGE_KEY_LOGS)) || seedSampleWorkouts();
-      appTemplates = JSON.parse(localStorage.getItem(STORAGE_KEY_TEMPLATES)) || DEFAULT_TEMPLATES;
-      appExercises = JSON.parse(localStorage.getItem(STORAGE_KEY_EXERCISES)) || DEFAULT_EXERCISES;
-      appMetrics = JSON.parse(localStorage.getItem(STORAGE_KEY_METRICS)) || seedSampleMetrics();
-      appQuotes = JSON.parse(localStorage.getItem(STORAGE_KEY_QUOTES)) || DEFAULT_QUOTES;
-      appSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_SETTINGS)) || DEFAULT_SETTINGS;
-      
-      if (appSettings.apiKey) {
-        document.getElementById('userApiKeyInput').value = appSettings.apiKey;
-        document.getElementById('settingApiKey').value = appSettings.apiKey;
-      }
-    }
-
-    function saveStorage() {
-      localStorage.setItem(STORAGE_KEY_PROFILE, JSON.stringify(appProfile));
-      localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(appWorkouts));
-      localStorage.setItem(STORAGE_KEY_TEMPLATES, JSON.stringify(appTemplates));
-      localStorage.setItem(STORAGE_KEY_EXERCISES, JSON.stringify(appExercises));
-      localStorage.setItem(STORAGE_KEY_METRICS, JSON.stringify(appMetrics));
-      localStorage.setItem(STORAGE_KEY_QUOTES, JSON.stringify(appQuotes));
-      localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(appSettings));
-    }
-
-    function seedSampleWorkouts() {
-      const date1 = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
-      const date2 = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-      const date3 = new Date(Date.now() - 2 * 86400000).toISOString().split('T')[0];
-
-      return [
-        {
-          id: 'w-1',
-          date: date1,
-          name: 'Push Hypertrophy',
-          exercises: [
-            { name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', sets: [{ type: 'Working', weight: 75, reps: 8 }, { type: 'Working', weight: 75, reps: 8 }, { type: 'Working', weight: 75, reps: 7 }] },
-            { name: 'Standing Overhead Press', muscle: 'Shoulders', equipment: 'Barbell', sets: [{ type: 'Working', weight: 40, reps: 8 }, { type: 'Working', weight: 40, reps: 8 }] }
-          ]
-        },
-        {
-          id: 'w-2',
-          date: date2,
-          name: 'Push Heavy Focus',
-          exercises: [
-            { name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', sets: [{ type: 'Working', weight: 80, reps: 6 }, { type: 'Working', weight: 80, reps: 6 }, { type: 'Working', weight: 80, reps: 5 }] },
-            { name: 'Incline Dumbbell Press', muscle: 'Chest', equipment: 'Dumbbell', sets: [{ type: 'Working', weight: 26, reps: 10 }] }
-          ]
-        },
-        {
-          id: 'w-3',
-          date: date3,
-          name: 'Push Progression',
-          exercises: [
-            { name: 'Barbell Bench Press', muscle: 'Chest', equipment: 'Barbell', sets: [{ type: 'Working', weight: 82.5, reps: 5 }, { type: 'Working', weight: 82.5, reps: 5 }, { type: 'Failure', weight: 82.5, reps: 5 }] }
-          ]
-        }
-      ];
-    }
-
-    function seedSampleMetrics() {
-      const date1 = new Date(Date.now() - 21 * 86400000).toISOString().split('T')[0];
-      const date2 = new Date(Date.now() - 10 * 86400000).toISOString().split('T')[0];
-      const date3 = new Date().toISOString().split('T')[0];
-      return [
-        { date: date1, weight: 82.0, bodyFat: 15.5, waist: 83.0, chest: 104.0, arms: 38.0 },
-        { date: date2, weight: 81.5, bodyFat: 15.2, waist: 82.5, chest: 104.5, arms: 38.2 },
-        { date: date3, weight: 81.2, bodyFat: 14.9, waist: 82.0, chest: 105.0, arms: 38.5 }
-      ];
-    }
-
-    function checkOnboarding() {
-      if (!appProfile) {
-        openOnboardingModal();
-      } else {
-        updateProfileDisplay();
-      }
-    }
-
-    function updateProfileDisplay() {
-      if (appProfile) {
-        document.getElementById('profileHeaderTag').innerText = `EXP: ${appProfile.experience.toUpperCase()} | ACCESS: ${appProfile.access.toUpperCase()}`;
-        document.getElementById('settingsDispExp').innerText = appProfile.experience;
-        document.getElementById('settingsDispAccess').innerText = appProfile.access;
-        document.getElementById('settingsDispGoal').innerText = appProfile.goal || 'Hypertrophy';
-      }
-    }
-
-    function loadDefaultWorkoutIfEmpty() {
-      if (activeWorkoutState.exercises.length === 0 && appTemplates.length > 0) {
-        const t = appTemplates[0];
-        activeWorkoutState.name = t.name;
-        activeWorkoutState.exercises = JSON.parse(JSON.stringify(t.exercises));
-      }
-    }
-
-    function initUI() {
-      const today = new Date().toISOString().split('T')[0];
-      document.getElementById('workoutDate').value = today;
-      document.getElementById('metricDate').value = today;
-
-      // Populate Settings Inputs
-      document.getElementById('settingUnit').value = appSettings.unit || 'KG';
-      document.getElementById('settingTimerDefault').value = appSettings.timerDefault || '90';
-      document.getElementById('settingChimeEnabled').value = appSettings.chimeEnabled !== undefined ? String(appSettings.chimeEnabled) : 'true';
-      if (appSettings.apiKey) {
-        document.getElementById('settingApiKey').value = appSettings.apiKey;
-      }
-
-      updateUnitLabels();
-      setupPlateCalculatorControls();
-      rotateQuoteDisplay();
-    }
-
-    function updateUnitLabels() {
-      const unit = appSettings.unit || 'KG';
-      document.querySelectorAll('.unit-label').forEach(el => el.innerText = unit);
-    }
-
-    function setupPlateCalculatorControls() {
-      const isLbs = (appSettings.unit === 'LBS');
-      const plates = isLbs ? [45, 35, 25, 10, 5, 2.5] : [25, 20, 15, 10, 5, 2.5, 1.25];
-      const barSelect = document.getElementById('calcBarWeight');
-
-      if (isLbs) {
-        barSelect.innerHTML = `
-          <option value="45" selected>45 LBS (Olympic Standard Bar)</option>
-          <option value="35">35 LBS (Women's / Technique Bar)</option>
-          <option value="15">15 LBS (Short / EZ Curl Bar)</option>
-        `;
-        document.getElementById('calcTargetWeight').value = "135";
-      } else {
-        barSelect.innerHTML = `
-          <option value="20" selected>20 KG (Olympic Standard Bar)</option>
-          <option value="15">15 KG (Olympic Women's / Technique Bar)</option>
-          <option value="10">10 KG (EZ Curl / Short Bar)</option>
-        `;
-        document.getElementById('calcTargetWeight').value = "100";
-      }
-
-      const invContainer = document.getElementById('plateInventoryContainer');
-      invContainer.innerHTML = plates.map(p => `
-        <label class="bg-slate-800/80 border border-slate-700/80 rounded-lg p-2 flex items-center space-x-2 text-xs cursor-pointer hover:border-slate-500 transition-colors">
-          <input type="checkbox" checked value="${p}" onchange="calculatePlateLoad()" class="plate-check rounded border-slate-700 text-blue-600 focus:ring-0">
-          <span>${p} ${appSettings.unit || 'KG'} PLATE</span>
-        </label>
-      `).join('');
-    }
-
-    function renderAllViews() {
-      updateUnitLabels();
-      renderTemplateDropdown();
-      renderExercisePickerDropdown();
-      renderActiveWorkoutLog();
-      calculatePlateLoad();
-      populateAnalyticsExerciseSelect();
-      renderAnalyticsViews();
-      renderHeatmap();
-      renderBodyMetrics();
-      renderExerciseDirectory();
-    }
-
-    // --- TAB SWITCHING ---
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active', 'bg-blue-600', 'text-white', 'font-semibold', 'shadow-md', 'shadow-blue-600/20', 'border-blue-500');
-        btn.classList.add('bg-slate-900/80', 'border-slate-800', 'text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/60');
-      });
-
-      document.getElementById(`tab-${tabId}`).classList.remove('hidden');
-      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
-      if (activeBtn) {
-        activeBtn.classList.remove('bg-slate-900/80', 'border-slate-800', 'text-slate-400', 'hover:text-slate-200', 'hover:bg-slate-800/60');
-        activeBtn.classList.add('active', 'bg-blue-600', 'text-white', 'font-semibold', 'shadow-md', 'shadow-blue-600/20', 'border-blue-500');
-      }
-
-      if (tabId === 'analytics') {
-        renderAnalyticsViews();
-      } else if (tabId === 'metrics') {
-        renderBodyMetrics();
-      }
-    }
-
-    // --- MOTIVATION / QUOTES ---
-    function rotateQuoteDisplay() {
-      if (appQuotes.length > 0) {
-        const randIndex = Math.floor(Math.random() * appQuotes.length);
-        document.getElementById('motivationText').innerText = `"${appQuotes[randIndex]}"`;
-      }
-    }
-
-    function openQuoteModal() { document.getElementById('quoteModal').classList.remove('hidden'); }
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
-
-    function handleSaveCustomQuote(e) {
-      e.preventDefault();
-      const txt = document.getElementById('quoteInputText').value.trim();
-      if (txt) {
-        appQuotes.push(txt);
-        saveStorage();
-        rotateQuoteDisplay();
-        closeModal('quoteModal');
-        document.getElementById('quoteInputText').value = '';
-      }
-    }
-
-    // --- ONBOARDING MODAL LOGIC ---
-    function openOnboardingModal() {
-      if (appProfile) {
-        document.getElementById('onboardExp').value = appProfile.experience;
-        document.getElementById('onboardAccess').value = appProfile.access;
-        document.getElementById('onboardGoal').value = appProfile.goal || 'Hypertrophy';
-      }
-      document.getElementById('onboardingModal').classList.remove('hidden');
-    }
-
-    function handleSaveProfile(e) {
-      e.preventDefault();
-      appProfile = {
-        experience: document.getElementById('onboardExp').value,
-        access: document.getElementById('onboardAccess').value,
-        goal: document.getElementById('onboardGoal').value
-      };
-      saveStorage();
-      updateProfileDisplay();
-      closeModal('onboardingModal');
-      renderExercisePickerDropdown();
-    }
-
-    // --- SETTINGS CONTROLS ---
-    function handleSaveSettings() {
-      const prevUnit = appSettings.unit;
-      appSettings = {
-        unit: document.getElementById('settingUnit').value,
-        timerDefault: document.getElementById('settingTimerDefault').value,
-        chimeEnabled: document.getElementById('settingChimeEnabled').value,
-        apiKey: document.getElementById('settingApiKey').value.trim()
-      };
-      saveStorage();
-
-      if (prevUnit !== appSettings.unit) {
-        setupPlateCalculatorControls();
-      }
-
-      renderAllViews();
-    }
-
-    function resetAllAppData() {
-      if (confirm("Are you sure you want to reset all Gymplified data? This action cannot be undone.")) {
-        localStorage.clear();
-        location.reload();
-      }
-    }
-
-    // --- TAB 1: LOGGING ENGINE ---
-    function renderTemplateDropdown() {
-      const select = document.getElementById('templateSelect');
-      select.innerHTML = appTemplates.map(t => `<option value="${t.id}">${t.name} (${t.exercises.length} Exercises)</option>`).join('');
-    }
-
-    function loadSelectedTemplate() {
-      const id = document.getElementById('templateSelect').value;
-      const t = appTemplates.find(x => x.id === id);
-      if (t) {
-        activeWorkoutState.name = t.name;
-        activeWorkoutState.exercises = JSON.parse(JSON.stringify(t.exercises));
-        document.getElementById('workoutName').value = t.name;
-        renderActiveWorkoutLog();
-      }
-    }
-
-    function saveCurrentAsTemplate() {
-      const name = document.getElementById('newTemplateName').value.trim();
-      if (!name) {
-        alert('Please specify a template name');
-        return;
-      }
-      if (activeWorkoutState.exercises.length === 0) {
-        alert('No exercises in active log to save');
-        return;
-      }
-      const newTmpl = {
-        id: 'tmpl-' + Date.now(),
-        name: name,
-        exercises: JSON.parse(JSON.stringify(activeWorkoutState.exercises))
-      };
-      appTemplates.push(newTmpl);
-      saveStorage();
-      renderTemplateDropdown();
-      document.getElementById('newTemplateName').value = '';
-      alert(`Template "${name}" saved.`);
-    }
-
-    function filterExercisePicker() {
-      renderExercisePickerDropdown();
-    }
-
-    function renderExercisePickerDropdown() {
-      const muscleFilter = document.getElementById('exerciseMuscleFilter').value;
-      const equipFilter = document.getElementById('exerciseEquipmentFilter').value;
-      const select = document.getElementById('exercisePickerSelect');
-
-      let filtered = appExercises.filter(ex => {
-        const mMatch = (muscleFilter === 'ALL' || ex.muscle === muscleFilter);
-        const eMatch = (equipFilter === 'ALL' || ex.equipment === equipFilter);
-        return mMatch && eMatch;
-      });
-
-      if (filtered.length === 0) {
-        select.innerHTML = `<option value="">No matching exercises found</option>`;
-      } else {
-        select.innerHTML = filtered.map(ex => `<option value="${ex.id}">${ex.name} (${ex.muscle} • ${ex.equipment})</option>`).join('');
-      }
-    }
-
-    function addSelectedExerciseToLog() {
-      const exId = document.getElementById('exercisePickerSelect').value;
-      if (!exId) return;
-      const exObj = appExercises.find(e => e.id === exId);
-      if (!exObj) return;
-
-      const defaultWeight = appSettings.unit === 'LBS' ? 135 : 60;
-
-      activeWorkoutState.exercises.push({
-        name: exObj.name,
-        muscle: exObj.muscle,
-        equipment: exObj.equipment,
-        sets: [
-          { type: 'Warmup', weight: Math.round(defaultWeight * 0.5), reps: 10 },
-          { type: 'Working', weight: defaultWeight, reps: 8 }
-        ]
-      });
-
-      renderActiveWorkoutLog();
-    }
-
-    function renderActiveWorkoutLog() {
-      const container = document.getElementById('workoutExercisesContainer');
-      const unit = appSettings.unit || 'KG';
-      let totalVolume = 0;
-      let totalWorkingSets = 0;
-
-      if (activeWorkoutState.exercises.length === 0) {
-        container.innerHTML = `
-          <div class="border border-dashed border-slate-800 rounded-xl p-8 text-center text-xs text-slate-500">
-            No exercises loaded. Select an exercise above or load a routine template.
-          </div>
-        `;
-        document.getElementById('sessionTotalVolume').innerText = `0 ${unit}`;
-        document.getElementById('sessionTotalSets').innerText = '0';
-        return;
-      }
-
-      container.innerHTML = activeWorkoutState.exercises.map((ex, exIdx) => {
-        const setsRows = ex.sets.map((s, sIdx) => {
-          const est1RM = calculate1RM(s.weight, s.reps);
-          if (s.type === 'Working' || s.type === 'Failure' || s.type === 'Drop Set') {
-            totalVolume += (s.weight * s.reps);
-            totalWorkingSets++;
-          }
-
-          let tagClass = 'border-amber-500/30 bg-amber-500/10 text-amber-400';
-          if (s.type === 'Working') tagClass = 'border-blue-500/30 bg-blue-500/10 text-blue-400';
-          if (s.type === 'Drop Set') tagClass = 'border-purple-500/30 bg-purple-500/10 text-purple-400';
-          if (s.type === 'Failure') tagClass = 'border-rose-500/30 bg-rose-500/10 text-rose-400';
-
-          return `
-            <tr class="border-b border-slate-800/60 hover:bg-slate-800/30 text-xs">
-              <td class="py-2.5 px-3 font-mono text-slate-400">${sIdx + 1}</td>
-              <td class="py-2.5 px-3">
-                <select onchange="updateSetData(${exIdx}, ${sIdx}, 'type', this.value)" class="border px-2 py-1 rounded-md text-xs font-semibold ${tagClass} outline-none">
-                  <option value="Warmup" ${s.type === 'Warmup' ? 'selected' : ''}>Warmup</option>
-                  <option value="Working" ${s.type === 'Working' ? 'selected' : ''}>Working</option>
-                  <option value="Drop Set" ${s.type === 'Drop Set' ? 'selected' : ''}>Drop Set</option>
-                  <option value="Failure" ${s.type === 'Failure' ? 'selected' : ''}>Failure</option>
-                </select>
-              </td>
-              <td class="py-2.5 px-3">
-                <input type="number" step="0.5" value="${s.weight}" onchange="updateSetData(${exIdx}, ${sIdx}, 'weight', parseFloat(this.value)||0)" class="w-20 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold text-white outline-none focus:border-blue-500">
-              </td>
-              <td class="py-2.5 px-3">
-                <input type="number" value="${s.reps}" onchange="updateSetData(${exIdx}, ${sIdx}, 'reps', parseInt(this.value)||0)" class="w-16 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs font-semibold text-white outline-none focus:border-blue-500">
-              </td>
-              <td class="py-2.5 px-3 font-mono text-blue-400 text-xs font-bold">
-                ${est1RM > 0 ? est1RM.toFixed(1) + ' ' + unit : '-'}
-              </td>
-              <td class="py-2.5 px-3 text-right">
-                <button onclick="removeSet(${exIdx}, ${sIdx})" class="text-slate-500 hover:text-rose-400 transition-colors font-medium text-xs">✕</button>
-              </td>
-            </tr>
-          `;
-        }).join('');
-
-        return `
-          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm space-y-3">
-            <div class="flex justify-between items-center border-b border-slate-800 pb-2.5">
-              <div class="flex items-center space-x-2">
-                <span class="font-bold text-sm text-white">${ex.name}</span>
-                <span class="bg-slate-800 text-slate-300 border border-slate-700 px-2.5 py-0.5 rounded-full text-[11px] font-medium">${ex.muscle}</span>
-                <span class="bg-slate-800 text-slate-300 border border-slate-700 px-2.5 py-0.5 rounded-full text-[11px] font-medium">${ex.equipment}</span>
-              </div>
-              <button onclick="removeExercise(${exIdx})" class="text-xs text-slate-400 hover:text-rose-400 transition-colors font-medium">Remove Lift</button>
-            </div>
-
-            <div class="overflow-x-auto">
-              <table class="w-full text-left">
-                <thead>
-                  <tr class="border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    <th class="pb-2 px-3">SET</th>
-                    <th class="pb-2 px-3">TYPE</th>
-                    <th class="pb-2 px-3">LOAD (${unit})</th>
-                    <th class="pb-2 px-3">REPS</th>
-                    <th class="pb-2 px-3">EST. 1RM</th>
-                    <th class="pb-2 px-3 text-right">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${setsRows}
-                </tbody>
-              </table>
-            </div>
-
-            <div class="flex items-center space-x-2 pt-1">
-              <button onclick="addSetToExercise(${exIdx}, 'Working')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-200 transition-colors font-medium">+ Working Set</button>
-              <button onclick="addSetToExercise(${exIdx}, 'Warmup')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-400 transition-colors font-medium">+ Warmup Set</button>
-              <button onclick="addSetToExercise(${exIdx}, 'Drop Set')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-slate-400 transition-colors font-medium">+ Drop Set</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      document.getElementById('sessionTotalVolume').innerText = `${totalVolume.toLocaleString()} ${unit}`;
-      document.getElementById('sessionTotalSets').innerText = `${totalWorkingSets}`;
-    }
-
-    function updateSetData(exIdx, setIdx, field, val) {
-      activeWorkoutState.exercises[exIdx].sets[setIdx][field] = val;
-      renderActiveWorkoutLog();
-    }
-
-    function addSetToExercise(exIdx, type) {
-      const ex = activeWorkoutState.exercises[exIdx];
-      const defaultW = appSettings.unit === 'LBS' ? 135 : 60;
-      const lastSet = ex.sets.length > 0 ? ex.sets[ex.sets.length - 1] : { weight: defaultW, reps: 8 };
-      ex.sets.push({ type: type, weight: lastSet.weight, reps: lastSet.reps });
-      renderActiveWorkoutLog();
-    }
-
-    function removeSet(exIdx, setIdx) {
-      activeWorkoutState.exercises[exIdx].sets.splice(setIdx, 1);
-      renderActiveWorkoutLog();
-    }
-
-    function removeExercise(exIdx) {
-      activeWorkoutState.exercises.splice(exIdx, 1);
-      renderActiveWorkoutLog();
-    }
-
-    function clearCurrentWorkout() {
-      if (confirm('Clear active workout session?')) {
-        activeWorkoutState.exercises = [];
-        renderActiveWorkoutLog();
-      }
-    }
-
-    function finalizeAndSaveWorkout() {
-      if (activeWorkoutState.exercises.length === 0) {
-        alert('Cannot save empty workout log.');
-        return;
-      }
-
-      const workoutDate = document.getElementById('workoutDate').value || new Date().toISOString().split('T')[0];
-      const workoutName = document.getElementById('workoutName').value || 'Workout Session';
-
-      const logEntry = {
-        id: 'w-' + Date.now(),
-        date: workoutDate,
-        name: workoutName,
-        exercises: JSON.parse(JSON.stringify(activeWorkoutState.exercises))
-      };
-
-      appWorkouts.push(logEntry);
-      saveStorage();
-
-      alert(`Workout log saved successfully. Date: ${workoutDate}`);
-      
-      const defaultRestSecs = parseInt(appSettings.timerDefault) || 90;
-      quickStartTimer(defaultRestSecs);
-
-      populateAnalyticsExerciseSelect();
-      renderAnalyticsViews();
-      renderHeatmap();
-    }
-
-    function calculate1RM(weight, reps) {
-      if (!weight || !reps || reps <= 0) return 0;
-      if (reps === 1) return weight;
-      return weight * (1 + reps / 30);
-    }
-
-    // --- REST TIMER CONTROLS ---
-    function quickStartTimer(secs) {
-      timerTotal = secs;
-      timerRemaining = secs;
-      startTimer();
-    }
-
-    function toggleTimer() {
-      if (timerRunning) {
-        pauseTimer();
-      } else {
-        if (timerRemaining <= 0) {
-          const defaultRestSecs = parseInt(appSettings.timerDefault) || 90;
-          quickStartTimer(defaultRestSecs);
-        } else {
-          startTimer();
-        }
-      }
-    }
-
-    function startTimer() {
-      clearInterval(timerInterval);
-      timerRunning = true;
-      document.getElementById('timerToggleBtn').innerText = 'PAUSE';
-      document.getElementById('timerToggleBtn').className = 'bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm';
-
-      timerInterval = setInterval(() => {
-        timerRemaining--;
-        updateTimerDisplay();
-
-        if (timerRemaining <= 0) {
-          clearInterval(timerInterval);
-          timerRunning = false;
-          document.getElementById('timerToggleBtn').innerText = 'START';
-          document.getElementById('timerToggleBtn').className = 'bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm';
-          if (appSettings.chimeEnabled !== 'false') {
-            playTimerAudioChime();
-          }
-        }
-      }, 1000);
-      updateTimerDisplay();
-    }
-
-    function pauseTimer() {
-      clearInterval(timerInterval);
-      timerRunning = false;
-      document.getElementById('timerToggleBtn').innerText = 'START';
-      document.getElementById('timerToggleBtn').className = 'bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm';
-    }
-
-    function resetTimer() {
-      clearInterval(timerInterval);
-      timerRunning = false;
-      timerRemaining = 0;
-      updateTimerDisplay();
-      document.getElementById('timerToggleBtn').innerText = 'START';
-      document.getElementById('timerToggleBtn').className = 'bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-0.5 rounded-md text-xs font-bold transition-all shadow-sm';
-    }
-
-    function updateTimerDisplay() {
-      const mins = Math.floor(Math.max(0, timerRemaining) / 60);
-      const secs = Math.max(0, timerRemaining) % 60;
-      const fmt = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-      document.getElementById('timerDisplay').innerText = fmt;
-    }
-
-    function playTimerAudioChime() {
-      try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
-        
-        [0, 0.2, 0.4].forEach(delay => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(880, ctx.currentTime + delay);
-          gain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.12);
-          osc.connect(gain);
-          gain.connect(ctx.destination);
-          osc.start(ctx.currentTime + delay);
-          osc.stop(ctx.currentTime + delay + 0.12);
-        });
-      } catch (e) {
-        console.log('WebAudio chime unavailable', e);
-      }
-    }
-
-    // --- TAB 2: PLATE CALCULATOR LOGIC ---
-    function calculatePlateLoad() {
-      const target = parseFloat(document.getElementById('calcTargetWeight').value) || 0;
-      const barSelect = document.getElementById('calcBarWeight');
-      const bar = parseFloat(barSelect.value) || (appSettings.unit === 'LBS' ? 45 : 20);
-      const unit = appSettings.unit || 'KG';
-
-      const checkedPlates = Array.from(document.querySelectorAll('.plate-check:checked'))
-        .map(cb => parseFloat(cb.value))
-        .sort((a, b) => b - a);
-
-      const sleeveWeight = Math.max(0, (target - bar) / 2);
-      document.getElementById('calcPerSideWeight').innerText = `${sleeveWeight.toFixed(1)} ${unit}`;
-
-      let remaining = sleeveWeight;
-      const breakdown = [];
-
-      checkedPlates.forEach(p => {
-        if (remaining >= p) {
-          const qty = Math.floor(remaining / p);
-          remaining = parseFloat((remaining - qty * p).toFixed(2));
-          breakdown.push({ plate: p, countPerSide: qty });
-        }
-      });
-
-      const achievedTotal = bar + ((sleeveWeight - remaining) * 2);
-      const exactMatch = Math.abs(achievedTotal - target) < 0.01;
-
-      const matchEl = document.getElementById('calcExactMatch');
-      if (exactMatch) {
-        matchEl.className = 'font-bold text-emerald-400';
-        matchEl.innerText = `YES (${achievedTotal.toFixed(1)} ${unit})`;
-      } else {
-        matchEl.className = 'font-bold text-rose-400';
-        matchEl.innerText = `NO (NEAREST: ${achievedTotal.toFixed(1)} ${unit} | REM: ${(remaining * 2).toFixed(1)} ${unit})`;
-      }
-
-      const tbody = document.getElementById('plateBreakdownTableBody');
-      if (breakdown.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="py-3 text-slate-500 text-center">NO PLATES LOADED</td></tr>`;
-      } else {
-        tbody.innerHTML = breakdown.map(item => `
-          <tr class="border-b border-slate-700/50">
-            <td class="py-2 text-white font-bold">${item.plate} ${unit}</td>
-            <td class="py-2 text-blue-400 font-bold">${item.countPerSide}</td>
-            <td class="py-2 text-slate-400">${item.countPerSide * 2}</td>
-            <td class="py-2 text-right text-slate-200">${(item.plate * item.countPerSide).toFixed(1)} ${unit}</td>
-          </tr>
-        `).join('');
-      }
-
-      renderBarbellGraphic(breakdown, bar);
-    }
-
-    function adjustCalcWeight(delta) {
-      const input = document.getElementById('calcTargetWeight');
-      let val = parseFloat(input.value) || 0;
-      val = Math.max(0, val + delta);
-      input.value = val;
-      calculatePlateLoad();
-    }
-
-    function renderBarbellGraphic(breakdown, barWeight) {
-      const container = document.getElementById('barbellGraphic');
-      let html = `
-        <div class="h-16 w-3 bg-slate-600 border border-slate-400 rounded-sm shrink-0" title="Barbell Sleeve Base"></div>
-      `;
-
-      const heightMap = {
-        25: 'h-24', 20: 'h-20', 15: 'h-16', 10: 'h-14', 5: 'h-10', 2.5: 'h-8', 1.25: 'h-6',
-        45: 'h-24', 35: 'h-20'
-      };
-      const colorMap = {
-        25: 'bg-gradient-to-b from-red-500 to-red-700 border-red-400 text-white',
-        45: 'bg-gradient-to-b from-blue-600 to-blue-800 border-blue-400 text-white',
-        35: 'bg-gradient-to-b from-amber-500 to-amber-700 border-amber-300 text-slate-950',
-        20: 'bg-gradient-to-b from-blue-500 to-blue-700 border-blue-400 text-white',
-        15: 'bg-gradient-to-b from-amber-400 to-amber-600 border-amber-300 text-slate-950',
-        10: 'bg-gradient-to-b from-emerald-500 to-emerald-700 border-emerald-400 text-white',
-        5: 'bg-gradient-to-b from-slate-100 to-slate-300 border-slate-400 text-slate-900',
-        2.5: 'bg-gradient-to-b from-slate-700 to-slate-900 border-slate-600 text-white',
-        1.25: 'bg-gradient-to-b from-slate-400 to-slate-500 border-slate-300 text-slate-900'
-      };
-
-      breakdown.forEach(item => {
-        const h = heightMap[item.plate] || 'h-12';
-        const c = colorMap[item.plate] || 'bg-slate-700 border-slate-500 text-white';
-
-        for (let i = 0; i < item.countPerSide; i++) {
-          html += `
-            <div class="${h} w-6 ${c} border font-mono text-[9px] font-bold flex items-center justify-center rotate-90 shrink-0 rounded-sm shadow-md">
-              ${item.plate}
-            </div>
-          `;
-        }
-      });
-
-      html += `<div class="h-4 w-28 bg-slate-700 border-y border-slate-500 rounded-r-md shrink-0"></div>`;
-
-      container.innerHTML = html;
-    }
-
-    // --- TAB 3: ANALYTICS & 1RM MATRIX ---
-    function populateAnalyticsExerciseSelect() {
-      const select = document.getElementById('analyticsExerciseSelect');
-      const setOfNames = new Set();
-      appWorkouts.forEach(w => w.exercises.forEach(e => setOfNames.add(e.name)));
-      appExercises.forEach(e => setOfNames.add(e.name));
-
-      const nameList = Array.from(setOfNames).sort();
-      select.innerHTML = nameList.map(name => `<option value="${name}">${name}</option>`).join('');
-    }
-
-    function renderAnalyticsViews() {
-      const selectedExName = document.getElementById('analyticsExerciseSelect').value || 'Barbell Bench Press';
-      const unit = appSettings.unit || 'KG';
-
-      let maxEst1RM = 0;
-      let maxRecord = { weight: 0, reps: 0 };
-
-      const historyPoints = [];
-
-      appWorkouts.forEach(w => {
-        w.exercises.forEach(e => {
-          if (e.name === selectedExName) {
-            let sessionMax1RM = 0;
-            let sessionVolume = 0;
-
-            e.sets.forEach(s => {
-              const est = calculate1RM(s.weight, s.reps);
-              if (est > sessionMax1RM) sessionMax1RM = est;
-              if (est > maxEst1RM) {
-                maxEst1RM = est;
-                maxRecord = { weight: s.weight, reps: s.reps };
-              }
-              if (s.type === 'Working' || s.type === 'Failure' || s.type === 'Drop Set') {
-                sessionVolume += (s.weight * s.reps);
-              }
-            });
-
-            if (sessionMax1RM > 0) {
-              historyPoints.push({
-                date: w.date,
-                est1RM: sessionMax1RM,
-                volume: sessionVolume
-              });
-            }
-          }
-        });
-      });
-
-      historyPoints.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-      document.getElementById('prBestRecordDisplay').innerText = maxRecord.weight > 0 ? `${maxRecord.weight} ${unit} x ${maxRecord.reps} REPS` : 'NO DATA RECORDED';
-      document.getElementById('prEst1RMDisplay').innerText = `ESTIMATED 1RM: ${maxEst1RM.toFixed(1)} ${unit}`;
-
-      render1RMMatrixTable(maxEst1RM);
-      renderProgressionChart(historyPoints, selectedExName);
-    }
-
-    function render1RMMatrixTable(est1RM) {
-      const tbody = document.getElementById('matrixTableBody');
-      const unit = appSettings.unit || 'KG';
-      const stepInc = (unit === 'LBS') ? 5 : 2.5;
-
-      if (est1RM <= 0) {
-        tbody.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-500">Log exercise sets to generate matrix</td></tr>`;
-        return;
-      }
-
-      const percentages = [
-        { pct: 100, reps: '1 Rep Max' },
-        { pct: 90, reps: '3 - 4 Reps' },
-        { pct: 85, reps: '5 - 6 Reps' },
-        { pct: 80, reps: '7 - 8 Reps' },
-        { pct: 75, reps: '9 - 10 Reps' },
-        { pct: 65, reps: '12 - 15 Reps' },
-        { pct: 50, reps: 'Warmup / Speed' }
-      ];
-
-      tbody.innerHTML = percentages.map(p => {
-        const rawWeight = est1RM * (p.pct / 100);
-        const roundedWeight = Math.round(rawWeight / stepInc) * stepInc;
-
-        return `
-          <tr class="hover:bg-slate-800/50 transition-colors">
-            <td class="p-3 text-blue-400 font-bold">${p.pct}%</td>
-            <td class="p-3 text-white font-bold">${roundedWeight.toFixed(1)} ${unit}</td>
-            <td class="p-3 text-right text-slate-400">${p.reps}</td>
-          </tr>
-        `;
-      }).join('');
-    }
-
-    function setChartMetric(metric) {
-      activeChartMetric = metric;
-      document.getElementById('btnMetric1RM').className = metric === '1rm' ? 'border border-blue-500 bg-blue-600/20 px-3 py-1 rounded-lg text-white font-semibold shadow-sm' : 'border border-slate-700 bg-slate-800 px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-colors';
-      document.getElementById('btnMetricVolume').className = metric === 'volume' ? 'border border-blue-500 bg-blue-600/20 px-3 py-1 rounded-lg text-white font-semibold shadow-sm' : 'border border-slate-700 bg-slate-800 px-3 py-1 rounded-lg text-slate-400 hover:text-white transition-colors';
-      renderAnalyticsViews();
-    }
-
-    function renderProgressionChart(historyPoints, liftName) {
-      document.getElementById('chartDataPointsCount').innerText = historyPoints.length;
-      const unit = appSettings.unit || 'KG';
-
-      const ctx = document.getElementById('progressionChartCanvas').getContext('2d');
-      if (chartProgressionInstance) chartProgressionInstance.destroy();
-
-      const labels = historyPoints.map(p => p.date);
-      const dataValues = historyPoints.map(p => activeChartMetric === '1rm' ? p.est1RM.toFixed(1) : p.volume);
-
-      chartProgressionInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: activeChartMetric === '1rm' ? `${liftName} Est. 1RM (${unit})` : `${liftName} Volume (${unit})`,
-            data: dataValues,
-            borderColor: '#3b82f6',
-            backgroundColor: 'rgba(59, 130, 246, 0.15)',
-            borderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#3b82f6',
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            x: {
-              grid: { color: '#1e293b' },
-              ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } }
-            },
-            y: {
-              grid: { color: '#1e293b' },
-              ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } }
-            }
-          }
-        }
-      });
-    }
-
-    // --- TAB 4: METRICS & HEATMAP LOGIC ---
-    function renderHeatmap() {
-      const grid = document.getElementById('heatmapGrid');
-      grid.innerHTML = '';
-
-      const days = 60;
-      const today = new Date();
-      let activeStreak = 0;
-      let totalLogsCount = appWorkouts.length;
-
-      const dateCounts = {};
-      appWorkouts.forEach(w => {
-        dateCounts[w.date] = (dateCounts[w.date] || 0) + 1;
-      });
-
-      for (let i = days - 1; i >= 0; i--) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        const dateStr = d.toISOString().split('T')[0];
-        const count = dateCounts[dateStr] || 0;
-
-        let bgClass = 'bg-slate-800/80 border-slate-700/50';
-        if (count === 1) bgClass = 'bg-blue-600/40 border-blue-500/50 text-white';
-        if (count >= 2) bgClass = 'bg-blue-500 border-blue-400 text-white shadow-md shadow-blue-500/30';
-
-        grid.innerHTML += `
-          <div class="grid-cell border rounded-md ${bgClass} flex flex-col items-center justify-center p-1 text-[10px] font-mono transition-all hover:scale-105" title="${dateStr}: ${count} session(s)">
-            <span class="text-slate-400 text-[8px]">${dateStr.slice(8)}</span>
-            <span class="font-bold">${count > 0 ? count : ''}</span>
-          </div>
-        `;
-      }
-
-      let checkDate = new Date();
-      while (true) {
-        const dateStr = checkDate.toISOString().split('T')[0];
-        if (dateCounts[dateStr]) {
-          activeStreak++;
-          checkDate.setDate(checkDate.getDate() - 1);
-        } else {
-          break;
-        }
-      }
-
-      document.getElementById('currentStreakText').innerText = `${activeStreak} DAYS`;
-      document.getElementById('totalSessionsCountText').innerText = totalLogsCount;
-    }
-
-    function handleSaveBodyMetric(e) {
-      e.preventDefault();
-      const newM = {
-        date: document.getElementById('metricDate').value,
-        weight: parseFloat(document.getElementById('metricWeight').value) || 0,
-        bodyFat: parseFloat(document.getElementById('metricBodyFat').value) || 0,
-        waist: parseFloat(document.getElementById('metricWaist').value) || 0,
-        chest: parseFloat(document.getElementById('metricChest').value) || 0,
-        arms: parseFloat(document.getElementById('metricArms').value) || 0
-      };
-
-      appMetrics.push(newM);
-      saveStorage();
-      renderBodyMetrics();
-
-      document.getElementById('metricWeight').value = '';
-      document.getElementById('metricBodyFat').value = '';
-      document.getElementById('metricWaist').value = '';
-      document.getElementById('metricChest').value = '';
-      document.getElementById('metricArms').value = '';
-    }
-
-    function deleteBodyMetric(idx) {
-      appMetrics.splice(idx, 1);
-      saveStorage();
-      renderBodyMetrics();
-    }
-
-    function renderBodyMetrics() {
-      appMetrics.sort((a, b) => new Date(a.date) - new Date(b.date));
-      const unit = appSettings.unit || 'KG';
-
-      const tbody = document.getElementById('bodyMetricsTableBody');
-      if (appMetrics.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-slate-500">No body metric entries recorded</td></tr>`;
-      } else {
-        tbody.innerHTML = appMetrics.map((m, idx) => `
-          <tr class="hover:bg-slate-800/50 transition-colors">
-            <td class="p-2.5 font-bold text-white">${m.date}</td>
-            <td class="p-2.5 text-blue-400 font-bold">${m.weight > 0 ? m.weight + ' ' + unit : '-'}</td>
-            <td class="p-2.5 text-slate-300">${m.bodyFat > 0 ? m.bodyFat + ' %' : '-'}</td>
-            <td class="p-2.5 text-slate-300">${m.waist > 0 ? m.waist + ' CM' : '-'}</td>
-            <td class="p-2.5 text-slate-300">${m.chest > 0 ? m.chest + ' CM' : '-'}</td>
-            <td class="p-2.5 text-slate-300">${m.arms > 0 ? m.arms + ' CM' : '-'}</td>
-            <td class="p-2.5 text-right">
-              <button onclick="deleteBodyMetric(${idx})" class="text-slate-500 hover:text-rose-400 transition-colors">✕</button>
-            </td>
-          </tr>
-        `).join('');
-      }
-
-      renderBodyWeightChart();
-    }
-
-    function renderBodyWeightChart() {
-      const ctx = document.getElementById('bodyWeightChartCanvas').getContext('2d');
-      if (chartBodyWeightInstance) chartBodyWeightInstance.destroy();
-
-      const unit = appSettings.unit || 'KG';
-      const labels = appMetrics.map(m => m.date);
-      const weights = appMetrics.map(m => m.weight);
-
-      chartBodyWeightInstance = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: `Body Weight (${unit})`,
-            data: weights,
-            borderColor: '#10b981',
-            backgroundColor: 'rgba(16, 185, 129, 0.15)',
-            borderWidth: 2,
-            pointRadius: 4,
-            fill: true,
-            tension: 0.3
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: '#1e293b' }, ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } } },
-            y: { grid: { color: '#1e293b' }, ticks: { color: '#9ca3af', font: { family: 'Inter', size: 10 } } }
-          }
-        }
-      });
-    }
-
-    // --- TAB 5: AI ADVISOR DIAGNOSTIC ENGINE ---
-    function saveApiKey() {
-      const key = document.getElementById('userApiKeyInput').value.trim();
-      appSettings.apiKey = key;
-      document.getElementById('settingApiKey').value = key;
-      saveStorage();
-      alert('LLM API key stored in Gymplified settings.');
-    }
-
-    function runAIDiagnosticEngine() {
-      const outputBox = document.getElementById('aiReportOutput');
-      outputBox.innerHTML = `<div class="text-center py-16 text-blue-400 font-medium animate-pulse">Running Gymplified inference engine &amp; parsing training volumes...</div>`;
-
-      setTimeout(() => {
-        const exp = appProfile ? appProfile.experience : 'Intermediate';
-        const access = appProfile ? appProfile.access : 'Full Commercial Gym';
-        const totalLogs = appWorkouts.length;
-        const unit = appSettings.unit || 'KG';
-        
-        let totalTonnage = 0;
-        const liftPRs = {};
-
-        appWorkouts.forEach(w => {
-          w.exercises.forEach(e => {
-            let maxEst = 0;
-            e.sets.forEach(s => {
-              const est = calculate1RM(s.weight, s.reps);
-              if (est > maxEst) maxEst = est;
-              if (s.type === 'Working' || s.type === 'Failure' || s.type === 'Drop Set') {
-                totalTonnage += (s.weight * s.reps);
-              }
-            });
-            if (!liftPRs[e.name] || maxEst > liftPRs[e.name]) {
-              liftPRs[e.name] = maxEst;
-            }
-          });
-        });
-
-        let prListHtml = Object.keys(liftPRs).slice(0, 4).map(k => `<li class="flex justify-between border-b border-slate-800 pb-1.5"><span class="text-slate-300">${k}:</span> <strong class="text-white font-mono">${liftPRs[k].toFixed(1)} ${unit} Est. 1RM</strong></li>`).join('') || '<li class="text-slate-500">No lift PR data logged</li>';
-
-        outputBox.innerHTML = `
-          <div class="space-y-5 text-xs">
-            <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
-              <span class="text-blue-400 font-bold uppercase tracking-wider">[GYMPLIFIED DIAGNOSTIC REPORT]</span>
-              <span class="text-slate-400 font-mono">${new Date().toLocaleString()}</span>
-            </div>
-
-            <!-- Profile Summary Grid -->
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3">
-              <div><span class="text-slate-400 block text-[10px] font-semibold uppercase">Experience</span><span class="text-white font-bold">${exp}</span></div>
-              <div><span class="text-slate-400 block text-[10px] font-semibold uppercase">Facility</span><span class="text-white font-bold">${access}</span></div>
-              <div><span class="text-slate-400 block text-[10px] font-semibold uppercase">Logged Sessions</span><span class="text-white font-bold">${totalLogs}</span></div>
-              <div><span class="text-slate-400 block text-[10px] font-semibold uppercase">Total Tonnage</span><span class="text-blue-400 font-bold font-mono">${totalTonnage.toLocaleString()} ${unit}</span></div>
-            </div>
-
-            <!-- Section 1 -->
-            <div class="space-y-1.5 border-l-2 border-blue-500 pl-3">
-              <h3 class="text-white font-bold text-sm">1. Facility &amp; Equipment Optimization</h3>
-              <p class="text-slate-300 leading-relaxed">Configured for <strong>${access}</strong>. Progressive overload trajectory should prioritize compound barbell/dumbbell resistance, supplemented with mechanical tension isolation on cable systems where available.</p>
-            </div>
-
-            <!-- Section 2 -->
-            <div class="space-y-1.5 border-l-2 border-blue-500 pl-3">
-              <h3 class="text-white font-bold text-sm">2. Volume Trajectory &amp; Fatigue Audit</h3>
-              <p class="text-slate-300 leading-relaxed">Cumulative workload calculated at <strong class="font-mono text-blue-400">${totalTonnage.toLocaleString()} ${unit}</strong> across ${totalLogs} logged training session(s). Current volume distribution indicates adequate stimulus for neurological motor unit recruitment.</p>
-            </div>
-
-            <!-- Section 3 -->
-            <div class="space-y-2 border-l-2 border-blue-500 pl-3">
-              <h3 class="text-white font-bold text-sm">3. Estimated 1RM Peak Metrics</h3>
-              <ul class="space-y-1 bg-slate-900 border border-slate-800 rounded-xl p-3">
-                ${prListHtml}
-              </ul>
-            </div>
-
-            <!-- Section 4 -->
-            <div class="bg-gradient-to-r from-slate-900 to-slate-900/80 border border-emerald-500/30 rounded-xl p-4 space-y-2 shadow-sm">
-              <h3 class="text-emerald-400 font-bold text-xs uppercase tracking-wider">[14-DAY TACTICAL ACTION PLAN]</h3>
-              <ol class="list-decimal list-inside space-y-1.5 text-slate-300 leading-relaxed">
-                <li><strong>Intensity Target:</strong> Maintain working set load between 75% - 85% 1RM for primary compound lifts.</li>
-                <li><strong>Volume Rate:</strong> Cap weekly working sets per major muscle group at 12–16 sets to prevent central nervous system overreach.</li>
-                <li><strong>Progression Micro-Cycle:</strong> Increment primary lift load by ${unit === 'LBS' ? '5 lbs' : '2.5 kg'} once top-end target repetitions are achieved with RPE &le; 8.5.</li>
-              </ol>
-            </div>
-          </div>
-        `;
-      }, 300);
-    }
-
-    // --- TAB 6: EXERCISE DIRECTORY & CUSTOM EXERCISE ---
-    function renderExerciseDirectory() {
-      const search = (document.getElementById('dirSearchInput').value || '').toLowerCase();
-      const muscle = document.getElementById('dirMuscleFilter').value;
-      const equip = document.getElementById('dirEquipmentFilter').value;
-
-      const grid = document.getElementById('exerciseDirectoryGrid');
-
-      const filtered = appExercises.filter(e => {
-        const sMatch = e.name.toLowerCase().includes(search);
-        const mMatch = (muscle === 'ALL' || e.muscle === muscle);
-        const eMatch = (equip === 'ALL' || e.equipment === equip);
-        return sMatch && mMatch && eMatch;
-      });
-
-      if (filtered.length === 0) {
-        grid.innerHTML = `<div class="col-span-full border border-slate-800 rounded-xl p-8 text-center text-xs text-slate-500">No exercises match filters</div>`;
-        return;
-      }
-
-      grid.innerHTML = filtered.map(ex => `
-        <div class="bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl p-4 transition-all shadow-sm flex flex-col justify-between space-y-3">
-          <div>
-            <div class="flex justify-between items-start gap-2">
-              <h3 class="font-bold text-sm text-white">${ex.name}</h3>
-              <span class="text-[10px] bg-slate-800 border border-slate-700 px-2 py-0.5 rounded-full text-slate-300 font-medium shrink-0">${ex.equipment}</span>
-            </div>
-            <span class="inline-block mt-2 text-[10px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full uppercase">${ex.muscle}</span>
-          </div>
-
-          <div class="border-t border-slate-800 pt-3 flex justify-between items-center text-xs">
-            <button onclick="quickAddExerciseToLog('${ex.id}')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-200 font-medium text-xs transition-colors">+ Add to Session</button>
-            <button onclick="deleteCustomExercise('${ex.id}')" class="text-slate-500 hover:text-rose-400 text-xs transition-colors">Delete</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function quickAddExerciseToLog(exId) {
-      const exObj = appExercises.find(e => e.id === exId);
-      if (!exObj) return;
-
-      const defaultW = appSettings.unit === 'LBS' ? 135 : 50;
-
-      activeWorkoutState.exercises.push({
-        name: exObj.name,
-        muscle: exObj.muscle,
-        equipment: exObj.equipment,
-        sets: [{ type: 'Working', weight: defaultW, reps: 8 }]
-      });
-
-      switchTab('logging');
-      renderActiveWorkoutLog();
-    }
-
-    function openCustomExerciseModal() { document.getElementById('customExerciseModal').classList.remove('hidden'); }
-
-    function handleSaveCustomExercise(e) {
-      e.preventDefault();
-      const newEx = {
-        id: 'ex-' + Date.now(),
-        name: document.getElementById('custExName').value.trim(),
-        muscle: document.getElementById('custExMuscle').value,
-        equipment: document.getElementById('custExEquipment').value
-      };
-
-      if (newEx.name) {
-        appExercises.push(newEx);
-        saveStorage();
-        renderExerciseDirectory();
-        renderExercisePickerDropdown();
-        closeModal('customExerciseModal');
-        document.getElementById('custExName').value = '';
-      }
-    }
-
-    function deleteCustomExercise(exId) {
-      appExercises = appExercises.filter(e => e.id !== exId);
-      saveStorage();
-      renderExerciseDirectory();
-      renderExercisePickerDropdown();
-    }
-
-    // --- DATA PORTABILITY: JSON EXPORT & IMPORT ---
-    function exportDataJSON() {
-      const fullData = {
-        profile: appProfile,
-        workouts: appWorkouts,
-        templates: appTemplates,
-        exercises: appExercises,
-        metrics: appMetrics,
-        quotes: appQuotes,
-        settings: appSettings,
-        exportTimestamp: new Date().toISOString()
-      };
-
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(fullData, null, 2));
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `gymplified_backup_${new Date().toISOString().split('T')[0]}.json`);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-    }
-
-    function importDataJSON(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const imported = JSON.parse(e.target.result);
-          if (imported.workouts && imported.exercises) {
-            appProfile = imported.profile || appProfile;
-            appWorkouts = imported.workouts || [];
-            appTemplates = imported.templates || DEFAULT_TEMPLATES;
-            appExercises = imported.exercises || DEFAULT_EXERCISES;
-            appMetrics = imported.metrics || [];
-            appQuotes = imported.quotes || DEFAULT_QUOTES;
-            appSettings = imported.settings || DEFAULT_SETTINGS;
-
-            saveStorage();
-            updateProfileDisplay();
-            initUI();
-            renderAllViews();
-            alert('Gymplified data backup imported successfully.');
-          } else {
-            alert('Invalid data schema in JSON file.');
-          }
-        } catch (err) {
-          alert('Error parsing JSON file.');
-        }
-      };
-      reader.readAsText(file);
-    }
-  </script>
+    selectedMachine.secondary.forEach(s => {
+      const svgEl = document.getElementById('svg-' + s);
+      if (svgEl) svgEl.classList.add('secondary');
+    });
+  }
+}
+
+function addSelectedMachineToLog() {
+  if (!selectedMachine) return;
+  state.workouts.push({
+    name: selectedMachine.name,
+    muscle: selectedMachine.primary[0] ? selectedMachine.primary[0].toUpperCase() : 'GENERAL',
+    weight: 45,
+    sets: 3,
+    reps: 10,
+    done: false
+  });
+  saveState();
+  showToast(`${selectedMachine.name} added to log`);
+}
+
+function renderAll() {
+  applySettings();
+  renderDashboard();
+  renderPRs();
+  renderTrainingLog();
+  renderNutrition();
+  renderMachines();
+
+  const now = new Date();
+  document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  if(!document.getElementById('inputPRDate').value) {
+    document.getElementById('inputPRDate').valueAsDate = now;
+  }
+}
+
+// --- PR ACTIONS ---
+function savePRRecord() {
+  const name = document.getElementById('inputPRName').value.trim();
+  const weight = parseFloat(document.getElementById('inputPRWeight').value) || 0;
+  const reps = parseInt(document.getElementById('inputPRReps').value) || 1;
+  const date = document.getElementById('inputPRDate').value;
+
+  if (!name) {
+    showToast('Please enter an exercise name for your PR');
+    return;
+  }
+
+  state.prs.push({ name, weight, reps, date });
+  document.getElementById('inputPRName').value = '';
+  saveState();
+  showToast(`PR saved: ${name} (${weight}kg)`);
+}
+
+function deletePR(index) {
+  state.prs.splice(index, 1);
+  saveState();
+  showToast('Personal Record removed');
+}
+
+function clearAllPRs() {
+  if (confirm('Are you sure you want to clear all Personal Records?')) {
+    state.prs = [];
+    saveState();
+    showToast('All PRs cleared');
+  }
+}
+
+// --- WORKOUT ACTIONS ---
+function saveDirectExercise() {
+  const name = document.getElementById('inputExName').value.trim();
+  const muscle = document.getElementById('inputExMuscle').value;
+  const weight = parseFloat(document.getElementById('inputExWeight').value) || 0;
+  const sets = parseInt(document.getElementById('inputExSets').value) || 1;
+  const reps = parseInt(document.getElementById('inputExReps').value) || 1;
+
+  if (!name) {
+    showToast('Please enter an exercise or machine name');
+    return;
+  }
+
+  state.workouts.push({ name, muscle, weight, sets, reps, done: false });
+  document.getElementById('inputExName').value = '';
+  saveState();
+  showToast(`Saved exercise: ${name}`);
+}
+
+function toggleWorkoutDone(index) {
+  state.workouts[index].done = !state.workouts[index].done;
+  saveState();
+  showToast(state.workouts[index].done ? 'Exercise completed' : 'Exercise uncompleted');
+}
+
+function deleteWorkout(index) {
+  state.workouts.splice(index, 1);
+  saveState();
+  showToast('Exercise removed');
+}
+
+function clearAllWorkouts() {
+  if (confirm('Clear all logged exercises for today?')) {
+    state.workouts = [];
+    saveState();
+    showToast('Workout log cleared');
+  }
+}
+
+// --- NUTRITION & HYDRATION ---
+function saveFoodEntry() {
+  const name = document.getElementById('inputFoodName').value.trim();
+  const cal = parseInt(document.getElementById('inputFoodCal').value) || 0;
+  const protein = parseInt(document.getElementById('inputFoodProtein').value) || 0;
+  const carbs = parseInt(document.getElementById('inputFoodCarbs').value) || 0;
+  const fat = parseInt(document.getElementById('inputFoodFat').value) || 0;
+
+  if (!name) {
+    showToast('Please enter a food item name');
+    return;
+  }
+
+  state.foods.push({ name, cal, protein, carbs, fat });
+  state.cal += cal;
+  state.protein += protein;
+  state.carbs += carbs;
+  state.fat += fat;
+
+  document.getElementById('inputFoodName').value = '';
+  saveState();
+  showToast(`Logged meal: ${name}`);
+}
+
+function deleteFood(index) {
+  const f = state.foods[index];
+  state.cal = Math.max(0, state.cal - f.cal);
+  state.protein = Math.max(0, state.protein - f.protein);
+  state.carbs = Math.max(0, state.carbs - f.carbs);
+  state.fat = Math.max(0, state.fat - f.fat);
+  state.foods.splice(index, 1);
+  saveState();
+  showToast('Food entry deleted');
+}
+
+function clearFoodLogs() {
+  if (confirm('Reset meal intake logs for today?')) {
+    state.foods = [];
+    state.cal = 0;
+    state.protein = 0;
+    state.carbs = 0;
+    state.fat = 0;
+    saveState();
+    showToast('Meal logs reset');
+  }
+}
+
+function addWater(amount) {
+  state.water = parseFloat((state.water + amount).toFixed(2));
+  saveState();
+  showToast(`Added ${amount * 1000}ml water`);
+}
+
+function resetWater() {
+  state.water = 0;
+  saveState();
+  showToast('Water tracker reset');
+}
+
+function openLogModal() {
+  showScreen('training', document.querySelectorAll('nav button')[2]);
+  document.getElementById('inputExName').focus();
+}
+
+function openCalorieModal() {
+  showScreen('nutrition', document.querySelectorAll('nav button')[4]);
+  document.getElementById('inputFoodName').focus();
+}
+
+// --- SETTINGS HUB ---
+function changeTheme(val) { state.settings.theme = val; saveState(); showToast(`Theme updated`); }
+function changeColor(val, el) { 
+  state.settings.color = val; 
+  document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+  if (el) el.classList.add('active');
+  saveState(); 
+  showToast(`Accent palette updated`);
+}
+function changeScale(val) { state.settings.scale = val; saveState(); }
+function changeFont(val) { state.settings.font = val; saveState(); }
+function changeContrast(val) { state.settings.contrast = val; saveState(); }
+function changeMotion(val) { state.settings.motion = val; saveState(); }
+
+function seedSampleData() {
+  if (confirm('Load sample workout, PRs, and meal records?')) {
+    state.workouts = [
+      { name: 'Leg Press Machine', muscle: 'Quadriceps', weight: 140, sets: 4, reps: 10, done: true },
+      { name: 'Lat Pulldown Machine', muscle: 'Lats', weight: 70, sets: 3, reps: 12, done: true },
+      { name: 'Seated Shoulder Press', muscle: 'Shoulders', weight: 50, sets: 3, reps: 10, done: false }
+    ];
+    state.prs = [
+      { name: 'Barbell Back Squat', weight: 140, reps: 3, date: '2026-03-15' },
+      { name: 'Flat Bench Press', weight: 105, reps: 5, date: '2026-03-20' },
+      { name: 'Conventional Deadlift', weight: 180, reps: 1, date: '2026-03-28' }
+    ];
+    state.foods = [
+      { name: 'Oatmeal & Whey Protein', cal: 450, protein: 35, carbs: 55, fat: 8 },
+      { name: 'Chicken Breast & Jasmine Rice', cal: 680, protein: 52, carbs: 75, fat: 12 }
+    ];
+    state.cal = 1130;
+    state.protein = 87;
+    state.carbs = 130;
+    state.fat = 20;
+    state.water = 1.50;
+    saveState();
+    showToast('Sample data loaded');
+  }
+}
+
+function resetAllData() {
+  if (confirm('Reset all saved browser logs? Gymplified will start clean.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    state = JSON.parse(JSON.stringify(cleanState));
+    saveState();
+    showToast('All browser data cleared');
+  }
+}
+
+// Boot initial render
+renderAll();
+</script>
 
 </body>
 </html>
-
-```

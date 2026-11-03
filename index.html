@@ -356,6 +356,27 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
  .setrow{gap:5px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Nutrition 2.0 */
+.nutrition-summary{display:grid;grid-template-columns:1.25fr .75fr;gap:14px;margin-bottom:18px}.nutrition-calories{min-width:0}
+.nutrition-topline{display:flex;align-items:center;justify-content:space-between;gap:10px}.nutrition-date{font-size:12px;color:var(--muted)}
+.nutrition-cal-number{display:flex;align-items:baseline;gap:8px;margin:4px 0 10px;flex-wrap:wrap}.nutrition-cal-number strong{font:700 clamp(34px,5vw,48px) var(--font-heading);letter-spacing:-.06em}.nutrition-cal-number span{font-size:13px;color:var(--muted)}
+.nutrition-progress{height:9px}.nutrition-progress i{background:var(--brand)}
+.nutrition-macro-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}.nutrition-macro-grid>div{min-width:0}.nutrition-macro-grid span{display:block;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.07em}.nutrition-macro-grid strong{display:block;font:700 23px var(--font-heading);margin:3px 0 7px}.nutrition-macro-grid small{display:block;color:var(--muted);font-size:10px;margin-top:5px}
+.macro-track{display:block;height:6px;background:var(--bg);border:1px solid var(--line);border-radius:10px;overflow:hidden}.macro-track b{display:block;height:100%;width:0;background:var(--brand);border-radius:10px;transition:width .25s}
+.nutrition-target-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.nutrition-target-fields label{font-size:11px;color:var(--muted);font-weight:700}.nutrition-target-fields label span{float:right}.nutrition-target-fields input{display:block;width:100%;margin-top:6px;min-width:0}
+.nutrition-add-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(110px,.7fr) minmax(130px,.8fr);gap:12px}.nutrition-search-field{position:relative}
+.unit-input{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;background:var(--bg);height:42px;overflow:hidden}.unit-input input{border:0!important;box-shadow:none!important;min-width:0;width:100%;height:40px!important}.unit-input span{padding:0 10px;color:var(--muted);font-size:12px}
+.food-suggestions{display:none;position:absolute;top:calc(100% - 8px);left:0;right:0;z-index:30;max-height:240px;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow-soft)}.food-suggestions.open{display:block}
+.food-suggestion{display:flex;width:100%;justify-content:space-between;gap:12px;text-align:left;padding:10px 12px;border:0;border-bottom:1px solid var(--line);background:transparent;cursor:pointer;color:var(--ink)}.food-suggestion:last-child{border-bottom:0}.food-suggestion:hover{background:var(--panel-hover)}.food-suggestion small{color:var(--muted);white-space:nowrap}
+.food-preview{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:9px;background:var(--bg);padding:12px 14px;min-height:54px}.food-preview-grid{display:flex;gap:18px;flex-wrap:wrap}.food-preview-grid span{font-size:12px;color:var(--muted)}.food-preview-grid b{color:var(--ink);font-size:14px}
+.custom-food-details{margin-top:18px;border-top:1px solid var(--line);padding-top:14px}.custom-food-details summary{font-size:13px;font-weight:700}.custom-food-details>p{margin-top:8px}
+.meal-group{border:1px solid var(--line);border-radius:10px;margin-top:12px;overflow:hidden}.meal-group-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;background:var(--bg);border-bottom:1px solid var(--line)}.meal-group-head strong{font-size:13px}.meal-group-head small{color:var(--muted);font-size:11px}
+.food-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 14px;border-bottom:1px solid var(--line)}.food-entry:last-child{border-bottom:0}.food-entry-name{font-size:13px;font-weight:700}.food-entry-meta{font-size:11px;color:var(--muted);margin-top:3px}.food-entry-macros{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;text-align:right;font-size:11px;color:var(--muted)}.food-entry-macros b{color:var(--ink)}.food-entry-actions{display:flex;align-items:center;gap:6px}.food-entry-actions button{min-height:30px;padding:0 8px;font-size:11px}
+.nutrition-empty{padding:28px 14px;text-align:center;color:var(--muted);font-size:13px}
+@media(max-width:800px){.nutrition-summary{grid-template-columns:1fr}.nutrition-add-grid{grid-template-columns:1fr 1fr}.nutrition-search-field{grid-column:1/-1}}
+@media(max-width:460px){.nutrition-add-grid{grid-template-columns:1fr}.nutrition-search-field{grid-column:auto}.nutrition-macro-grid{gap:8px}.nutrition-macro-grid strong{font-size:19px}.food-entry{grid-template-columns:1fr}.food-entry-macros{justify-content:flex-start;text-align:left}.nutrition-target-fields{gap:6px}}
+
 </style>
 </head>
 <body>
@@ -585,58 +606,57 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
 
       <!-- 5. NUTRITION SCREEN -->
       <section id="nutrition" class="screen">
-        <div class="eyebrow">Fueling</div>
-        <h1>Nutrition & Macro Tracker</h1>
-        <p class="subtitle">Record meal macros and monitor daily caloric balance.</p>
-
-        <div class="panel" style="margin-bottom: 20px;">
-          <div class="section-title">Add Custom Food Item</div>
-          <div class="form-grid">
-            <div class="field">
-              <label>Food Item Name</label>
-              <input type="text" id="inputFoodName" placeholder="e.g. Grilled Salmon & Quinoa">
-            </div>
-            <div class="field">
-              <label>Calories (kcal)</label>
-              <input type="number" id="inputFoodCal" value="500">
-            </div>
-            <div class="field">
-              <label>Protein (g)</label>
-              <input type="number" id="inputFoodProtein" value="40">
-            </div>
-            <div class="field">
-              <label>Carbs (g)</label>
-              <input type="number" id="inputFoodCarbs" value="45">
-            </div>
-            <div class="field">
-              <label>Fat (g)</label>
-              <input type="number" id="inputFoodFat" value="12">
+        <div class="eyebrow">Fueling</div><h1>Nutrition</h1>
+        <p class="subtitle">Build meals, track your macros and see how your day is adding up. Food values are estimates and vary by brand and preparation.</p>
+        <div class="nutrition-summary">
+          <div class="panel nutrition-calories">
+            <div class="nutrition-topline"><span class="sub-h">DAILY ENERGY</span><span class="nutrition-date" id="nutritionDate"></span></div>
+            <div class="nutrition-cal-number"><strong id="nutritionCal">0</strong><span> / <b id="nutritionCalTarget">2500</b> kcal</span></div>
+            <div class="progress-bar nutrition-progress"><i id="nutritionCalBar"></i></div>
+            <div class="meta-row"><span id="nutritionCalLeft">2,500 kcal remaining</span><span id="nutritionCalPercent">0%</span></div>
+            <div class="nutrition-macro-grid">
+              <div><span>PROTEIN</span><strong id="nutritionProtein">0g</strong><i class="macro-track"><b id="proteinTrack"></b></i><small id="proteinMeta">0 / 150g</small></div>
+              <div><span>CARBS</span><strong id="nutritionCarbs">0g</strong><i class="macro-track"><b id="carbsTrack"></b></i><small id="carbsMeta">0 / 250g</small></div>
+              <div><span>FAT</span><strong id="nutritionFat">0g</strong><i class="macro-track"><b id="fatTrack"></b></i><small id="fatMeta">0 / 70g</small></div>
             </div>
           </div>
-          <button class="btn btn-primary" onclick="saveFoodEntry()">Log Food Intake</button>
-        </div>
-
-        <div class="panel">
-          <div class="section-title">
-            <span>Logged Meals Today</span>
-            <button class="btn" onclick="clearFoodLogs()" style="color:var(--danger)">Reset Meal Logs</button>
+          <div class="panel nutrition-goals">
+            <div class="section-title">Your daily targets <span class="sub">Adjust any time</span></div>
+            <div class="nutrition-target-fields">
+              <label>Protein <span>g</span><input id="targetProtein" type="number" min="0" max="500" step="1"></label>
+              <label>Carbs <span>g</span><input id="targetCarbs" type="number" min="0" max="800" step="1"></label>
+              <label>Fat <span>g</span><input id="targetFat" type="number" min="0" max="300" step="1"></label>
+            </div>
+            <button class="btn btn-primary" onclick="saveNutritionTargets()">Save macro goals</button>
+            <p class="sub" style="margin-top:10px">Targets are personal reference points, not rules. Set a target to 0 to hide its progress.</p>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Meal / Item</th>
-                <th>Calories</th>
-                <th>Protein</th>
-                <th>Carbs</th>
-                <th>Fat</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody id="foodTableBody">
-              <!-- Dynamic rows -->
-            </tbody>
-          </table>
         </div>
+        <div class="panel nutrition-add" style="margin-bottom:18px">
+          <div class="section-title"><span>Add food</span><span class="sub">Choose a food, then set your portion</span></div>
+          <div class="nutrition-add-grid">
+            <div class="field nutrition-search-field"><label for="foodSearch">Find a food</label>
+              <input id="foodSearch" type="search" placeholder="Search chicken, rice, banana…" autocomplete="off" oninput="renderFoodSearch()" onfocus="renderFoodSearch()">
+              <div id="foodSuggestions" class="food-suggestions" role="listbox" aria-label="Food suggestions"></div>
+              <div class="sub" id="foodSelectedHint" style="margin-top:8px">Choose from common foods or add your own below.</div>
+            </div>
+            <div class="field"><label for="foodGrams">Portion size</label><div class="unit-input"><input id="foodGrams" type="number" min="1" max="3000" step="1" value="100" oninput="renderFoodPreview()"><span>grams</span></div></div>
+            <div class="field"><label for="foodMeal">Add to meal</label><select id="foodMeal"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snacks</option></select></div>
+          </div>
+          <div id="foodPreview" class="food-preview"><span class="sub">Select a food to see its nutrition breakdown.</span></div>
+          <div class="row-wrap" style="margin-top:14px"><button class="btn btn-primary" id="addFoodButton" onclick="addSelectedFood()" disabled>+ Add to food diary</button><button class="btn" onclick="clearFoodPicker()">Clear selection</button></div>
+          <details class="custom-food-details"><summary>Can't find your food? Add a custom food</summary>
+            <p class="sub">Enter the label values per 100g once. Then choose the portion you actually ate.</p>
+            <div class="form-grid" style="margin-top:12px">
+              <div class="field"><label for="customFoodName">Food name</label><input id="customFoodName" maxlength="60" placeholder="e.g. Your favourite cereal"></div>
+              <div class="field"><label for="customFoodCal">Calories / 100g</label><input id="customFoodCal" type="number" min="0" max="1000" step="0.1" placeholder="e.g. 380"></div>
+              <div class="field"><label for="customFoodProtein">Protein / 100g</label><input id="customFoodProtein" type="number" min="0" max="100" step="0.1" placeholder="e.g. 12"></div>
+              <div class="field"><label for="customFoodCarbs">Carbs / 100g</label><input id="customFoodCarbs" type="number" min="0" max="100" step="0.1" placeholder="e.g. 65"></div>
+              <div class="field"><label for="customFoodFat">Fat / 100g</label><input id="customFoodFat" type="number" min="0" max="100" step="0.1" placeholder="e.g. 7"></div>
+            </div>
+            <button class="btn" onclick="saveCustomFood()">Save custom food</button>
+          </details>
+        </div>
+        <div class="panel nutrition-diary"><div class="section-title"><span>Today's food diary</span><div class="row-wrap"><span class="sub" id="foodEntryCount">0 items</span><button class="btn" onclick="clearFoodLogs()" style="color:var(--danger)">Clear day</button></div></div><div id="foodDiary"></div></div>
       </section>
 
       <section id="friends" class="screen">
@@ -859,6 +879,8 @@ const cleanState = {
   protein: 0,
   carbs: 0,
   fat: 0,
+  nutritionTargets: { protein: 150, carbs: 250, fat: 70 },
+  customFoods: [],
   water: 0,
   workouts: [],
   foods: [],
@@ -1139,22 +1161,28 @@ function renderTrainingLog() {
 }
 
 function renderNutrition() {
-  const tableBody = document.getElementById('foodTableBody');
-  if (state.foods.length === 0) {
-    tableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--muted); padding: 24px;">No custom meals logged today. Use the form above to add foods.</td></tr>`;
-    return;
-  }
-
-  tableBody.innerHTML = state.foods.map((f, i) => `
-    <tr>
-      <td><strong>${esc(f.name)}</strong></td>
-      <td>${f.cal} kcal</td>
-      <td>${f.protein}g</td>
-      <td>${f.carbs}g</td>
-      <td>${f.fat}g</td>
-      <td><button class="btn" style="color:var(--danger); padding:2px 8px; font-size:11px;" onclick="deleteFood(${i})">Delete</button></td>
-    </tr>
-  `).join('');
+  const foods=state.foods||[],targets=state.nutritionTargets||{protein:150,carbs:250,fat:70};
+  const set=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
+  const bar=(id,v,t)=>{const e=$(id);if(e)e.style.width=(t>0?Math.min(100,Math.max(0,v/t*100)):0)+'%';};
+  set('nutritionDate',new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}));
+  set('nutritionCal',Math.round(state.cal||0).toLocaleString());set('nutritionCalTarget',(state.calTarget||2500).toLocaleString());
+  const cp=Math.min(100,Math.round((state.cal/(state.calTarget||2500))*100));
+  bar('nutritionCalBar',state.cal,state.calTarget||2500);set('nutritionCalLeft',Math.max(0,(state.calTarget||2500)-state.cal).toLocaleString()+' kcal remaining');set('nutritionCalPercent',cp+'%');
+  [['Protein','protein',state.protein],['Carbs','carbs',state.carbs],['Fat','fat',state.fat]].forEach(([label,key,val])=>{
+    const target=Number(targets[key])||0;set('nutrition'+label,(Number(val)||0).toFixed(1).replace(/\.0$/,'')+'g');
+    bar(key+'Track',Number(val)||0,target);set(key+'Meta',(Number(val)||0).toFixed(1).replace(/\.0$/,'')+' / '+target+'g');
+  });
+  ['protein','carbs','fat'].forEach(k=>{const e=$('target'+k.charAt(0).toUpperCase()+k.slice(1));if(e&&document.activeElement!==e)e.value=targets[k]||0;});
+  set('foodEntryCount',foods.length+' '+(foods.length===1?'item':'items'));
+  const meals=['Breakfast','Lunch','Dinner','Snacks'],diary=$('foodDiary');
+  if(!foods.length){diary.innerHTML='<div class="nutrition-empty">Your food diary is empty.<br><span class="sub">Search for a food above and add your first meal.</span></div>';return;}
+  diary.innerHTML=meals.map(meal=>{
+    const items=foods.map((f,i)=>({f,i})).filter(x=>(x.f.meal||'Snacks')===meal);
+    if(!items.length)return '';
+    const total=items.reduce((a,x)=>{a.cal+=Number(x.f.cal)||0;a.p+=Number(x.f.protein)||0;a.c+=Number(x.f.carbs)||0;a.f+=Number(x.f.fat)||0;return a;},{cal:0,p:0,c:0,f:0});
+    return '<div class="meal-group"><div class="meal-group-head"><strong>'+meal+'</strong><small>'+Math.round(total.cal)+' kcal · P '+total.p.toFixed(1)+'g · C '+total.c.toFixed(1)+'g · F '+total.f.toFixed(1)+'g</small></div>'+
+      items.map(({f,i})=>'<div class="food-entry"><div><div class="food-entry-name">'+esc(f.name)+'</div><div class="food-entry-meta">'+(f.grams?f.grams+'g portion · ':'')+Math.round(f.cal)+' kcal</div><div class="food-entry-macros"><span><b>'+Number(f.protein||0).toFixed(1)+'g</b> protein</span><span><b>'+Number(f.carbs||0).toFixed(1)+'g</b> carbs</span><span><b>'+Number(f.fat||0).toFixed(1)+'g</b> fat</span></div></div><div class="food-entry-actions"><button class="btn" onclick="deleteFood('+i+')" style="color:var(--danger)">Delete</button></div></div>').join('')+'</div>';
+  }).join('');
 }
 
 function renderMachines() {
@@ -1299,53 +1327,64 @@ function clearAllWorkouts() {
   }
 }
 
-// --- NUTRITION & HYDRATION ---
-function saveFoodEntry() {
-  const name = document.getElementById('inputFoodName').value.trim();
-  const cal = Math.max(0, parseInt(document.getElementById('inputFoodCal').value) || 0);
-  const protein = Math.max(0, parseInt(document.getElementById('inputFoodProtein').value) || 0);
-  const carbs = Math.max(0, parseInt(document.getElementById('inputFoodCarbs').value) || 0);
-  const fat = Math.max(0, parseInt(document.getElementById('inputFoodFat').value) || 0);
-
-  if (!name) {
-    showToast('Please enter a food item name');
-    return;
-  }
-
-  state.foods.push({ name, cal, protein, carbs, fat });
-  state.cal += cal;
-  state.protein += protein;
-  state.carbs += carbs;
-  state.fat += fat;
-
-  document.getElementById('inputFoodName').value = '';
-  saveState();
-  showToast(`Logged meal: ${name}`);
+// --- NUTRITION 2.0: searchable foods, portions and meal diary ---
+const BASE_FOODS=[
+  ['Chicken breast','Protein',165,31,0,3.6],['Turkey breast','Protein',135,29,0,1.6],['Lean beef mince (5%)','Protein',137,21,0,5],['Salmon','Protein',208,20.4,0,13.4],['Tuna in spring water','Protein',116,25.5,0,.8],['Egg','Protein',143,13,1.1,9.5],['Greek yogurt (plain)','Dairy',59,10.3,3.6,.4],['Cottage cheese','Dairy',98,11.1,3.4,4.3],['Milk (semi-skimmed)','Dairy',50,3.5,4.8,1.8],['Cheddar cheese','Dairy',403,25,1.3,33],
+  ['Rice (cooked)','Carbs',130,2.7,28,.3],['Pasta (cooked)','Carbs',158,5.8,30.9,.9],['Oats (dry)','Carbs',389,16.9,66.3,6.9],['Potato (boiled)','Carbs',87,1.9,20.1,.1],['Sweet potato','Carbs',86,1.6,20.1,.1],['Wholemeal bread','Carbs',247,13,41,4.2],['Bagel','Carbs',257,10,50,1.5],
+  ['Banana','Fruit & veg',89,1.1,22.8,.3],['Apple','Fruit & veg',52,.3,13.8,.2],['Blueberries','Fruit & veg',57,.7,14.5,.3],['Broccoli','Fruit & veg',34,2.8,6.6,.4],['Avocado','Fruit & veg',160,2,8.5,14.7],['Spinach','Fruit & veg',23,2.9,3.6,.4],
+  ['Almonds','Snacks',579,21.2,21.6,49.9],['Peanut butter','Snacks',588,25,20,50],['Dark chocolate','Snacks',598,7.8,45.9,42.6],['Olive oil','Other',884,0,0,100],['Whey protein powder','Other',400,80,8,6]
+].map((x,i)=>({id:'base-'+i,name:x[0],category:x[1],cal:x[2],protein:x[3],carbs:x[4],fat:x[5],custom:false}));
+let selectedFoodId=null;
+function foodLibrary(){return BASE_FOODS.concat((state.customFoods||[]).map((f,i)=>Object.assign({id:f.id||'custom-'+i,category:'My foods',custom:true},f)));}
+function findFood(id){return foodLibrary().find(f=>f.id===id);}
+function renderFoodSearch(){
+  const q=($('foodSearch').value||'').trim().toLowerCase(),box=$('foodSuggestions');
+  const list=foodLibrary().filter(f=>!q||(f.name+' '+f.category).toLowerCase().includes(q)).slice(0,12);
+  box.innerHTML=list.length?list.map(f=>'<button type="button" class="food-suggestion" role="option" onclick="chooseFood(\''+esc(f.id)+'\')"><span>'+esc(f.name)+(f.custom?' <small>· custom</small>':'')+'</span><small>'+Math.round(f.cal)+' kcal / 100g</small></button>').join(''):'<div class="nutrition-empty">No foods found. Add it as a custom food below.</div>';
+  box.classList.add('open');
 }
-
-function deleteFood(index) {
-  const f = state.foods[index];
-  state.cal = Math.max(0, state.cal - f.cal);
-  state.protein = Math.max(0, state.protein - f.protein);
-  state.carbs = Math.max(0, state.carbs - f.carbs);
-  state.fat = Math.max(0, state.fat - f.fat);
-  state.foods.splice(index, 1);
-  saveState();
-  showToast('Food entry deleted');
+function chooseFood(id){
+  const f=findFood(id);if(!f)return;selectedFoodId=id;$('foodSearch').value=f.name;$('foodSuggestions').classList.remove('open');
+  $('foodSelectedHint').textContent=f.category+' · values per 100g'+(f.custom?' · your saved food':' · general reference values');renderFoodPreview();
 }
-
-function clearFoodLogs() {
-  if (confirm('Reset meal intake logs for today?')) {
-    state.foods = [];
-    state.cal = 0;
-    state.protein = 0;
-    state.carbs = 0;
-    state.fat = 0;
-    saveState();
-    showToast('Meal logs reset');
-  }
+function renderFoodPreview(){
+  const f=selectedFoodId&&findFood(selectedFoodId),g=Math.max(0,Number($('foodGrams').value)||0),p=$('foodPreview'),b=$('addFoodButton');
+  if(!f||!g){p.innerHTML='<span class="sub">Select a food and enter a portion greater than 0g.</span>';b.disabled=true;return;}
+  const factor=g/100,fmt=n=>(n*factor).toFixed(1).replace(/\.0$/,'');
+  p.innerHTML='<strong>'+esc(f.name)+' · '+g+'g</strong><div class="food-preview-grid"><span><b>'+Math.round(f.cal*factor)+'</b> kcal</span><span><b>'+fmt(f.protein)+'</b>g protein</span><span><b>'+fmt(f.carbs)+'</b>g carbs</span><span><b>'+fmt(f.fat)+'</b>g fat</span></div>';b.disabled=false;
 }
-
+function clearFoodPicker(){selectedFoodId=null;$('foodSearch').value='';$('foodSuggestions').classList.remove('open');$('foodSelectedHint').textContent='Choose from common foods or add your own below.';$('foodPreview').innerHTML='<span class="sub">Select a food to see its nutrition breakdown.</span>';$('foodGrams').value=100;$('addFoodButton').disabled=true;}
+function addSelectedFood(){
+  const f=selectedFoodId&&findFood(selectedFoodId),grams=Number($('foodGrams').value);
+  if(!f)return showToast('Choose a food first');if(!(grams>0&&grams<=3000))return showToast('Enter a portion between 1g and 3000g');
+  const scale=grams/100,entry={name:f.name,grams,meal:$('foodMeal').value,cal:Math.round(f.cal*scale),protein:+(f.protein*scale).toFixed(1),carbs:+(f.carbs*scale).toFixed(1),fat:+(f.fat*scale).toFixed(1),createdAt:Date.now()};
+  state.foods.push(entry);state.cal+=entry.cal;state.protein+=entry.protein;state.carbs+=entry.carbs;state.fat+=entry.fat;
+  state.recent=[{name:f.name,cal:entry.cal,protein:entry.protein,carbs:entry.carbs,fat:entry.fat}].concat((state.recent||[]).filter(x=>x.name!==f.name)).slice(0,12);
+  saveState();renderAll();showToast('Added '+f.name+' · '+grams+'g');clearFoodPicker();
+}
+function saveCustomFood(){
+  const name=$('customFoodName').value.trim(),cal=Number($('customFoodCal').value),protein=Number($('customFoodProtein').value),carbs=Number($('customFoodCarbs').value),fat=Number($('customFoodFat').value);
+  if(!name)return showToast('Enter a food name');
+  if(![cal,protein,carbs,fat].every(Number.isFinite)||cal<0||cal>1000||protein<0||protein>100||carbs<0||carbs>100||fat<0||fat>100)return showToast('Check the nutrition values per 100g');
+  const id='custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);
+  state.customFoods.push({id,name,cal,protein,carbs,fat});saveState();
+  $('customFoodName').value='';['customFoodCal','customFoodProtein','customFoodCarbs','customFoodFat'].forEach(k=>$(k).value='');chooseFood(id);showToast('Custom food saved');
+}
+function saveNutritionTargets(){
+  const p=Number($('targetProtein').value),c=Number($('targetCarbs').value),f=Number($('targetFat').value);
+  if(![p,c,f].every(Number.isFinite)||p<0||p>500||c<0||c>800||f<0||f>300)return showToast('Use valid macro targets (0 or higher)');
+  state.nutritionTargets={protein:p,carbs:c,fat:f};saveState();renderNutrition();showToast('Macro targets saved');
+}
+function saveFoodEntry(){showToast('Choose a food from the new food search');}
+function deleteFood(index){
+  const f=state.foods[index];if(!f)return;
+  state.cal=Math.max(0,state.cal-(Number(f.cal)||0));state.protein=Math.max(0,state.protein-(Number(f.protein)||0));state.carbs=Math.max(0,state.carbs-(Number(f.carbs)||0));state.fat=Math.max(0,state.fat-(Number(f.fat)||0));
+  state.foods.splice(index,1);saveState();renderAll();showToast('Food removed from diary');
+}
+function clearFoodLogs(){
+  if(!confirm('Clear every food entry logged today?'))return;
+  state.foods=[];state.cal=state.protein=state.carbs=state.fat=0;saveState();renderAll();showToast('Today’s food diary cleared');
+}
 
 
 function resetWater() {
@@ -1361,7 +1400,7 @@ function openLogModal() {
 
 function openCalorieModal() {
   showScreen('nutrition', document.querySelectorAll('nav button')[3]);
-  document.getElementById('inputFoodName').focus();
+  setTimeout(()=>document.getElementById('foodSearch')?.focus(),50);
 }
 
 // --- SETTINGS HUB ---
@@ -1424,7 +1463,8 @@ function bootState(){
   const b=JSON.parse(JSON.stringify(cleanState));
   const t=Object.assign(b,o&&typeof o==='object'?o:{});
   t.settings=Object.assign(b.settings,(o&&o.settings)||{});
-  ['workouts','foods','prs','waterLog','recent','lastSession'].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});
+  ['workouts','foods','prs','waterLog','recent','lastSession','customFoods'].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});
+  t.nutritionTargets=Object.assign({protein:150,carbs:250,fat:70},t.nutritionTargets||{});
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
   t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:[150,250,500,750];
   t.history=t.history||{};
@@ -1522,8 +1562,7 @@ function importData(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{c
 addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,select,textarea')||e.ctrlKey||e.metaKey||e.altKey)return;
   const n=+e.key,nav=document.querySelectorAll('nav button');if(n>=1&&n<=nav.length)nav[n-1].click();else if(e.key==='w'||e.key==='W')addWater((state.presets[1]||state.presets[0])/1000);});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.game.day!==dayKey()){state=bootState();saveState();}});
-(function(){const n=$('inputFoodName');if(n){const dl=document.createElement('datalist');dl.id='recentFoods';document.body.appendChild(dl);n.setAttribute('list','recentFoods');
- n.addEventListener('change',()=>{const r=state.recent.find(x=>x.name===n.value);if(r){$('inputFoodCal').value=r.cal;$('inputFoodProtein').value=r.protein;$('inputFoodCarbs').value=r.carbs;$('inputFoodFat').value=r.fat;}});}})();
+document.addEventListener('click',e=>{if(!e.target.closest('.nutrition-search-field'))$('foodSuggestions')?.classList.remove('open');});
 
 // ===== v4: sessions + exercise library =====
 const MC={ch:'chest',la:'lats',sh:'shoulders',bi:'biceps',tr:'triceps',ab:'abs',qu:'quadriceps',ha:'hamstrings',ca:'calves',gl:'glutes',tp:'traps',fo:'forearms'};

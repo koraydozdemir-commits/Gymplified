@@ -1735,7 +1735,7 @@ function renderFriends(){
 async function searchFriends(query){
  clearTimeout(searchTimer);const q=String(query||'').trim().replace(/^@/,'');const out=$('searchOut');if(!q){out.innerHTML='';return;}if(!currentUser){out.innerHTML='<p class="account-hint">Log in to search for friends.</p>';return;}
  searchTimer=setTimeout(async function(){out.innerHTML='<p class="account-hint">Searching…</p>';try{
-  const term=q.replace(/[%_,]/g,'');const r=await sb.from('profiles').select('id,username,display_name,avatar_url').or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%').neq('id',currentUser.id).limit(12);if(r.error)throw r.error;
+  const term=q.replace(/[^a-zA-Z0-9 _-]/g,'').trim();if(!term){out.innerHTML='<p class="account-hint">Search using letters or numbers.</p>';return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url').or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%').neq('id',currentUser.id).limit(12);if(r.error)throw r.error;
   const known=new Set(friendRequests.map(function(x){return x.requester_id===currentUser.id?x.receiver_id:x.requester_id;}));const matches=(r.data||[]).filter(function(x){return !known.has(x.id);});
   out.innerHTML=matches.length?matches.map(function(p){return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name)+'</strong><small>@'+esc(p.username)+'</small></div><button class="btn btn-primary" onclick="sendFriendRequest(\''+p.id+'\')">Add friend</button></div>';}).join(''):'<p class="account-hint">No matching usernames found.</p>';
  }catch(e){out.innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>'; }},250);

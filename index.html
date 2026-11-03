@@ -377,6 +377,29 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
 @media(max-width:800px){.nutrition-summary{grid-template-columns:1fr}.nutrition-add-grid{grid-template-columns:1fr 1fr}.nutrition-search-field{grid-column:1/-1}}
 @media(max-width:460px){.nutrition-add-grid{grid-template-columns:1fr}.nutrition-search-field{grid-column:auto}.nutrition-macro-grid{gap:8px}.nutrition-macro-grid strong{font-size:19px}.food-entry{grid-template-columns:1fr}.food-entry-macros{justify-content:flex-start;text-align:left}.nutrition-target-fields{gap:6px}}
 
+
+.account-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.account-avatar{width:76px;height:76px;border-radius:50%;object-fit:cover;background:var(--brand-light);border:2px solid var(--line);display:grid;place-items:center;font:700 26px var(--font-heading);color:var(--brand)}
+.account-avatar.small{width:42px;height:42px;font-size:16px;flex-shrink:0}
+.account-actions{display:flex;gap:8px;flex-wrap:wrap}
+.account-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:12px;margin-top:16px}
+.account-card{border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--panel)}
+.account-form{max-width:560px}
+.account-form .field{margin-bottom:12px}
+.account-form input,.account-card input{width:100%;height:42px;border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:0 12px}
+.account-tabs{display:flex;gap:8px;margin:14px 0}
+.account-tabs .active{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+.account-message{font-size:13px;color:var(--muted);margin:10px 0;min-height:18px}
+.profile-row{display:flex;align-items:center;gap:12px;padding:12px 4px;border-bottom:1px solid var(--line)}
+.profile-row:last-child{border-bottom:0}
+.profile-row .profile-info{flex:1;min-width:0}
+.profile-row strong{display:block;overflow-wrap:anywhere}
+.profile-row small{display:block;color:var(--muted);font-size:12px}
+.profile-row .btn{flex-shrink:0}
+.account-section-title{font-size:13px;font-weight:700;margin:16px 0 6px}
+.account-hint{font-size:12px;color:var(--muted);line-height:1.55}
+@media(max-width:520px){.account-head{align-items:flex-start}.account-avatar{width:64px;height:64px}.profile-row{gap:8px}.profile-row .btn{padding-inline:8px}}
+
 </style>
 </head>
 <body>
@@ -660,20 +683,17 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
       </section>
 
       <section id="friends" class="screen">
-        <div class="eyebrow">Community</div>
-        <h1>Friends & Leaderboard</h1>
-        <p class="subtitle">Compete on XP, weekly volume and streaks with friends who open this same page.</p>
-        <div class="panel" id="friendStatus" style="margin-bottom:20px"></div>
-        <div class="panel" style="margin-bottom:20px"><div class="section-title">Leaderboard</div>
-          <div class="row-wrap" style="margin-bottom:10px"><label class="sr" for="lbScope">Who to show</label><select id="lbScope" onchange="renderFriends()"><option value="friends">Friends</option><option value="all">Everyone on this page</option></select>
-          <label class="sr" for="lbMetric">Rank by</label><select id="lbMetric" onchange="renderFriends()"><option value="xp">Total XP</option><option value="vol">Volume this week</option><option value="sess">Workouts this week</option><option value="streak">Day streak</option><option value="ws">Week streak</option></select></div>
-          <div id="board" aria-live="polite"></div></div>
-        <div class="panel"><div class="section-title">Add Friends</div>
-          <label class="sr" for="friendSearch">Search by name</label>
-          <input type="search" id="friendSearch" placeholder="Search by name…" oninput="searchFriends(this.value)" autocomplete="off" style="width:100%">
+        <div class="eyebrow">Community</div><h1>Friends & Accounts</h1>
+        <p class="subtitle">Create your Gymplified identity, add friends by username and customise your profile.</p>
+        <div class="panel account-panel" id="friendStatus" style="margin-bottom:20px"></div>
+        <div id="friendConnections" class="panel" style="margin-bottom:20px;display:none"></div>
+        <div class="panel" id="friendSearchPanel" style="display:none">
+          <div class="section-title">Find people</div>
+          <label class="sr" for="friendSearch">Search usernames</label>
+          <input type="search" id="friendSearch" placeholder="Search usernames…" oninput="searchFriends(this.value)" autocomplete="off" style="width:100%">
           <div id="searchOut" style="margin:8px 0"></div>
-          <div class="row-wrap"><label class="sr" for="friendCode">Friend code</label><input type="text" id="friendCode" placeholder="Or paste a friend code" maxlength="80" onkeydown="if(event.key==='Enter')addFriend($('friendCode').value)"><button class="btn btn-primary" onclick="addFriend($('friendCode').value)">Add by code</button></div>
-          <div class="sub-h">Your friends</div><div id="friendList"></div></div>
+          <div class="sub" style="margin-top:10px">Friend codes are gone. Search for someone's username and send them a request.</div>
+        </div>
       </section>
 
       <!-- 6. SETTINGS HUB & ACCESSIBILITY OPTIONS -->
@@ -765,6 +785,7 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
 
 <div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script>
 // --- POOL OF 100 MOTIVATIONAL QUOTES ---
 const MOTIVATIONAL_QUOTES = [
@@ -1447,7 +1468,6 @@ function seedSampleData() {
 function resetAllData() {
   if (confirm('Reset all saved browser logs? Gymplified will start clean.')) {
     localStorage.removeItem(STORAGE_KEY);
-    if(DB&&MYID)DB.doc('lb/'+MYID).delete().catch(()=>{});
     state = bootState();
     saveState();
     showToast('All browser data cleared');
@@ -1627,67 +1647,113 @@ function renderTrainingLog(){const wi=weekInfo(),sb=$('sessBar');
   $('sessionSummary').innerHTML=m?'<div class="panel" style="margin-bottom:20px"><div class="section-title"><span>🎉 Workout complete</span><button class="btn" onclick="state.lastSummary=null;saveState()">Dismiss</button></div><div class="stat-row"><div class="stat"><b>'+m.mins+' min</b><span>duration</span></div><div class="stat"><b>'+m.vol.toLocaleString()+' kg</b><span>total volume</span></div><div class="stat"><b>'+m.sets+'</b><span>sets</span></div><div class="stat"><b>'+m.reps+'</b><span>reps</span></div><div class="stat"><b>'+m.ex+'</b><span>exercises</span></div></div><p class="sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc(m.names.join(', '))+'</p></div>':'';
   $('sessionHistory').innerHTML=state.sessions.length?state.sessions.slice(0,6).map(x=>'<div class="quest"><span>'+x.date+' · '+x.mins+' min · '+x.ex+' exercises</span><span>'+x.vol.toLocaleString()+' kg · '+x.sets+' sets · '+x.reps+' reps</span></div>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
 
-// ===== v5: friends & leaderboard =====
-let DB=null,USER=null,MYID=null,lbDocs=[],lbErr='',lastSent='',sendT=null,rT=0,sT=0;
-function makeFriendCode(){
-  const key='gymplified_friend_code_v1';let code='';
-  try{code=localStorage.getItem(key)||'';}catch(e){}
-  if(!/^[A-Z0-9]{8}$/.test(code)){
-    const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    try{const bytes=new Uint8Array(8);crypto.getRandomValues(bytes);code=Array.from(bytes,b=>alphabet[b%alphabet.length]).join('');}
-    catch(e){code=Array.from({length:8},()=>alphabet[Math.floor(Math.random()*alphabet.length)]).join('');}
-    try{localStorage.setItem(key,code);}catch(e){}
-  }
-  return code;
-}
+// ===== Gymplified accounts + real friend connections =====
+const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3iqgTv1xyZgxhnD8iV1uMQ_DcrlHxPj';
+let sb=null,currentUser=null,currentProfile=null,authMode='signup',friendRequests=[],friendProfiles={},searchTimer=null,socialBusy=false;
+function avatarMarkup(p,small){const c='account-avatar'+(small?' small':'');if(p&&p.avatar_url)return '<img class="'+c+'" src="'+esc(p.avatar_url)+'" alt="'+esc(p.display_name||p.username||'Profile picture')+'">';return '<div class="'+c+'">'+esc(String(p?(p.display_name||p.username||'?'):'?').trim().charAt(0).toUpperCase()||'?')+'</div>';}
+function socialError(e){const m=e&&(e.message||e.error_description)?(e.message||e.error_description):'Something went wrong. Please try again.';showToast(m.length>110?m.slice(0,107)+'…':m);return m;}
 async function initSocial(){
-  // GitHub Pages is a static site: generate a persistent, visible local code
-  // instead of waiting for the unavailable claude.ai identity API.
-  MYID=makeFriendCode();
-  USER=null;DB=null;lbDocs=[];lbErr='';
-  renderFriends();
+ const host=$('friendStatus');if(!window.supabase||!window.supabase.createClient){host.textContent='Account services could not load. Refresh and try again.';return;}
+ sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ const r=await sb.auth.getSession();if(r.error)socialError(r.error);currentUser=r.data&&r.data.session?r.data.session.user:null;
+ if(currentUser)await loadMyProfile();renderFriends();
+ sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){currentUser=session?session.user:null;currentProfile=null;if(currentUser)await loadMyProfile();friendRequests=[];friendProfiles={};renderFriends();},0);});
 }
-function myBoard(){const g=state.game,cur=wkKey(new Date()),w=state.sessions.filter(x=>wkKey(x.date+'T12:00')===cur);
-  return{xp:g.xp,lv:lvl(g.xp),streak:g.streak,lastDay:g.lastDay||'',wk:cur,wkVol:w.reduce((a,x)=>a+x.vol,0),wkSess:w.length,ws:weekInfo().st};}
-function syncLB(force){if(!DB||!MYID||!state.lbOn)return;clearTimeout(sendT);
-  sendT=setTimeout(async()=>{const p=myBoard(),k=JSON.stringify(p);if(k===lastSent)return;
-    try{await DB.doc('lb/'+MYID).set(Object.assign({},p,{t:Date.now()}));lastSent=k;lbErr='';}catch(e){lbErr=(e&&e.code)||'error';renderFriends();}},force?200:1500);}
-async function setLB(on){state.lbOn=on;lastSent='';
-  if(!on&&DB&&MYID){try{await DB.doc('lb/'+MYID).delete();}catch(e){}}
-  saveState();if(on){syncLB(true);showToast('You are on the leaderboard');}else showToast('You are hidden from the leaderboard');}
-const METRICS={xp:[d=>d.xp||0,v=>v.toLocaleString()+' XP'],vol:[d=>d.wk===wkKey(new Date())?d.wkVol||0:0,v=>v.toLocaleString()+' kg'],
-  sess:[d=>d.wk===wkKey(new Date())?d.wkSess||0:0,v=>v+' workouts'],streak:[d=>d.lastDay&&dBetween(d.lastDay,dayKey())<=1?d.streak||0:0,v=>v+' 🔥'],
-  ws:[d=>{const c=wkKey(new Date());return d.wk===c||d.wk===prevWk(c)?d.ws||0:0;},v=>v+' wk 🗓']};
-async function renderFriends(){
-  const sec=$('friends');if(!sec||!sec.classList.contains('active'))return;const tk=++rT;
-  const live=!!(DB&&MYID),st=$('friendStatus');
-  st.innerHTML='<div class="friend-code-card"><div><div class="sub-h">YOUR FRIEND CODE</div><div class="friend-code-value" id="myCode">'+esc(MYID||'--------')+'</div></div><button class="btn btn-primary friend-code-copy" onclick="copyCode()">Copy code</button></div><p class="sub" style="margin-top:12px">This code is generated on this browser and stays the same on this device. You can share it with someone, but shared profiles and live cross-device leaderboards need a connected online database, which this GitHub Pages version does not currently have.</p><p class="sub" style="margin-top:6px">Your workouts and friend-code list remain saved locally on this device.</p>';
-  const key=$('lbMetric').value,m=METRICS[key],scope=$('lbScope').value,docs={};lbDocs.forEach(d=>docs[d.id]=d);
-  if(MYID)docs[MYID]=Object.assign({},myBoard());
-  const ids=scope==='all'?Object.keys(docs):[MYID].concat(state.friends).filter(Boolean);
-  const uniq=ids.filter((x,i)=>ids.indexOf(x)===i);
-  const ps=USER&&USER.profiles?await USER.profiles(uniq.concat(state.friends)):{};if(tk!==rT)return;
-  const nm=id=>id===MYID?'You':((ps[id]&&ps[id].name)||('Friend '+id)),av=id=>(ps[id]&&ps[id].avatarUrl)||'';
-  const have=uniq.filter(id=>docs[id]).sort((a,b)=>m[0](docs[b])-m[0](docs[a])||(docs[b].xp||0)-(docs[a].xp||0));
-  const pend=uniq.filter(id=>!docs[id]);
-  const medal=['🥇','🥈','🥉'];
-  $('board').innerHTML=(have.length?have.map((id,i)=>'<div class="lb-row '+(id===MYID?'me':'')+'"><span class="lb-rank">'+(medal[i]||i+1)+'</span><img class="lb-av" alt="" src="'+esc(av(id))+'"><span class="lb-name">'+esc(nm(id))+(id===MYID?' (you)':'')+' <small class="sub">Lv '+(docs[id].lv||1)+'</small></span><strong>'+m[1](m[0](docs[id]))+'</strong></div>').join(''):'<p class="sub">Nobody here yet.</p>')+
-    pend.map(id=>'<div class="lb-row"><span class="lb-rank">–</span><img class="lb-av" alt="" src="'+esc(av(id))+'"><span class="lb-name">'+esc(nm(id))+' <small class="sub">hasn’t joined the leaderboard yet</small></span></div>').join('')+
-    (scope==='friends'&&!state.friends.length?'<p class="sub" style="margin-top:8px">Add friends below to compete with them. Until then it’s just you!</p>':'');
-  $('friendList').innerHTML=state.friends.length?state.friends.map(id=>'<div class="lb-row"><img class="lb-av" alt="" src="'+esc(av(id))+'"><span class="lb-name">'+esc(nm(id))+(docs[id]?'':' <small class="sub">(not on leaderboard yet)</small>')+'</span><button class="btn" style="color:var(--danger)" aria-label="Remove friend '+esc(nm(id))+'" onclick="removeFriend(\''+esc(id)+'\')">Remove</button></div>').join(''):'<p class="sub">No friends added yet.</p>';
+async function loadMyProfile(){if(!currentUser){currentProfile=null;return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url,created_at').eq('id',currentUser.id).maybeSingle();if(r.error){socialError(r.error);return;}currentProfile=r.data;}
+function renderAuthPanel(message){
+ const up=authMode==='signup';
+ $('friendStatus').innerHTML='<div class="section-title">Your Gymplified account</div><p class="account-hint">Sign in to use your profile across devices, choose a profile picture and connect with friends.</p>'+
+ '<div class="account-tabs"><button class="btn '+(up?'active':'')+'" onclick="switchAuthMode(\\'signup\\')">Create account</button><button class="btn '+(!up?'active':'')+'" onclick="switchAuthMode(\\'login\\')">Log in</button></div>'+
+ '<form class="account-form" onsubmit="handleAuthSubmit(event)">'+
+ (up?'<div class="field"><label for="authUsername">Username</label><input id="authUsername" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="e.g. johnny_fitness"><div class="account-hint">3–20 characters. Letters, numbers and underscores only.</div></div><div class="field"><label for="authDisplayName">Display name</label><input id="authDisplayName" name="displayName" maxlength="32" placeholder="How should friends see you?"></div>':'')+
+ '<div class="field"><label for="authEmail">Email address</label><input id="authEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div><div class="field"><label for="authPassword">Password</label><input id="authPassword" name="password" type="password" required minlength="8" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 8 characters"></div>'+
+ '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p></form>'+
+ '<p class="account-hint">Your workout and food diary remain saved on this device. Only your Gymplified profile and friend connections are stored online.</p>';
 }
-async function searchFriends(q){const o=$('searchOut'),tk=++sT;q=q.trim();if(!q){o.innerHTML='';return;}
-  if(!USER||!USER.search){o.innerHTML='<p class="sub">Name search needs the claude.ai page. Use a friend code instead.</p>';return;}
-  const r=(await USER.search(q)).filter(p=>p.id&&p.id!==MYID&&!state.friends.includes(p.id));if(tk!==sT)return;
-  o.innerHTML=r.length?r.map(p=>'<div class="lb-row"><img class="lb-av" alt="" src="'+esc(p.avatarUrl)+'"><span class="lb-name">'+esc(p.name)+'</span><button class="btn" aria-label="Add '+esc(p.name)+' as a friend" onclick="addFriend(\''+esc(p.id)+'\')">+ Add</button></div>').join(''):'<p class="sub">No matches. Name search only finds people in your organisation — otherwise use a friend code.</p>';}
-async function addFriend(id){id=String(id||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-  if(!/^[A-Z0-9]{8}$/.test(id))return showToast('Enter an 8-character friend code');
-  if(id===MYID)return showToast('That’s your own code!');if(state.friends.includes(id))return showToast('Already in your friends');
-  if(state.friends.length>=100)return showToast('Friend limit reached (100)');
-  state.friends.push(id);$('friendCode').value='';$('friendSearch').value='';$('searchOut').innerHTML='';saveState();renderFriends();showToast('Code saved on this device');}
-function removeFriend(id){state.friends=state.friends.filter(x=>x!==id);saveState();renderFriends();showToast('Friend removed');}
-async function copyCode(){const code=MYID||makeFriendCode();try{await navigator.clipboard.writeText(code);showToast('Friend code copied');}catch(e){const t=document.createElement('textarea');t.value=code;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();let ok=false;try{ok=document.execCommand('copy');}catch(err){}t.remove();showToast(ok?'Friend code copied':'Your code is '+code);}}
-
+function switchAuthMode(mode){authMode=mode==='login'?'login':'signup';renderAuthPanel('');}
+async function handleAuthSubmit(event){
+ event.preventDefault();if(!sb||socialBusy)return;const form=event.currentTarget,email=form.email.value.trim(),password=form.password.value;
+ const username=form.username?form.username.value.trim().toLowerCase():'';const displayName=form.displayName?form.displayName.value.trim():username;
+ const msg=$('authMessage'),button=$('authSubmit');socialBusy=true;button.disabled=true;button.textContent=authMode==='signup'?'Creating account…':'Logging in…';
+ try{
+  if(authMode==='signup'){
+   if(!/^[a-z0-9_]{3,20}$/.test(username))throw new Error('Choose a username with 3–20 letters, numbers or underscores.');
+   const check=await sb.from('profiles').select('id').eq('username',username).maybeSingle();if(check.error)throw check.error;if(check.data)throw new Error('That username is already taken. Try another one.');
+   const r=await sb.auth.signUp({email,password,options:{data:{username,display_name:(displayName||username).slice(0,32)},emailRedirectTo:window.location.origin+window.location.pathname}});
+   if(r.error)throw r.error;if(!r.data.session)msg.textContent='Account created! Check your email for the confirmation link, then come back and log in.';else showToast('Welcome to Gymplified!');
+  }else{const r=await sb.auth.signInWithPassword({email,password});if(r.error)throw r.error;showToast('Logged in successfully');}
+ }catch(e){msg.textContent=socialError(e);}finally{socialBusy=false;if(button.isConnected){button.disabled=false;button.textContent=authMode==='signup'?'Create account':'Log in';}}
+}
+function renderAccountPanel(){
+ const p=currentProfile||{username:currentUser.email?currentUser.email.split('@')[0]:'member',display_name:'Gymplified member'};
+ $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+
+ '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong><div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
+ '<div class="account-actions"><button class="btn" onclick="$(\\'avatarFile\\').click()">Change picture</button><button class="btn" onclick="signOutAccount()">Sign out</button></div></div>'+
+ '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange="uploadAvatar(this.files[0])">'+
+ '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" onclick="saveProfile()">Save profile</button></div>'+
+ '<div class="account-card"><strong>Profile picture</strong><p class="account-hint" style="margin:8px 0">Upload a JPG, PNG, WebP or GIF. Maximum file size: 3 MB.</p><p class="account-hint">Your username is how other people can find you. Your email address is never shown in search results.</p></div></div>';
+}
+async function saveProfile(){
+ if(!currentUser||socialBusy)return;const username=$('profileUsername').value.trim().toLowerCase(),displayName=$('profileDisplayName').value.trim();
+ if(!/^[a-z0-9_]{3,20}$/.test(username))return showToast('Username must be 3–20 letters, numbers or underscores.');
+ if(!displayName||displayName.length>32)return showToast('Display name must be 1–32 characters.');
+ socialBusy=true;try{const c=await sb.from('profiles').select('id').eq('username',username).neq('id',currentUser.id).maybeSingle();if(c.error)throw c.error;if(c.data)throw new Error('That username is already taken.');
+ const r=await sb.from('profiles').update({username,display_name:displayName,updated_at:new Date().toISOString()}).eq('id',currentUser.id);if(r.error)throw r.error;await loadMyProfile();renderFriends();showToast('Profile updated');
+ }catch(e){socialError(e);}finally{socialBusy=false;}
+}
+async function uploadAvatar(file){
+ if(!file||!currentUser)return;if(!/^image\\/(jpeg|png|webp|gif)$/.test(file.type))return showToast('Choose a JPG, PNG, WebP or GIF image.');if(file.size>3*1024*1024)return showToast('Image must be smaller than 3 MB.');
+ const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}[file.type];
+ try{const path=currentUser.id+'/avatar.'+ext;const u=await sb.storage.from('avatars').upload(path,file,{upsert:true,contentType:file.type,cacheControl:'3600'});if(u.error)throw u.error;
+ const url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;const r=await sb.from('profiles').update({avatar_url:url,updated_at:new Date().toISOString()}).eq('id',currentUser.id);if(r.error)throw r.error;
+ await loadMyProfile();renderFriends();showToast('Profile picture updated');
+ }catch(e){socialError(e);}
+}
+async function signOutAccount(){const r=await sb.auth.signOut();if(r.error)socialError(r.error);else showToast('Signed out');}
+async function fetchSocialData(){
+ if(!currentUser)return;const r=await sb.from('friend_requests').select('id,requester_id,receiver_id,status,created_at').or('requester_id.eq.'+currentUser.id+',receiver_id.eq.'+currentUser.id).order('created_at',{ascending:false});if(r.error)throw r.error;friendRequests=r.data||[];
+ const ids=Array.from(new Set(friendRequests.flatMap(function(x){return[x.requester_id,x.receiver_id];}))).filter(function(id){return id!==currentUser.id;});if(!ids.length){friendProfiles={};return;}
+ const p=await sb.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);if(p.error)throw p.error;friendProfiles={};(p.data||[]).forEach(function(x){friendProfiles[x.id]=x;});
+}
+function renderFriends(){
+ if(!currentUser){$('friendConnections').style.display='none';$('friendSearchPanel').style.display='none';renderAuthPanel('');return;}
+ $('friendConnections').style.display='block';$('friendSearchPanel').style.display='block';renderAccountPanel();
+ fetchSocialData().then(function(){
+  const incoming=friendRequests.filter(function(x){return x.receiver_id===currentUser.id&&x.status==='pending';});
+  const outgoing=friendRequests.filter(function(x){return x.requester_id===currentUser.id&&x.status==='pending';});
+  const accepted=friendRequests.filter(function(x){return x.status==='accepted';});
+  const row=function(p,actions,note){if(!p)return '';return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name||p.username)+'</strong><small>@'+esc(p.username)+(note?' · '+esc(note):'')+'</small></div>'+(actions||'')+'</div>';};
+  let html='<div class="section-title">Your connections</div><div class="account-section-title">Friends ('+accepted.length+')</div>';
+  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" onclick="removeFriend(\\''+x.id+'\\')">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
+  html+='<div class="account-section-title">Incoming requests ('+incoming.length+')</div>';
+  html+=incoming.length?incoming.map(function(x){return row(friendProfiles[x.requester_id],'<button class="btn btn-primary" onclick="respondFriendRequest(\\''+x.id+'\\',true)">Accept</button><button class="btn" onclick="respondFriendRequest(\\''+x.id+'\\',false)">Decline</button>');}).join(''):'<p class="account-hint">No new friend requests.</p>';
+  html+='<div class="account-section-title">Sent requests ('+outgoing.length+')</div>';
+  html+=outgoing.length?outgoing.map(function(x){return row(friendProfiles[x.receiver_id],'<button class="btn" onclick="removeFriend(\\''+x.id+'\\')">Cancel</button>','Pending');}).join(''):'<p class="account-hint">You have no pending sent requests.</p>';
+  $('friendConnections').innerHTML=html;
+ }).catch(function(e){$('friendConnections').innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>';});
+}
+async function searchFriends(query){
+ clearTimeout(searchTimer);const q=String(query||'').trim().replace(/^@/,'');const out=$('searchOut');if(!q){out.innerHTML='';return;}if(!currentUser){out.innerHTML='<p class="account-hint">Log in to search for friends.</p>';return;}
+ searchTimer=setTimeout(async function(){out.innerHTML='<p class="account-hint">Searching…</p>';try{
+  const term=q.replace(/[%_,]/g,'');const r=await sb.from('profiles').select('id,username,display_name,avatar_url').or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%').neq('id',currentUser.id).limit(12);if(r.error)throw r.error;
+  const known=new Set(friendRequests.map(function(x){return x.requester_id===currentUser.id?x.receiver_id:x.requester_id;}));const matches=(r.data||[]).filter(function(x){return !known.has(x.id);});
+  out.innerHTML=matches.length?matches.map(function(p){return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name)+'</strong><small>@'+esc(p.username)+'</small></div><button class="btn btn-primary" onclick="sendFriendRequest(\\''+p.id+'\\')">Add friend</button></div>';}).join(''):'<p class="account-hint">No matching usernames found.</p>';
+ }catch(e){out.innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>'; }},250);
+}
+async function sendFriendRequest(id){
+ if(!currentUser)return showToast('Log in first.');try{const old=friendRequests.find(function(x){return(x.requester_id===currentUser.id&&x.receiver_id===id)||(x.requester_id===id&&x.receiver_id===currentUser.id);});if(old)return showToast('A request or friendship already exists.');
+ const r=await sb.from('friend_requests').insert({requester_id:currentUser.id,receiver_id:id});if(r.error)throw r.error;showToast('Friend request sent');$('friendSearch').value='';$('searchOut').innerHTML='';await fetchSocialData();renderFriends();
+ }catch(e){socialError(e);}
+}
+async function respondFriendRequest(id,accept){
+ try{if(accept){const r=await sb.from('friend_requests').update({status:'accepted',accepted_at:new Date().toISOString()}).eq('id',id);if(r.error)throw r.error;showToast('Friend request accepted');}
+ else{const r=await sb.from('friend_requests').delete().eq('id',id);if(r.error)throw r.error;showToast('Friend request declined');}await fetchSocialData();renderFriends();
+ }catch(e){socialError(e);}
+}
+async function removeFriend(id){
+ if(!confirm('Remove this friend or cancel this request?'))return;try{const r=await sb.from('friend_requests').delete().eq('id',id);if(r.error)throw r.error;await fetchSocialData();renderFriends();showToast('Connection removed');}catch(e){socialError(e);}
+}
 // Boot initial render
 initPicker();
 initSocial();

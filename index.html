@@ -308,6 +308,54 @@ code{background:var(--brand-light);color:var(--ink);padding:2px 6px;border-radiu
 html[data-theme=light] .btn-gold,html[data-theme=light] .pr-card-badge{color:#92400e}
 .lb-row{display:flex;align-items:center;gap:10px;padding:10px 6px;border-bottom:1px solid var(--line)}.lb-row.me{background:var(--brand-light);border-radius:var(--radius);padding-left:10px}
 .lb-rank{width:30px;text-align:center;font:700 15px var(--font-heading)}.lb-av{width:30px;height:30px;border-radius:50%;object-fit:cover;background:var(--line)}.lb-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== Gymplified polish pass ===== */
+:root{--radius:10px;--shadow-soft:0 10px 30px rgba(0,0,0,.16)}
+body{background:radial-gradient(ellipse at 12% 0%,color-mix(in srgb,var(--brand) 9%,transparent),transparent 34rem),var(--bg)}
+.app{box-shadow:0 0 60px rgba(0,0,0,.12)}
+.topbar{backdrop-filter:blur(16px);background:color-mix(in srgb,var(--panel) 92%,transparent);padding-inline:clamp(14px,3vw,28px)}
+.brand{gap:10px}.brand-dot{box-shadow:0 0 0 5px color-mix(in srgb,var(--brand) 16%,transparent)}
+main{padding:clamp(18px,3vw,34px) clamp(14px,3vw,34px) 72px}
+h1{font-size:clamp(25px,3vw,34px);line-height:1.12;letter-spacing:-.045em}
+.subtitle{max-width:66ch;line-height:1.65}
+.panel,.settings-group,.pr-card,.machine-card,.body-visualizer,.empty-box{border-radius:12px;box-shadow:var(--shadow-soft)}
+.panel{padding:clamp(15px,2vw,22px)}
+.panel:hover,.pr-card:hover,.machine-card:hover{box-shadow:0 14px 34px rgba(0,0,0,.18)}
+.btn{min-height:38px;border-radius:8px;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+.btn:focus-visible,nav button:focus-visible,.field input:focus-visible,.field select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.btn-primary{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 22%,transparent)}
+.field input,.field select,input[type=search],#friendCode{border-radius:8px;min-height:42px}
+.stat{border-radius:10px}.stat b{letter-spacing:-.04em}
+nav button{border-radius:9px;min-height:42px}
+nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,transparent)}
+.lb-row{border-radius:9px;padding:10px 12px;min-height:56px}
+.lb-row.me{background:color-mix(in srgb,var(--brand) 10%,var(--panel));border:1px solid color-mix(in srgb,var(--brand) 35%,var(--line))}
+#friendStatus{overflow-wrap:anywhere}
+.friend-code-card{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:16px;border:1px solid color-mix(in srgb,var(--brand) 40%,var(--line));border-radius:12px;background:linear-gradient(135deg,color-mix(in srgb,var(--brand) 12%,var(--panel)),var(--panel))}
+.friend-code-value{font:700 clamp(22px,4vw,30px) var(--font-heading);letter-spacing:.14em;overflow-wrap:anywhere}
+.friend-code-copy{flex-shrink:0}
+@media(max-width:860px){
+ .app{border:0}.topbar{height:58px;position:sticky}.date-tag{display:none}
+ aside{height:calc(66px + env(safe-area-inset-bottom));padding:5px 5px calc(5px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(18px)}
+ nav{grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
+ nav button{min-width:0;min-height:52px;font-size:clamp(8px,2.3vw,10px);line-height:1.1;white-space:normal;overflow-wrap:anywhere}
+ nav button svg{width:17px;height:17px;flex-shrink:0}
+ main{padding:18px 13px calc(90px + env(safe-area-inset-bottom))}
+ .grid-2{grid-template-columns:minmax(0,1fr)}
+ .pr-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+ .form-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr))}
+ .row-wrap{gap:7px}
+ .row-wrap>*{max-width:100%}
+ .data-table{display:block;overflow-x:auto;white-space:nowrap;-webkit-overflow-scrolling:touch}
+ .friend-code-card{align-items:flex-start}
+}
+@media(max-width:420px){
+ .brand{font-size:18px}.top-actions{gap:6px}.btn{padding-inline:10px;font-size:12px}
+ nav button{padding:5px 1px;gap:3px}
+ .stat{min-width:calc(50% - 8px)}
+ .setrow{gap:5px}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -1541,12 +1589,23 @@ function renderTrainingLog(){const wi=weekInfo(),sb=$('sessBar');
 
 // ===== v5: friends & leaderboard =====
 let DB=null,USER=null,MYID=null,lbDocs=[],lbErr='',lastSent='',sendT=null,rT=0,sT=0;
+function makeFriendCode(){
+  const key='gymplified_friend_code_v1';let code='';
+  try{code=localStorage.getItem(key)||'';}catch(e){}
+  if(!/^[A-Z0-9]{8}$/.test(code)){
+    const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    try{const bytes=new Uint8Array(8);crypto.getRandomValues(bytes);code=Array.from(bytes,b=>alphabet[b%alphabet.length]).join('');}
+    catch(e){code=Array.from({length:8},()=>alphabet[Math.floor(Math.random()*alphabet.length)]).join('');}
+    try{localStorage.setItem(key,code);}catch(e){}
+  }
+  return code;
+}
 async function initSocial(){
-  try{
-    if(window.claude&&claude.use){USER=await claude.use('user');DB=await claude.use('db');if(USER&&USER.id)MYID=await USER.id();
-      if(DB&&MYID)DB.collection('lb').onSnapshot(sn=>{lbDocs=sn.docs.map(d=>Object.assign({},d.data(),{id:d.id}));lbErr='';renderFriends();},e=>{lbErr=(e&&e.code)||'error';renderFriends();});}
-  }catch(e){lbErr='error';}
-  renderFriends();syncLB(true);
+  // GitHub Pages is a static site: generate a persistent, visible local code
+  // instead of waiting for the unavailable claude.ai identity API.
+  MYID=makeFriendCode();
+  USER=null;DB=null;lbDocs=[];lbErr='';
+  renderFriends();
 }
 function myBoard(){const g=state.game,cur=wkKey(new Date()),w=state.sessions.filter(x=>wkKey(x.date+'T12:00')===cur);
   return{xp:g.xp,lv:lvl(g.xp),streak:g.streak,lastDay:g.lastDay||'',wk:cur,wkVol:w.reduce((a,x)=>a+x.vol,0),wkSess:w.length,ws:weekInfo().st};}
@@ -1562,20 +1621,13 @@ const METRICS={xp:[d=>d.xp||0,v=>v.toLocaleString()+' XP'],vol:[d=>d.wk===wkKey(
 async function renderFriends(){
   const sec=$('friends');if(!sec||!sec.classList.contains('active'))return;const tk=++rT;
   const live=!!(DB&&MYID),st=$('friendStatus');
-  if(!window.claude||!claude.use||!live){
-    st.innerHTML='<p class="sub">'+(!window.claude||!claude.use?'Friends and leaderboards work when you open this page from its claude.ai link.':'Sign in to claude.ai to join the leaderboard.')+' Your own progress is still tracked on this device.</p>';
-  }else{
-    const denied=/invalid_argument|permission|not_granted/.test(lbErr);
-    st.innerHTML='<label class="row-wrap" style="cursor:pointer"><input type="checkbox" id="lbOn" '+(state.lbOn?'checked':'')+' onchange="setLB(this.checked)"><span><strong>Show me on the leaderboard</strong><br><span class="sub">Shares your XP, level, streaks and this week’s volume with people who can open this page. Off by default.</span></span></label>'+
-     '<div class="sub-h">Your friend code</div><div class="row-wrap"><code id="myCode">'+esc(MYID)+'</code><button class="btn" onclick="copyCode()">Copy</button></div><p class="sub" style="margin-top:6px">Friends paste this into “Add by code”. They must be able to open this page.</p>'+
-     (denied?'<p style="color:var(--danger);font-size:13px;margin-top:8px">Your access to this page is view-only, so you can’t post to the leaderboard. Ask the page owner to share it with Contributor access.</p>':(lbErr?'<p class="sub">Connection problem ('+esc(lbErr)+'). Retrying when you next log a set.</p>':''));
-  }
+  st.innerHTML='<div class="friend-code-card"><div><div class="sub-h">YOUR FRIEND CODE</div><div class="friend-code-value" id="myCode">'+esc(MYID||'--------')+'</div></div><button class="btn btn-primary friend-code-copy" onclick="copyCode()">Copy code</button></div><p class="sub" style="margin-top:12px">This code is generated on this browser and stays the same on this device. You can share it with someone, but shared profiles and live cross-device leaderboards need a connected online database, which this GitHub Pages version does not currently have.</p><p class="sub" style="margin-top:6px">Your workouts and friend-code list remain saved locally on this device.</p>';
   const key=$('lbMetric').value,m=METRICS[key],scope=$('lbScope').value,docs={};lbDocs.forEach(d=>docs[d.id]=d);
   if(MYID)docs[MYID]=Object.assign({},myBoard());
   const ids=scope==='all'?Object.keys(docs):[MYID].concat(state.friends).filter(Boolean);
   const uniq=ids.filter((x,i)=>ids.indexOf(x)===i);
   const ps=USER&&USER.profiles?await USER.profiles(uniq.concat(state.friends)):{};if(tk!==rT)return;
-  const nm=id=>id===MYID?'You':((ps[id]&&ps[id].name)||'Someone'),av=id=>(ps[id]&&ps[id].avatarUrl)||'';
+  const nm=id=>id===MYID?'You':((ps[id]&&ps[id].name)||('Friend '+id)),av=id=>(ps[id]&&ps[id].avatarUrl)||'';
   const have=uniq.filter(id=>docs[id]).sort((a,b)=>m[0](docs[b])-m[0](docs[a])||(docs[b].xp||0)-(docs[a].xp||0));
   const pend=uniq.filter(id=>!docs[id]);
   const medal=['🥇','🥈','🥉'];
@@ -1588,16 +1640,13 @@ async function searchFriends(q){const o=$('searchOut'),tk=++sT;q=q.trim();if(!q)
   if(!USER||!USER.search){o.innerHTML='<p class="sub">Name search needs the claude.ai page. Use a friend code instead.</p>';return;}
   const r=(await USER.search(q)).filter(p=>p.id&&p.id!==MYID&&!state.friends.includes(p.id));if(tk!==sT)return;
   o.innerHTML=r.length?r.map(p=>'<div class="lb-row"><img class="lb-av" alt="" src="'+esc(p.avatarUrl)+'"><span class="lb-name">'+esc(p.name)+'</span><button class="btn" aria-label="Add '+esc(p.name)+' as a friend" onclick="addFriend(\''+esc(p.id)+'\')">+ Add</button></div>').join(''):'<p class="sub">No matches. Name search only finds people in your organisation — otherwise use a friend code.</p>';}
-async function addFriend(id){id=String(id||'').trim();
-  if(!/^[A-Za-z0-9_-]{3,80}$/.test(id))return showToast('That friend code looks invalid');
+async function addFriend(id){id=String(id||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!/^[A-Z0-9]{8}$/.test(id))return showToast('Enter an 8-character friend code');
   if(id===MYID)return showToast('That’s your own code!');if(state.friends.includes(id))return showToast('Already in your friends');
   if(state.friends.length>=100)return showToast('Friend limit reached (100)');
-  let ok=lbDocs.some(d=>d.id===id);
-  if(!ok&&USER&&USER.profiles){const p=(await USER.profiles([id]))[id];ok=!!(p&&p.name);}
-  if(!ok)return showToast('Couldn’t find that person on this page');
-  state.friends.push(id);$('friendCode').value='';$('friendSearch').value='';$('searchOut').innerHTML='';saveState();renderFriends();showToast('Friend added 🤝');}
+  state.friends.push(id);$('friendCode').value='';$('friendSearch').value='';$('searchOut').innerHTML='';saveState();renderFriends();showToast('Code saved on this device');}
 function removeFriend(id){state.friends=state.friends.filter(x=>x!==id);saveState();renderFriends();showToast('Friend removed');}
-async function copyCode(){try{await navigator.clipboard.writeText(MYID);showToast('Friend code copied');}catch(e){const r=document.createRange();r.selectNodeContents($('myCode'));const s=getSelection();s.removeAllRanges();s.addRange(r);showToast('Press Ctrl/⌘+C to copy');}}
+async function copyCode(){const code=MYID||makeFriendCode();try{await navigator.clipboard.writeText(code);showToast('Friend code copied');}catch(e){const t=document.createElement('textarea');t.value=code;t.setAttribute('readonly','');t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();let ok=false;try{ok=document.execCommand('copy');}catch(err){}t.remove();showToast(ok?'Friend code copied':'Your code is '+code);}}
 
 // Boot initial render
 initPicker();

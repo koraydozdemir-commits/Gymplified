@@ -1702,7 +1702,7 @@ async function saveProfile(){
  }catch(e){socialError(e);}finally{socialBusy=false;}
 }
 async function uploadAvatar(file){
- if(!file||!currentUser)return;if(!/^image\\/(jpeg|png|webp|gif)$/.test(file.type))return showToast('Choose a JPG, PNG, WebP or GIF image.');if(file.size>3*1024*1024)return showToast('Image must be smaller than 3 MB.');
+ if(!file||!currentUser)return;if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type))return showToast('Choose a JPG, PNG, WebP or GIF image.');if(file.size>3*1024*1024)return showToast('Image must be smaller than 3 MB.');
  const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}[file.type];
  try{const path=currentUser.id+'/avatar.'+ext;const u=await sb.storage.from('avatars').upload(path,file,{upsert:true,contentType:file.type,cacheControl:'3600'});if(u.error)throw u.error;
  const url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;const r=await sb.from('profiles').update({avatar_url:url,updated_at:new Date().toISOString()}).eq('id',currentUser.id);if(r.error)throw r.error;

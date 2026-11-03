@@ -879,7 +879,7 @@ const cleanState = {
   protein: 0,
   carbs: 0,
   fat: 0,
-  nutritionTargets: { protein: 150, carbs: 250, fat: 70 },
+  nutritionTargets: { protein: 0, carbs: 0, fat: 0 },
   customFoods: [],
   water: 0,
   workouts: [],
@@ -1161,7 +1161,7 @@ function renderTrainingLog() {
 }
 
 function renderNutrition() {
-  const foods=state.foods||[],targets=state.nutritionTargets||{protein:150,carbs:250,fat:70};
+  const foods=state.foods||[],targets=state.nutritionTargets||{protein:0,carbs:0,fat:0};
   const set=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
   const bar=(id,v,t)=>{const e=$(id);if(e)e.style.width=(t>0?Math.min(100,Math.max(0,v/t*100)):0)+'%';};
   set('nutritionDate',new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}));
@@ -1170,7 +1170,7 @@ function renderNutrition() {
   bar('nutritionCalBar',state.cal,state.calTarget||2500);set('nutritionCalLeft',Math.max(0,(state.calTarget||2500)-state.cal).toLocaleString()+' kcal remaining');set('nutritionCalPercent',cp+'%');
   [['Protein','protein',state.protein],['Carbs','carbs',state.carbs],['Fat','fat',state.fat]].forEach(([label,key,val])=>{
     const target=Number(targets[key])||0;set('nutrition'+label,(Number(val)||0).toFixed(1).replace(/\.0$/,'')+'g');
-    bar(key+'Track',Number(val)||0,target);set(key+'Meta',(Number(val)||0).toFixed(1).replace(/\.0$/,'')+' / '+target+'g');
+    bar(key+'Track',Number(val)||0,target);set(key+'Meta',target>0?(Number(val)||0).toFixed(1).replace(/\.0$/,'')+' / '+target+'g':'Set a target');
   });
   ['protein','carbs','fat'].forEach(k=>{const e=$('target'+k.charAt(0).toUpperCase()+k.slice(1));if(e&&document.activeElement!==e)e.value=targets[k]||0;});
   set('foodEntryCount',foods.length+' '+(foods.length===1?'item':'items'));
@@ -1365,6 +1365,7 @@ function addSelectedFood(){
 function saveCustomFood(){
   const name=$('customFoodName').value.trim(),cal=Number($('customFoodCal').value),protein=Number($('customFoodProtein').value),carbs=Number($('customFoodCarbs').value),fat=Number($('customFoodFat').value);
   if(!name)return showToast('Enter a food name');
+  if(['customFoodCal','customFoodProtein','customFoodCarbs','customFoodFat'].some(k=>$(k).value.trim()===''))return showToast('Fill in all nutrition values per 100g');
   if(![cal,protein,carbs,fat].every(Number.isFinite)||cal<0||cal>1000||protein<0||protein>100||carbs<0||carbs>100||fat<0||fat>100)return showToast('Check the nutrition values per 100g');
   const id='custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);
   state.customFoods.push({id,name,cal,protein,carbs,fat});saveState();
@@ -1464,7 +1465,7 @@ function bootState(){
   const t=Object.assign(b,o&&typeof o==='object'?o:{});
   t.settings=Object.assign(b.settings,(o&&o.settings)||{});
   ['workouts','foods','prs','waterLog','recent','lastSession','customFoods'].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});
-  t.nutritionTargets=Object.assign({protein:150,carbs:250,fat:70},t.nutritionTargets||{});
+  t.nutritionTargets=Object.assign({protein:0,carbs:0,fat:0},t.nutritionTargets||{});
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
   t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:[150,250,500,750];
   t.history=t.history||{};

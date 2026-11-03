@@ -324,7 +324,7 @@ h1{font-size:clamp(25px,3vw,34px);line-height:1.12;letter-spacing:-.045em}
 .btn{min-height:38px;border-radius:8px;transition:transform .16s ease,border-color .16s ease,background .16s ease}
 .btn:focus-visible,nav button:focus-visible,.field input:focus-visible,.field select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .btn-primary{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 22%,transparent)}
-.field input,.field select,input[type=search],#friendCode{border-radius:8px;min-height:42px}
+.field input,.field select,input[type=search]{border-radius:8px;min-height:42px}
 .stat{border-radius:10px}.stat b{letter-spacing:-.04em}
 nav button{border-radius:9px;min-height:42px}
 nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,transparent)}
@@ -1021,7 +1021,6 @@ function saveState() {
   rewards();
   try{localStorage.setItem(STORAGE_KEY, JSON.stringify(state));}catch(e){}
   renderAll();
-  syncLB();
 }
 
 function applySettings() {
@@ -1664,7 +1663,7 @@ async function loadMyProfile(){if(!currentUser){currentProfile=null;return;}cons
 function renderAuthPanel(message){
  const up=authMode==='signup';
  $('friendStatus').innerHTML='<div class="section-title">Your Gymplified account</div><p class="account-hint">Sign in to use your profile across devices, choose a profile picture and connect with friends.</p>'+
- '<div class="account-tabs"><button class="btn '+(up?'active':'')+'" onclick="switchAuthMode(\\'signup\\')">Create account</button><button class="btn '+(!up?'active':'')+'" onclick="switchAuthMode(\\'login\\')">Log in</button></div>'+
+ '<div class="account-tabs"><button class="btn '+(up?'active':'')+'" onclick="switchAuthMode(\'signup\')">Create account</button><button class="btn '+(!up?'active':'')+'" onclick="switchAuthMode(\'login\')">Log in</button></div>'+
  '<form class="account-form" onsubmit="handleAuthSubmit(event)">'+
  (up?'<div class="field"><label for="authUsername">Username</label><input id="authUsername" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="e.g. johnny_fitness"><div class="account-hint">3–20 characters. Letters, numbers and underscores only.</div></div><div class="field"><label for="authDisplayName">Display name</label><input id="authDisplayName" name="displayName" maxlength="32" placeholder="How should friends see you?"></div>':'')+
  '<div class="field"><label for="authEmail">Email address</label><input id="authEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div><div class="field"><label for="authPassword">Password</label><input id="authPassword" name="password" type="password" required minlength="8" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 8 characters"></div>'+
@@ -1689,7 +1688,7 @@ function renderAccountPanel(){
  const p=currentProfile||{username:currentUser.email?currentUser.email.split('@')[0]:'member',display_name:'Gymplified member'};
  $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+
  '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong><div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
- '<div class="account-actions"><button class="btn" onclick="$(\\'avatarFile\\').click()">Change picture</button><button class="btn" onclick="signOutAccount()">Sign out</button></div></div>'+
+ '<div class="account-actions"><button class="btn" onclick="$(\'avatarFile\').click()">Change picture</button><button class="btn" onclick="signOutAccount()">Sign out</button></div></div>'+
  '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange="uploadAvatar(this.files[0])">'+
  '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" onclick="saveProfile()">Save profile</button></div>'+
  '<div class="account-card"><strong>Profile picture</strong><p class="account-hint" style="margin:8px 0">Upload a JPG, PNG, WebP or GIF. Maximum file size: 3 MB.</p><p class="account-hint">Your username is how other people can find you. Your email address is never shown in search results.</p></div></div>';
@@ -1725,11 +1724,11 @@ function renderFriends(){
   const accepted=friendRequests.filter(function(x){return x.status==='accepted';});
   const row=function(p,actions,note){if(!p)return '';return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name||p.username)+'</strong><small>@'+esc(p.username)+(note?' · '+esc(note):'')+'</small></div>'+(actions||'')+'</div>';};
   let html='<div class="section-title">Your connections</div><div class="account-section-title">Friends ('+accepted.length+')</div>';
-  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" onclick="removeFriend(\\''+x.id+'\\')">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
+  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" onclick="removeFriend(\''+x.id+'\')">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
   html+='<div class="account-section-title">Incoming requests ('+incoming.length+')</div>';
-  html+=incoming.length?incoming.map(function(x){return row(friendProfiles[x.requester_id],'<button class="btn btn-primary" onclick="respondFriendRequest(\\''+x.id+'\\',true)">Accept</button><button class="btn" onclick="respondFriendRequest(\\''+x.id+'\\',false)">Decline</button>');}).join(''):'<p class="account-hint">No new friend requests.</p>';
+  html+=incoming.length?incoming.map(function(x){return row(friendProfiles[x.requester_id],'<button class="btn btn-primary" onclick="respondFriendRequest(\''+x.id+'\',true)">Accept</button><button class="btn" onclick="respondFriendRequest(\''+x.id+'\',false)">Decline</button>');}).join(''):'<p class="account-hint">No new friend requests.</p>';
   html+='<div class="account-section-title">Sent requests ('+outgoing.length+')</div>';
-  html+=outgoing.length?outgoing.map(function(x){return row(friendProfiles[x.receiver_id],'<button class="btn" onclick="removeFriend(\\''+x.id+'\\')">Cancel</button>','Pending');}).join(''):'<p class="account-hint">You have no pending sent requests.</p>';
+  html+=outgoing.length?outgoing.map(function(x){return row(friendProfiles[x.receiver_id],'<button class="btn" onclick="removeFriend(\''+x.id+'\')">Cancel</button>','Pending');}).join(''):'<p class="account-hint">You have no pending sent requests.</p>';
   $('friendConnections').innerHTML=html;
  }).catch(function(e){$('friendConnections').innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>';});
 }
@@ -1738,7 +1737,7 @@ async function searchFriends(query){
  searchTimer=setTimeout(async function(){out.innerHTML='<p class="account-hint">Searching…</p>';try{
   const term=q.replace(/[%_,]/g,'');const r=await sb.from('profiles').select('id,username,display_name,avatar_url').or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%').neq('id',currentUser.id).limit(12);if(r.error)throw r.error;
   const known=new Set(friendRequests.map(function(x){return x.requester_id===currentUser.id?x.receiver_id:x.requester_id;}));const matches=(r.data||[]).filter(function(x){return !known.has(x.id);});
-  out.innerHTML=matches.length?matches.map(function(p){return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name)+'</strong><small>@'+esc(p.username)+'</small></div><button class="btn btn-primary" onclick="sendFriendRequest(\\''+p.id+'\\')">Add friend</button></div>';}).join(''):'<p class="account-hint">No matching usernames found.</p>';
+  out.innerHTML=matches.length?matches.map(function(p){return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name)+'</strong><small>@'+esc(p.username)+'</small></div><button class="btn btn-primary" onclick="sendFriendRequest(\''+p.id+'\')">Add friend</button></div>';}).join(''):'<p class="account-hint">No matching usernames found.</p>';
  }catch(e){out.innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>'; }},250);
 }
 async function sendFriendRequest(id){

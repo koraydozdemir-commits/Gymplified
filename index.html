@@ -1546,6 +1546,139 @@ function changeFont(val) { state.settings.font = val; saveState(); }
 function changeContrast(val) { state.settings.contrast = val; saveState(); }
 function changeMotion(val) { state.settings.motion = val; saveState(); }
 
+// Full-state CSV backup. JSON values inside quoted CSV cells preserve nested objects and arrays.
+function csvCell(value){return '"'+String(value==null?'':value).replace(/"/g,'""')+'"';}
+function parseGymCSV(text){
+  const rows=[];let row=[],cell='',quoted=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i],n=text[i+1];
+    if(quoted){if(c==='"'&&n==='"'){cell+='"';i++;}else if(c==='"')quoted=false;else cell+=c;}
+    else if(c==='"')quoted=true;
+    else if(c===','){row.push(cell);cell='';}
+    else if(c==='\n'){row.push(cell);rows.push(row);row=[];cell='';}
+    else if(c!=='\r')cell+=c;
+  }
+  if(quoted)throw new Error('The CSV contains an unfinished quoted field.');
+  if(cell.length||row.length){row.push(cell);rows.push(row);}
+  return rows;
+}
+function exportGymplifiedCSV(){
+  try{
+    const rows=[['Date','Workout Name','Exercise Name','Set Order','Weight (kg)','Reps','Duration (seconds)','Distance (km)','Notes','Gymplified Backup']];
+    const workouts=(state.sessions||[]).slice().reverse();
+    workouts.forEach((session)=>{
+      const exercises=Array.isArray(session.exercises)?session.exercises:[];
+      if(exercises.length){
+        exercises.forEach(ex=>(ex.sets||[]).forEach((set,i)=>rows.push([session.date,session.name||'Workout',ex.name,i+1,set.weight??set.kg??'',set.reps??'',set.duration??'',set.distance??'',set.notes||'',''])));
+      }else rows.push([session.date,session.name||'Workout','','','','','','','', '']);
+    });
+    (state.workouts||[]).forEach(ex=>(ex.setList||[]).forEach((set,i)=>rows.push([dayKey(),'Current workout',ex.name,i+1,set.kg,set.reps,'','','',''])));
+    if(rows.length===1)rows.push([dayKey(),'Gymplified backup','','','','','','','','']);
+    // Preserve the complete Gymplified app state in a single metadata cell, while keeping ordinary set rows compatible with common gym-app imports.
+    rows[1][9]=JSON.stringify({format:'gymplified-backup',version:2,state:state});
+    const csv='\uFEFF'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob),a=document.createElement('a');
+    a.href=url;a.download='gymplified-workout-backup-'+dayKey()+'.csv';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
+    $('csvBackupStatus').textContent='Workout CSV exported. Includes standard exercise/set columns plus a private Gymplified restore payload.';
+    showToast('Gymplified CSV backup exported');
+  }catch(err){console.error(err);showToast('Could not export your backup');}
+}
+function gymHeader(value){return String(value||'').toLowerCase().trim().replace(/[\uFEFF]/g,'').replace(/[^a-z0-9]+/g,' ').trim();}
+function gymPick(row,headers,names){
+  for(const name of names){const i=headers.indexOf(gymHeader(name));if(i>=0&&row[i]!=null&&String(row[i]).trim()!=='')return String(row[i]).trim();}
+  return '';
+}
+function gymNumber(value){if(value==null||value==='')return 0;const n=parseFloat(String(value).replace(',','.').replace(/[^\d.+-]/g,''));return Number.isFinite(n)&&n>=0?n:0;}
+function gymDate(value){
+  if(!value)return dayKey();
+  const s=String(value).trim();
+  // Prefer explicit ISO dates and common day-first exports.
+  let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
+  if(m)return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
+  m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
+  if(m)return m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');
+  const d=new Date(s);return Number.isNaN(d.getTime())?dayKey():dayKey(d);
+}
+function gymImportRows(rows,fileName){
+  if(!rows.length||rows.length<2)throw new Error('This CSV has no workout rows.');
+  const headers=rows[0].map(gymHeader);
+  const backupIndex=headers.indexOf('gymplified backup');
+  if(backupIndex>=0){
+    const payload=rows.slice(1).map(r=>r[backupIndex]).find(v=>v&&v.trim());
+    if(payload){let parsed;try{parsed=JSON.parse(payload);}catch(e){throw new Error('The Gymplified backup payload is damaged.');}
+      if(parsed.format==='gymplified-backup'&&parsed.state&&parsed.version>=2)return{type:'backup',state:parsed.state};}
+  }
+  const nameKeys=['exercise name','exercise','exercise title','movement','activity name','exercise name (english)'];
+  const dateKeys=['date','start time','workout date','workout start','performed at','datetime','timestamp'];
+  const weightKeys=['weight kg','weight (kg)','weight','weight lifted','load','kg','weight (lbs)','weight lbs'];
+  const repKeys=['reps','repetitions','rep'];
+  const setKeys=['set order','set number','set','set #','set no','set index'];
+  const workoutKeys=['workout name','workout','session name','routine name'];
+  const durationKeys=['duration seconds','seconds','duration','time'];
+  const distanceKeys=['distance km','distance','distance (km)'];
+  const notesKeys=['notes','comment','comments'];
+  if(!headers.some(h=>nameKeys.map(gymHeader).includes(h)))throw new Error('Could not find an Exercise or Exercise Name column. Choose a workout-history CSV export.');
+  const grouped=new Map();let accepted=0;
+  rows.slice(1).forEach((row,idx)=>{
+    if(!row||!row.some(v=>String(v||'').trim()))return;
+    const exercise=gymPick(row,headers,nameKeys);if(!exercise)return;
+    const rawDate=gymPick(row,headers,dateKeys),date=gymDate(rawDate);
+    const weight=gymNumber(gymPick(row,headers,weightKeys));
+    const rawWeightHeader=headers.find(h=>weightKeys.map(gymHeader).includes(h))||'';
+    const weightKg=/lbs/.test(rawWeightHeader)?weight*0.45359237:weight;
+    const reps=gymNumber(gymPick(row,headers,repKeys));
+    const setOrder=gymNumber(gymPick(row,headers,setKeys))||idx+1;
+    const duration=gymNumber(gymPick(row,headers,durationKeys));
+    const distance=gymNumber(gymPick(row,headers,distanceKeys));
+    const workoutName=gymPick(row,headers,workoutKeys)||'Imported workout';
+    const notes=gymPick(row,headers,notesKeys);
+    const key=date+'|'+workoutName;
+    if(!grouped.has(key))grouped.set(key,{date,name:workoutName,mins:0,vol:0,sets:0,reps:0,ex:0,names:[],exercises:[],_map:{}});
+    const w=grouped.get(key);
+    if(!w._map[exercise]){w._map[exercise]={name:exercise,sets:[]};w.exercises.push(w._map[exercise]);w.names.push(exercise);w.ex++;}
+    w._map[exercise].sets.push({kg:Math.round(weightKg*100)/100,weight:Math.round(weightKg*100)/100,reps:Math.round(reps),done:true,duration,distance,notes,order:setOrder});
+    w.vol+=weightKg*reps;w.sets++;w.reps+=reps;accepted++;
+  });
+  const imported=Array.from(grouped.values()).map(w=>{delete w._map;w.vol=Math.round(w.vol);return w;});
+  if(!accepted)throw new Error('No recognised exercise/set rows were found in this CSV.');
+  return{type:'external',workouts:imported,rows:accepted,fileName};
+}
+function importGymplifiedCSV(input){
+  const file=input.files&&input.files[0];if(!file)return;
+  const status=$('csvBackupStatus');
+  if(file.size>15*1024*1024){showToast('CSV file is too large (15 MB maximum)');input.value='';return;}
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const rows=parseGymCSV(String(reader.result||'').replace(/^\uFEFF/,''));
+      const result=gymImportRows(rows,file.name);
+      if(result.type==='backup'){
+        if(!confirm('Restore this Gymplified backup? Existing Gymplified data on this device will be replaced.')){input.value='';return;}
+        const restored=Object.assign(JSON.parse(JSON.stringify(cleanState)),result.state);
+        localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));state=bootState();saveState();renderAll();
+        status.textContent='Gymplified backup restored · '+file.name;showToast('Gymplified data restored');
+      }else{
+        const existing=new Set((state.sessions||[]).map(s=>JSON.stringify([s.date,s.name||'',(s.exercises||[]).map(e=>[e.name,(e.sets||[]).map(x=>[x.kg,x.reps])]) ])));
+        const fresh=result.workouts.filter(w=>!existing.has(JSON.stringify([w.date,w.name,w.exercises.map(e=>[e.name,e.sets.map(x=>[x.kg,x.reps])])])));
+        if(!fresh.length){status.textContent='All '+result.workouts.length+' workouts already appear to be imported.';showToast('No new workouts to import');input.value='';return;}
+        if(!confirm('Import '+fresh.length+' workout(s) containing '+fresh.reduce((n,w)=>n+w.sets,0)+' sets from '+file.name+'? Existing Gymplified data will be kept.')){input.value='';return;}
+        const prMap=new Map((state.prs||[]).map(p=>[String(p.name||'').toLowerCase(),p]));
+        fresh.forEach(w=>{
+          state.sessions.unshift(w);
+          w.exercises.forEach(ex=>{const best=ex.sets.reduce((a,b)=>b.kg>a.kg?b:a,{kg:0,reps:0});if(best.kg>0){const key=ex.name.toLowerCase(),old=prMap.get(key);if(!old||best.kg>old.weight){const pr={name:ex.name,weight:best.kg,reps:best.reps||1,date:w.date};if(old){const ix=state.prs.indexOf(old);if(ix>=0)state.prs[ix]=pr;}else state.prs.push(pr);prMap.set(key,pr);}}});
+        });
+        state.sessions=state.sessions.slice(0,500);
+        saveState();status.textContent='Imported '+fresh.length+' workout(s) and '+result.rows+' set rows from '+file.name+'.';showToast('Workout history imported');
+      }
+    }catch(err){console.error(err);status.textContent=err.message||'Could not import this CSV.';showToast(err.message||'CSV import failed');}
+    input.value='';
+  };
+  reader.onerror=()=>{status.textContent='Could not read this file.';input.value='';showToast('Could not read CSV file');};
+  reader.readAsText(file);
+}
+
 function resetAllData() {
   if (confirm('This will reset all your Gymplified progress on this device and in your synced account, including workouts, nutrition, goals and personal records. This cannot be undone. Continue?')) {
     localStorage.removeItem(STORAGE_KEY);

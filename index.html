@@ -485,7 +485,7 @@ input,select,textarea{font-size:16px!important}
         </button>
         <button onclick="showScreen('prs', this)">
           <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          PR Records
+          Personal Records
         </button>
         <button onclick="showScreen('training', this)">
           <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M10 12h4"/></svg>
@@ -501,7 +501,7 @@ input,select,textarea{font-size:16px!important}
         </button>
         <button onclick="showScreen('settings', this)">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Settings Hub
+          Settings
         </button>
       </nav>
     </aside>
@@ -755,8 +755,8 @@ input,select,textarea{font-size:16px!important}
       <!-- 6. SETTINGS HUB & ACCESSIBILITY OPTIONS -->
       <section id="settings" class="screen">
         <div class="eyebrow">Preferences</div>
-        <h1>Settings & Accessibility Hub</h1>
-        <p class="subtitle">Configure dark mode, accent palettes, accessibility contrast, motion toggles, and data persistence.</p>
+        <h1>Settings</h1>
+        <p class="subtitle">Make Gymplified work the way you like.</p>
 <div class="panel" id="goalsPanel" style="margin-bottom:20px"></div>
 
         <!-- Dark Mode & Appearance -->
@@ -826,6 +826,15 @@ input,select,textarea{font-size:16px!important}
           </div>
         </div>
 
+<div class="panel" id="supportPanel" style="margin-bottom:20px">
+<div class="section-title">Help & support <span class="sub">WE'RE HERE TO HELP</span></div>
+<p class="account-hint">Something not working? Send us a message and follow the conversation here.</p>
+<form id="supportForm" onsubmit="submitSupportTicket(event)">
+<div class="field"><label for="supportCategory">What do you need help with?</label><select id="supportCategory" required><option value="account">Account & sign-in</option><option value="bug">Report a bug</option><option value="workout_tracking">Workout tracking</option><option value="nutrition">Nutrition & food diary</option><option value="feature_request">Suggest a feature</option><option value="other">Something else</option></select></div>
+<div class="field"><label for="supportSubject">Subject</label><input id="supportSubject" maxlength="120" minlength="4" required placeholder="Briefly describe the issue"></div>
+<div class="field"><label for="supportMessage">Message</label><textarea id="supportMessage" maxlength="5000" minlength="10" required rows="4" placeholder="Tell us what happened and what you expected…"></textarea></div>
+<button class="btn btn-primary" id="supportSubmit" type="submit">Send support request</button> <span class="account-hint" id="supportFormStatus" role="status"></span>
+</form><div style="height:1px;background:var(--line);margin:18px 0"></div><div class="section-title">Your support requests</div><div id="supportTicketList"><p class="sub">Sign in to see your support requests.</p></div><div id="supportConversation" style="margin-top:12px"></div></div>
         <!-- Data Management -->
         <div class="settings-group">
           <h3>Data Management & Backups</h3>
@@ -837,10 +846,10 @@ input,select,textarea{font-size:16px!important}
           </div>
           <p id="csvBackupStatus" class="sub" aria-live="polite" style="margin-top:12px">Supports Hevy, Strong, FitNotes and standard exercise/set CSVs. Imported history is merged without replacing existing logs.</p>
           <div style="height:1px;background:var(--line);margin:16px 0"></div>
-          <p>Gymplified starts clean by default. You can also load sample gym logs for testing or reset all browser memory.</p>
+          <p>Gymplified starts with a clean slate. You can reset your saved progress from this device and your synced account.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn" onclick="seedSampleData()">Seed Sample Gym Data</button>
-            <button class="btn" onclick="resetAllData()" style="color:var(--danger);border-color:var(--danger)">Clear All Browser Data</button>
+            
+            <button class="btn" onclick="resetAllData()" style="color:var(--danger);border-color:var(--danger)">Reset All My Progress</button>
           </div>
         </div>
       </section>
@@ -1157,7 +1166,7 @@ function showScreen(screenId, btn) {
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
-  markNav(); scrollTo(0,0); if(screenId==='friends')renderFriends();
+  markNav(); scrollTo(0,0); if(screenId==='friends')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
   if(screenId === 'prs') {
     nextQuote();
   }
@@ -1711,7 +1720,7 @@ function importGymplifiedCSV(input){
 }
 
 function resetAllData() {
-  if (confirm('Reset all saved browser logs? Gymplified will start clean.')) {
+  if (confirm('This will reset all your Gymplified progress on this device and in your synced account, including workouts, nutrition, goals and personal records. This cannot be undone. Continue?')) {
     localStorage.removeItem(STORAGE_KEY);
     state = bootState();
     saveState();
@@ -1897,17 +1906,54 @@ function renderTrainingLog(){const wi=weekInfo(),sb=$('sessBar');
 // ===== Gymplified accounts + real friend connections =====
 const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3iqgTv1xyZgxhnD8iV1uMQ_DcrlHxPj';
-let sb=null,currentUser=null,currentProfile=null,authMode='signup',friendRequests=[],friendProfiles={},searchTimer=null,socialBusy=false;
+let sb=null,currentUser=null,currentProfile=null,authMode='signup',friendRequests=[],friendProfiles={},searchTimer=null,socialBusy=false,pendingVerificationEmail='';
 function avatarMarkup(p,small){const c='account-avatar'+(small?' small':'');if(p&&p.avatar_url)return '<img class="'+c+'" src="'+esc(p.avatar_url)+'" alt="'+esc(p.display_name||p.username||'Profile picture')+'">';return '<div class="'+c+'">'+esc(String(p?(p.display_name||p.username||'?'):'?').trim().charAt(0).toUpperCase()||'?')+'</div>';}
 function socialError(e){const m=e&&(e.message||e.error_description)?(e.message||e.error_description):'Something went wrong. Please try again.';showToast(m.length>110?m.slice(0,107)+'…':m);return m;}
 async function initSocial(){
  const host=$('friendStatus');if(!window.supabase||!window.supabase.createClient){host.textContent='Account services could not load. Refresh and try again.';return;}
  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  const r=await sb.auth.getSession();if(r.error)socialError(r.error);currentUser=r.data&&r.data.session?r.data.session.user:null;
- if(currentUser){await loadMyProfile();await syncUserAppState();}renderFriends();
- sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed)await syncUserAppState();}else{cloudSyncUserId=null;}friendRequests=[];friendProfiles={};renderFriends();},0);});
+ if(currentUser&&!currentUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;authMode='signup';renderAuthPanel('Please verify your email address before using your Gymplified account.');}
+ if(currentUser){await loadMyProfile();await syncUserAppState();loadSupportTickets();}renderFriends();
+ sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed)await syncUserAppState();loadSupportTickets();}else{cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';}friendRequests=[];friendProfiles={};renderFriends();},0);});
 }
 async function loadMyProfile(){if(!currentUser){currentProfile=null;return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url,created_at').eq('id',currentUser.id).maybeSingle();if(r.error){socialError(r.error);return;}currentProfile=r.data;}
+
+let supportCurrentTicketId=null;
+function supportStatusLabel(status){return ({open:'Open',in_progress:'In progress',waiting_on_user:'Waiting for you',resolved:'Resolved'})[status]||status;}
+async function loadSupportTickets(){
+ const host=$('supportTicketList');if(!host)return;if(!sb||!currentUser){host.innerHTML='<p class="sub">Sign in to create and view support requests.</p>';return;}
+ host.innerHTML='<p class="sub">Loading your requests…</p>';
+ try{const r=await sb.from('support_tickets').select('id,subject,category,status,created_at,updated_at').eq('user_id',currentUser.id).order('updated_at',{ascending:false}).limit(20);if(r.error)throw r.error;
+ if(!r.data.length){host.innerHTML='<p class="sub">No support requests yet. If something is wrong, send us a message above.</p>';return;}
+ host.innerHTML=r.data.map(t=>'<div class="item-row" style="align-items:center;gap:12px"><div style="flex:1;min-width:0"><strong>'+esc(t.subject)+'</strong><div class="sub">'+esc(supportStatusLabel(t.status))+' · '+new Date(t.updated_at).toLocaleDateString()+'</div></div><button class="btn" type="button" onclick="openSupportTicket(\''+esc(t.id)+'\')">View</button></div>').join('');
+ }catch(e){host.innerHTML='<p class="sub">Could not load your requests. Please try again.</p>';console.warn('Support tickets:',e);}
+}
+async function submitSupportTicket(event){
+ event.preventDefault();if(!sb||!currentUser){$('supportFormStatus').textContent='Please sign in before contacting support.';return;}
+ const subject=$('supportSubject').value.trim(),category=$('supportCategory').value,message=$('supportMessage').value.trim(),button=$('supportSubmit');
+ if(subject.length<4||message.length<10){$('supportFormStatus').textContent='Please add a subject and a little more detail.';return;}
+ button.disabled=true;$('supportFormStatus').textContent='Sending…';
+ try{const r=await sb.from('support_tickets').insert({user_id:currentUser.id,subject,category}).select('id').single();if(r.error)throw r.error;
+ const m=await sb.from('support_ticket_messages').insert({ticket_id:r.data.id,user_id:currentUser.id,message});if(m.error)throw m.error;
+ $('supportForm').reset();$('supportFormStatus').textContent='Your request has been sent. You can follow replies below.';await loadSupportTickets();await openSupportTicket(r.data.id);showToast('Support request sent');
+ }catch(e){$('supportFormStatus').textContent=e.message||'Could not send your request. Please try again.';}
+ finally{button.disabled=false;}
+}
+async function openSupportTicket(id){
+ const host=$('supportConversation');supportCurrentTicketId=id;host.innerHTML='<p class="sub">Loading conversation…</p>';
+ try{const t=await sb.from('support_tickets').select('id,subject,status,created_at').eq('id',id).eq('user_id',currentUser.id).single();if(t.error)throw t.error;
+ const m=await sb.from('support_ticket_messages').select('id,author_role,message,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(m.error)throw m.error;
+ host.innerHTML='<div class="panel" style="margin-top:12px"><div class="section-title">'+esc(t.data.subject)+' <span class="sub">'+esc(supportStatusLabel(t.data.status))+'</span></div>'+m.data.map(x=>'<div style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:8px 0"><div class="sub">'+(x.author_role==='admin'?'Gymplified Support':'You')+' · '+new Date(x.created_at).toLocaleString()+'</div><div style="white-space:pre-wrap;margin-top:6px;font-size:13px">'+esc(x.message)+'</div></div>').join('')+(t.data.status==='resolved'?'<p class="sub">This request is marked resolved. Create a new request if you need more help.</p>':'<div class="field"><label for="supportReplyText">Reply</label><textarea id="supportReplyText" rows="3" maxlength="5000" placeholder="Add more information…"></textarea></div><button class="btn btn-primary" type="button" onclick="replyToSupportTicket()">Send reply</button>')+'</div>';
+ }catch(e){host.innerHTML='<p class="sub">Could not open this support request.</p>';console.warn(e);}
+}
+async function replyToSupportTicket(){
+ if(!supportCurrentTicketId||!currentUser)return;const box=$('supportReplyText'),message=box&&box.value.trim();if(!message||message.length<2)return;
+ const b=$('supportConversation').querySelector('button');if(b)b.disabled=true;
+ try{const r=await sb.from('support_ticket_messages').insert({ticket_id:supportCurrentTicketId,user_id:currentUser.id,message});if(r.error)throw r.error;await loadSupportTickets();await openSupportTicket(supportCurrentTicketId);}
+ catch(e){showToast(e.message||'Could not send your reply');if(b)b.disabled=false;}
+}
+
 function renderAuthPanel(message){
  const up=authMode==='signup';
  $('friendStatus').innerHTML='<div class="section-title">Your Gymplified account</div><p class="account-hint">Sign in to use your profile across devices, choose a profile picture and connect with friends.</p>'+
@@ -1915,23 +1961,38 @@ function renderAuthPanel(message){
  '<form class="account-form" onsubmit="handleAuthSubmit(event)">'+
  (up?'<div class="field"><label for="authUsername">Username</label><input id="authUsername" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="e.g. johnny_fitness"><div class="account-hint">3–20 characters. Letters, numbers and underscores only.</div></div><div class="field"><label for="authDisplayName">Display name</label><input id="authDisplayName" name="displayName" maxlength="32" placeholder="How should friends see you?"></div>':'')+
  '<div class="field"><label for="authEmail">Email address</label><input id="authEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div><div class="field"><label for="authPassword">Password</label><input id="authPassword" name="password" type="password" required minlength="8" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 8 characters"></div>'+
- '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p></form>'+
+ '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p><button class="btn" id="resendVerification" type="button" onclick="resendSignupConfirmation()" style="display:none;margin-top:8px">Resend verification email</button></form>'+
  '<p class="account-hint">When you sign in, your workouts, nutrition, personal records and goals sync securely across your devices.</p>';
 }
 function switchAuthMode(mode){authMode=mode==='login'?'login':'signup';renderAuthPanel('');}
 async function handleAuthSubmit(event){
  event.preventDefault();if(!sb||socialBusy)return;const form=event.currentTarget,email=form.email.value.trim(),password=form.password.value;
  const username=form.username?form.username.value.trim().toLowerCase():'';const displayName=form.displayName?form.displayName.value.trim():username;
- const msg=$('authMessage'),button=$('authSubmit');socialBusy=true;button.disabled=true;button.textContent=authMode==='signup'?'Creating account…':'Logging in…';
+ const msg=$('authMessage'),button=$('authSubmit'),resend=$('resendVerification');socialBusy=true;button.disabled=true;button.textContent=authMode==='signup'?'Creating account…':'Logging in…';pendingVerificationEmail=email;if(resend)resend.style.display='none';
  try{
   if(authMode==='signup'){
    if(!/^[a-z0-9_]{3,20}$/.test(username))throw new Error('Choose a username with 3–20 letters, numbers or underscores.');
    const check=await sb.from('profiles').select('id').eq('username',username).maybeSingle();if(check.error)throw check.error;if(check.data)throw new Error('That username is already taken. Try another one.');
    const r=await sb.auth.signUp({email,password,options:{data:{username,display_name:(displayName||username).slice(0,32)},emailRedirectTo:window.location.origin+window.location.pathname}});
-   if(r.error)throw r.error;if(!r.data.session)msg.textContent='Account created! Check your email for the confirmation link, then come back and log in.';else showToast('Welcome to Gymplified!');
-  }else{const r=await sb.auth.signInWithPassword({email,password});if(r.error)throw r.error;showToast('Logged in successfully');}
- }catch(e){msg.textContent=socialError(e);}finally{socialBusy=false;if(button.isConnected){button.disabled=false;button.textContent=authMode==='signup'?'Create account':'Log in';}}
+   if(r.error)throw r.error;
+   if(!r.data.session||!r.data.user?.email_confirmed_at){if(r.data.session)await sb.auth.signOut();msg.textContent='Check your inbox for a verification email from Gymplified. You must confirm your address before you can log in. Check your spam folder too.';if(resend)resend.style.display='inline-flex';}
+   else showToast('Welcome to Gymplified!');
+  }else{
+   const r=await sb.auth.signInWithPassword({email,password});
+   if(r.error){if(/email not confirmed|email_not_confirmed/i.test(r.error.message||'')){msg.textContent='Your email address has not been verified yet. Check your inbox, or resend the verification email below.';if(resend)resend.style.display='inline-flex';return;}throw r.error;}
+   if(!r.data.user?.email_confirmed_at){await sb.auth.signOut();msg.textContent='Please verify your email address before logging in.';if(resend)resend.style.display='inline-flex';return;}
+   showToast('Logged in successfully');
+  }
+ }catch(e){msg.textContent=socialError(e);if(/confirm|verify/i.test(e.message||'')&&resend)resend.style.display='inline-flex';}finally{socialBusy=false;if(button.isConnected){button.disabled=false;button.textContent=authMode==='signup'?'Create account':'Log in';}}
 }
+async function resendSignupConfirmation(){
+ if(!sb||!pendingVerificationEmail){$('authMessage').textContent='Enter your email address first.';return;}
+ const b=$('resendVerification');b.disabled=true;b.textContent='Sending…';
+ try{const r=await sb.auth.resend({type:'signup',email:pendingVerificationEmail,options:{emailRedirectTo:window.location.origin+window.location.pathname}});if(r.error)throw r.error;$('authMessage').textContent='If that account needs verification, a fresh email has been sent. Check your inbox and spam folder.';}
+ catch(e){$('authMessage').textContent=e.message||'Could not resend the verification email. Please wait a moment and try again.';}
+ finally{b.disabled=false;b.textContent='Resend verification email';}
+}
+
 function renderAccountPanel(){
  const p=currentProfile||{username:currentUser.email?currentUser.email.split('@')[0]:'member',display_name:'Gymplified member'};
  $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+

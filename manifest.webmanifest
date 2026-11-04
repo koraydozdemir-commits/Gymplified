@@ -20,10 +20,11 @@
   ],
   "icons": [
     {
-      "src": "./pwa-icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "./gymplified-app-icon.jpg",
+      "sizes": "384x384",
+      "type": "image/jpeg",
       "purpose": "any"
     }
-  ]
+  ],
+  "shortcuts": []
 }

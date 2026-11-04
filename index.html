@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark" data-color="blue" data-contrast="normal" data-motion="normal" data-font="default" data-scale="md">
+<html lang="en" data-theme="dark" data-color="gold" data-contrast="normal" data-motion="normal" data-font="default" data-scale="md">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
@@ -22,12 +22,12 @@
   --ink: #f9fafb;
   --muted: #9ca3af;
   --line: #2f3b52;
-  --brand: #2563eb;
-  --brand-light: #1e293b;
+  --brand: #c9a24e;
+  --brand-light: #292316;
   --brand-ink: #ffffff;
   --danger: #ef4444;
   --success: #10b981;
-  --gold: #f59e0b;
+  --gold: #d6b15e;
   --max: 1160px;
   --radius: 6px;
   --font-base: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
@@ -55,6 +55,7 @@ html[data-color="emerald"] { --brand: #047857; }
 html[data-color="slate"] { --brand: #475569; }
 html[data-color="crimson"] { --brand: #dc2626; }
 html[data-color="amber"] { --brand: #b45309; }
+html[data-color="gold"] { --brand: #c9a24e; --brand-light: #292316; --brand-ink: #15120b; }
 html[data-color="violet"] { --brand: #7c3aed; }
 
 /* High Contrast Mode */
@@ -774,11 +775,12 @@ input,select,textarea{font-size:16px!important}
           <div style="margin-top: 14px;">
             <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">UI Accent Palette</label>
             <div class="color-picker">
-              <div class="color-dot active" style="background: #2563eb;" title="Electric Blue" onclick="changeColor('blue', this)"></div>
+              <div class="color-dot" style="background: #2563eb;" title="Electric Blue" onclick="changeColor('blue', this)"></div>
               <div class="color-dot" style="background: #059669;" title="Emerald Green" onclick="changeColor('emerald', this)"></div>
               <div class="color-dot" style="background: #475569;" title="Slate Gray" onclick="changeColor('slate', this)"></div>
               <div class="color-dot" style="background: #dc2626;" title="Crimson Red" onclick="changeColor('crimson', this)"></div>
-              <div class="color-dot" style="background: #d97706;" title="Amber Gold" onclick="changeColor('amber', this)"></div>
+              <div class="color-dot" style="background: #d97706;" title="Amber" onclick="changeColor('amber', this)"></div>
+              <div class="color-dot" style="background: linear-gradient(135deg,#f5df9b,#c9a24e 55%,#8d682b);" title="Gymplified Gold" onclick="changeColor('gold', this)"></div>
               <div class="color-dot" style="background: #7c3aed;" title="Violet Purple" onclick="changeColor('violet', this)"></div>
             </div>
           </div>
@@ -971,7 +973,7 @@ const cleanState = {
   prs: [],
   settings: {
     theme: 'dark',
-    color: 'blue',
+    color: 'gold',
     scale: 'md',
     font: 'default',
     contrast: 'normal',
@@ -1089,7 +1091,7 @@ function saveState() {
 function applySettings() {
   const s = state.settings || cleanState.settings;
   document.documentElement.setAttribute('data-theme', s.theme || 'dark');
-  document.documentElement.setAttribute('data-color', s.color || 'blue');
+  document.documentElement.setAttribute('data-color', s.color || 'gold');
   document.documentElement.setAttribute('data-scale', s.scale || 'md');
   document.documentElement.setAttribute('data-font', s.font || 'default');
   document.documentElement.setAttribute('data-contrast', s.contrast || 'normal');
@@ -1695,6 +1697,8 @@ function bootState(){
   const t=Object.assign(b,o&&typeof o==='object'?o:{});
   t.settings=Object.assign(b.settings,(o&&o.settings)||{});
   ['workouts','foods','prs','waterLog','recent','lastSession','customFoods'].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});
+  // Migrate the former default blue accent to the new Gymplified gold identity.
+  if(!o||!o.settings||!o.settings.color||o.settings.color==="blue")t.settings.color="gold";
   t.nutritionTargets=Object.assign({protein:0,carbs:0,fat:0},t.nutritionTargets||{});
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
   t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:[150,250,500,750];

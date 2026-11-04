@@ -638,7 +638,7 @@ input,select,textarea{font-size:16px!important}
 <div class="panel" style="margin-bottom:20px"><div class="section-title">Rest Timer & Routine</div><div class="row-wrap">
 <button class="btn" onclick="rest(60)">60s</button><button class="btn" onclick="rest(90)">90s</button><button class="btn" onclick="rest(120)">2 min</button>
 <strong id="timerOut" aria-live="off" style="font:700 22px var(--font-heading);min-width:70px">–</strong>
-<button class="btn" onclick="reuseRoutine()">↻ Reuse last routine</button></div></div>
+<button class="btn" onclick="reuseRoutine()">↻ Reuse last routine</button><button class="btn btn-primary" onclick="saveCurrentRoutine()">＋ Save routine</button></div><div id="routineLibrary" style="margin-top:12px"></div></div>
 
         <div class="pick-grid">
  <div class="panel"><div class="section-title">Add Exercise</div>
@@ -977,6 +977,7 @@ const cleanState = {
   fat: 0,
   nutritionTargets: { protein: 0, carbs: 0, fat: 0 },
   customFoods: [],
+  routines: [],
   water: 0,
   workouts: [],
   foods: [],
@@ -1666,7 +1667,7 @@ function bootState(){
   const b=JSON.parse(JSON.stringify(cleanState));
   const t=Object.assign(b,o&&typeof o==='object'?o:{});
   t.settings=Object.assign(b.settings,(o&&o.settings)||{});
-  ['workouts','foods','prs','waterLog','recent','lastSession','customFoods'].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});
+  ['workouts','foods','prs','waterLog','recent','lastSession','customFoods','routines'].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});
   // Migrate the former default blue accent to the new Gymplified gold identity.
   if(!o||!o.settings||!o.settings.color||o.settings.color==="blue")t.settings.color="gold";
   t.nutritionTargets=Object.assign({protein:0,carbs:0,fat:0},t.nutritionTargets||{});
@@ -1719,6 +1720,42 @@ let tI=null;
 function rest(n){clearInterval(tI);const o=$('timerOut');o.textContent=n+'s';tI=setInterval(()=>{n--;o.textContent=n>0?n+'s':'Go! 💪';if(n<=0){clearInterval(tI);navigator.vibrate&&navigator.vibrate(200);showToast('Rest over — next set!');}},1000);}
 function markNav(){document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.classList.contains('active')?'page':'false'));}
 function setBar(id,p,label){const b=$(id)&&$(id).parentElement;if(!b)return;b.setAttribute('role','progressbar');b.setAttribute('aria-label',label);b.setAttribute('aria-valuemin','0');b.setAttribute('aria-valuemax','100');b.setAttribute('aria-valuenow',p);}
+function weeklyRecapData(){
+ const now=new Date(),start=new Date(now);start.setHours(0,0,0,0);start.setDate(start.getDate()-6);
+ const prevStart=new Date(start);prevStart.setDate(prevStart.getDate()-7);
+ const valid=(state.sessions||[]).filter(x=>x&&x.date&&/^\\d{4}-\\d{2}-\\d{2}$/.test(String(x.date)));
+ const current=valid.filter(x=>{const d=new Date(x.date+'T12:00:00');return d>=start&&d<=now;});
+ const previous=valid.filter(x=>{const d=new Date(x.date+'T12:00:00');return d>=prevStart&&d<start;});
+ const sum=(arr,key)=>arr.reduce((n,x)=>n+(Number(x[key])||0),0);
+ return {current,previous,sets:sum(current,'sets'),volume:sum(current,'vol'),minutes:sum(current,'mins'),goal:state.weeklyGoal||3,weekCount:weekInfo().n};
+}
+function weeklyRecapText(){const w=weeklyRecapData();return 'My Gymplified weekly recap\\n'+w.current.length+' workouts completed\\n'+w.sets+' sets completed\\n'+Math.round(w.volume).toLocaleString()+' kg total volume\\n'+w.minutes+' minutes training\\n'+w.weekCount+'/'+w.goal+' weekly workout goal';}
+async function shareWeeklyRecap(){const recap=weeklyRecapText();try{if(navigator.share)await navigator.share({title:'My Gymplified weekly recap',text:recap});else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(recap);showToast('Weekly recap copied');}else showToast('Sharing is not available on this device');}catch(e){if(e&&e.name!=='AbortError')showToast('Could not share recap');}}
+function weeklyRecapMarkup(){
+ const w=weeklyRecapData(),delta=w.current.length-w.previous.length;
+ const comparison=delta>0?'↑ '+delta+' more than last week':delta<0?'↓ '+Math.abs(delta)+' fewer than last week':'Same number as last week';
+ return '<div class="sub-h">Your weekly recap · last 7 days</div>'+
+ '<div class="stat-row"><div class="stat"><b>'+w.current.length+'</b><span>workouts</span></div><div class="stat"><b>'+w.sets+'</b><span>sets completed</span></div><div class="stat"><b>'+Math.round(w.volume).toLocaleString()+'</b><span>kg volume</span></div><div class="stat"><b>'+w.minutes+'</b><span>minutes</span></div></div>'+
+ '<div class="meta-row"><span>'+comparison+'</span><span>'+w.weekCount+'/'+w.goal+' weekly goal</span></div><div class="row-wrap" style="margin-top:10px"><button class="btn" type="button" onclick="shareWeeklyRecap()">Share weekly recap</button></div>';
+}
+function renderRoutineLibrary(){
+ const host=$('routineLibrary');if(!host)return;const routines=Array.isArray(state.routines)?state.routines:[];
+ host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="btn" style="height:25px;padding:0 7px;margin-left:5px" onclick="loadSavedRoutine('+i+')">Load</button> <button class="btn" style="height:25px;padding:0 7px" aria-label="Delete '+esc(r.name)+'" onclick="deleteSavedRoutine('+i+')">×</button></span>').join('')+'</div>':'<p class="sub" style="margin-top:8px">Save your favourite workout combinations here so you can reuse them anytime.</p>';
+}
+function saveCurrentRoutine(){
+ if(!state.workouts.length)return showToast('Add exercises before saving a routine');
+ const suggested='Routine '+((state.routines||[]).length+1),name=(prompt('Name this workout routine',suggested)||'').trim().slice(0,40);if(!name)return;
+ state.routines=Array.isArray(state.routines)?state.routines:[];
+ const exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,done:false}))}));
+ state.routines.unshift({id:'routine-'+Date.now(),name,exercises,createdAt:new Date().toISOString()});state.routines=state.routines.slice(0,30);saveState();showToast('Routine saved');
+}
+function loadSavedRoutine(index){
+ const routine=(state.routines||[])[index];if(!routine)return;
+ if(state.workouts.length&&!confirm('Replace your current workout with "'+routine.name+'"?'))return;
+ state.workouts=routine.exercises.map(w=>syncW({name:w.name,muscle:w.muscle,setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,done:false}))}));
+ saveState();showToast(routine.name+' loaded');
+}
+function deleteSavedRoutine(index){const routine=(state.routines||[])[index];if(!routine||!confirm('Delete saved routine "'+routine.name+'"?'))return;state.routines.splice(index,1);saveState();showToast('Routine deleted');}
 function renderExtras(){
   const g=state.game,L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),st=streakNow();
   const wp=Math.min(100,Math.round(state.water/state.waterGoal*100));
@@ -1734,7 +1771,7 @@ function renderExtras(){
    '<div class="stat"><b>🗓 '+weekInfo().st+'</b><span>week streak ('+weekInfo().n+'/'+weekInfo().g+' this week)</span></div><div class="stat"><b>Lv '+L+'</b><span>'+g.xp+' XP total</span></div></div>'+
    '<div class="progress-bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+xp+'"><i style="width:'+xp+'%"></i></div>'+
    '<div class="meta-row"><span>'+(hi-g.xp)+' XP to level '+(L+1)+'</span><span>'+xp+'%</span></div>'+
-   '<div class="sub-h">Last 7 days</div><div class="week">'+days.join('')+'</div>'+
+   weeklyRecapMarkup()+'<div class="sub-h">Last 7 days</div><div class="week">'+days.join('')+'</div>'+
    '<div class="sub-h">Daily quests</div>'+QUESTS.map(q=>{const v=Math.min(q.n,q.v()),ok=v>=q.n;return '<div class="quest '+(ok?'ok':'')+'"><span>'+(ok?'✅ ':'⬜ ')+q.t+'</span><span>'+v+'/'+q.n+' · +25 XP</span></div>';}).join('')+
    '<div class="sub-h">Badges</div><div class="badges">'+BADGES.map(b=>'<span class="badge '+(g.badges.includes(b[0])?'':'off')+'" title="'+b[2]+'">'+b[1]+' '+b[2]+(g.badges.includes(b[0])?'':' (locked)')+'</span>').join('')+'</div>';
   const c=state.settings.color;document.querySelectorAll('.color-dot').forEach(d=>{const on=(d.getAttribute('onclick')||'').includes("'"+c+"'");d.classList.toggle('active',on);d.setAttribute('aria-pressed',on);});
@@ -1818,7 +1855,7 @@ function renderPicker(){const q=$('exSearch').value.toLowerCase().trim(),m=$('ex
   $('customBox').open=!r.length;if(!r.length&&!$('cName').value)$('cName').value=$('exSearch').value.slice(0,60);}
 function initPicker(){const mo=Object.values(MC).map(m=>'<option value="'+m+'">'+cap(m)+'</option>').join(''),eo=Object.keys(LIB).map(e=>'<option>'+e+'</option>').join('');
   $('exMuscle').innerHTML='<option value="">All muscles</option>'+mo;$('exEquip').innerHTML='<option value="">All equipment</option>'+eo;$('cMuscle').innerHTML=mo;$('cEquip').innerHTML=eo+'<option>Other</option>';renderPicker();previewEx(null);}
-function renderTrainingLog(){const wi=weekInfo(),sb=$('sessBar');
+function renderTrainingLog(){renderRoutineLibrary();const wi=weekInfo(),sb=$('sessBar');
   sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><button class="btn btn-primary" onclick="endSession()">■ Finish workout</button><button class="btn" onclick="cancelSession()">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" onclick="startSession()">▶ Start workout</button><span class="sub">🗓 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
   let v=0,sd=0,st=0,r=0;state.workouts.forEach(w=>{v+=vol(w);st+=w.setList.length;w.setList.forEach(x=>{if(x.done){sd++;r+=x.reps;}});});
   $('liveStats').innerHTML=state.workouts.length?'<div class="stat-row"><div class="stat"><b>'+Math.round(v).toLocaleString()+'</b><span>kg volume</span></div><div class="stat"><b>'+sd+'/'+st+'</b><span>sets done</span></div><div class="stat"><b>'+r+'</b><span>reps done</span></div><div class="stat"><b>'+state.workouts.length+'</b><span>exercises</span></div></div>':'';

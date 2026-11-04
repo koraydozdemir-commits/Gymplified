@@ -1688,7 +1688,7 @@ function bootState(){
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
   t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:[150,250,500,750];
   t.history=t.history||{};
-  t.game=Object.assign({xp:0,streak:0,best:0,lastDay:'',freezes:1,total:0,waterWon:'',claimed:{},badges:[],day:''},t.game||{});
+  t.game=Object.assign({xp:0,total:0,waterWon:'',claimed:{},badges:[],day:''},t.game||{}); delete t.game.streak;delete t.game.best;delete t.game.lastDay;delete t.game.freezes;
   const d=dayKey();
   if(t.game.day&&t.game.day!==d){
     t.history[t.game.day]={cal:t.cal,water:t.water,done:t.workouts.filter(w=>w.done).length};
@@ -1701,20 +1701,14 @@ function bootState(){
 const lvl=x=>Math.floor(Math.sqrt(x/50))+1;
 const dBetween=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
 const isActive=()=>state.workouts.some(w=>w.done||(w.setList||[]).some(x=>x.done))||state.foods.length>0||state.water>0;
-function streakNow(){const g=state.game;if(!g.lastDay)return 0;const d=dBetween(g.lastDay,dayKey());return d<=1||(d===2&&g.freezes>0)?g.streak:0;}
 function gainXP(n,why){const g=state.game,l=lvl(g.xp);g.xp+=n;showToast('+'+n+' XP · '+why);if(lvl(g.xp)>l){showToast('🎉 Level '+lvl(g.xp)+'!');confetti();}}
-function tickStreak(){const g=state.game,t=dayKey();if(g.lastDay===t||!isActive())return;
-  const d=g.lastDay?dBetween(g.lastDay,t):99;
-  if(d===1)g.streak++;else if(d===2&&g.freezes>0){g.freezes--;g.streak++;showToast('🧊 Streak freeze saved your streak!');}else g.streak=1;
-  g.lastDay=t;g.best=Math.max(g.best,g.streak);gainXP(10,'Daily streak '+g.streak+'🔥');
-  if(g.streak%7===0)g.freezes=Math.min(2,g.freezes+1);}
 const QUESTS=[
  {id:'ex3',t:'Complete 3 exercises',n:3,v:()=>state.workouts.filter(w=>w.done).length},
  {id:'h2o',t:'Reach your water goal',n:1,v:()=>state.water>=state.waterGoal?1:0},
  {id:'meal2',t:'Log 2 meals',n:2,v:()=>state.foods.length}];
 const BADGES=[['first','🏁','First exercise',()=>state.game.total>=1],['pr','🏆','First PR',()=>state.prs.length>=1],
- ['s3','🔥','3-day streak',()=>state.game.best>=3],['s7','⚡','7-day streak',()=>state.game.best>=7],['s30','👑','30-day streak',()=>state.game.best>=30],
- ['h2o','💧','Hydrated',()=>!!state.game.waterWon],['l5','⭐','Level 5',()=>lvl(state.game.xp)>=5],['fr','🤝','First friend',()=>state.friends.length>=1],['ws','🏋️','First workout session',()=>state.sessions.length>=1],['w2','🗓','2-week streak',()=>weekInfo().st>=2],['w8','🏅','8-week streak',()=>weekInfo().st>=8]];
+ ['w2','🗓','2-week training streak',()=>weekInfo().st>=2],['w4','🔥','4-week training streak',()=>weekInfo().st>=4],['w8','🏅','8-week training streak',()=>weekInfo().st>=8],['w12','👑','12-week training streak',()=>weekInfo().st>=12],
+ ['h2o','💧','Hydrated',()=>!!state.game.waterWon],['l5','⭐','Level 5',()=>lvl(state.game.xp)>=5],['fr','🤝','First friend',()=>state.friends.length>=1],['ws','🏋️','First workout session',()=>state.sessions.length>=1]];
 function rewards(){
   const g=state.game;
   state.workouts.forEach(w=>{if(w.done&&!w.xp){w.xp=1;g.total++;gainXP(20,'Exercise done');}});
@@ -1722,7 +1716,6 @@ function rewards(){
   state.prs.forEach(p=>{if(!p.xp){p.xp=1;gainXP(50,'New PR 🏆');confetti();}});
   if(state.water>=state.waterGoal&&g.waterWon!==dayKey()){g.waterWon=dayKey();gainXP(30,'Water goal');}
   QUESTS.forEach(q=>{if(q.v()>=q.n&&!g.claimed[q.id]){g.claimed[q.id]=1;gainXP(25,'Quest: '+q.t);}});
-  tickStreak();
   BADGES.forEach(b=>{if(b[3]()&&!g.badges.includes(b[0])){g.badges.push(b[0]);showToast(b[1]+' Badge unlocked: '+b[2]);confetti();}});
 }
 function confetti(){if(state.settings.motion==='reduced'||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
@@ -1771,7 +1764,7 @@ function loadSavedRoutine(index){
 }
 function deleteSavedRoutine(index){const routine=(state.routines||[])[index];if(!routine||!confirm('Delete saved routine "'+routine.name+'"?'))return;state.routines.splice(index,1);saveState();showToast('Routine deleted');}
 function renderExtras(){
-  const g=state.game,L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),st=streakNow();
+  const g=state.game,L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),wi=weekInfo();
   const wp=Math.min(100,Math.round(state.water/state.waterGoal*100));
   $('dashWater').textContent=state.water.toFixed(2);$('dashWaterGoal').textContent=state.waterGoal.toFixed(2);$('dashWaterBar').style.width=wp+'%';
   $('waterMeta').textContent='Goal: '+state.waterGoal.toFixed(2)+' L · '+wp+'%';
@@ -1781,8 +1774,7 @@ function renderExtras(){
   const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dayKey(d),h=state.history[k];
     const on=i===0?isActive():!!(h&&(h.done>0||h.cal>0||h.water>0));days.push('<span class="wd '+(on?'on':'')+'" aria-label="'+d.toLocaleDateString(undefined,{weekday:'long'})+(on?': active':': no activity')+'">'+d.toLocaleDateString(undefined,{weekday:'narrow'})+'</span>');}
   $('gamePanel').innerHTML='<div class="section-title"><span>Your Progress</span></div><div class="stat-row">'+
-   '<div class="stat"><b>🔥 '+st+'</b><span>day streak (best '+g.best+')</span></div><div class="stat"><b>🧊 '+g.freezes+'</b><span>streak freezes</span></div>'+
-   '<div class="stat"><b>🗓 '+weekInfo().st+'</b><span>week streak ('+weekInfo().n+'/'+weekInfo().g+' this week)</span></div><div class="stat"><b>Lv '+L+'</b><span>'+g.xp+' XP total</span></div></div>'+
+   '<div class="stat"><b>🔥 '+wi.st+'</b><span>week streak</span></div><div class="stat"><b>🗓 '+wi.n+'/'+wi.g+'</b><span>weekly workout goal</span></div><div class="stat"><b>Lv '+L+'</b><span>'+g.xp+' XP total</span></div></div>'+
    '<div class="progress-bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+xp+'"><i style="width:'+xp+'%"></i></div>'+
    '<div class="meta-row"><span>'+(hi-g.xp)+' XP to level '+(L+1)+'</span><span>'+xp+'%</span></div>'+
    weeklyRecapMarkup()+'<div class="sub-h">Last 7 days</div><div class="week">'+days.join('')+'</div>'+
@@ -1870,7 +1862,7 @@ function renderPicker(){const q=$('exSearch').value.toLowerCase().trim(),m=$('ex
 function initPicker(){const mo=Object.values(MC).map(m=>'<option value="'+m+'">'+cap(m)+'</option>').join(''),eo=Object.keys(LIB).map(e=>'<option>'+e+'</option>').join('');
   $('exMuscle').innerHTML='<option value="">All muscles</option>'+mo;$('exEquip').innerHTML='<option value="">All equipment</option>'+eo;$('cMuscle').innerHTML=mo;$('cEquip').innerHTML=eo+'<option>Other</option>';renderPicker();previewEx(null);}
 function renderTrainingLog(){renderRoutineLibrary();const wi=weekInfo(),sb=$('sessBar');
-  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><button class="btn btn-primary" onclick="endSession()">■ Finish workout</button><button class="btn" onclick="cancelSession()">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" onclick="startSession()">▶ Start workout</button><span class="sub">🗓 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
+  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><button class="btn btn-primary" onclick="endSession()">■ Finish workout</button><button class="btn" onclick="cancelSession()">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" onclick="startSession()">▶ Start workout</button><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
   let v=0,sd=0,st=0,r=0;state.workouts.forEach(w=>{v+=vol(w);st+=w.setList.length;w.setList.forEach(x=>{if(x.done){sd++;r+=x.reps;}});});
   $('liveStats').innerHTML=state.workouts.length?'<div class="stat-row"><div class="stat"><b>'+Math.round(v).toLocaleString()+'</b><span>kg volume</span></div><div class="stat"><b>'+sd+'/'+st+'</b><span>sets done</span></div><div class="stat"><b>'+r+'</b><span>reps done</span></div><div class="stat"><b>'+state.workouts.length+'</b><span>exercises</span></div></div>':'';
   $('trainingLogList').innerHTML=state.workouts.length?state.workouts.map((w,i)=>'<div class="panel" style="margin-bottom:12px"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button class="btn" onclick="addSet('+i+')">+ Set</button><button class="btn btn-icon-only" style="color:var(--danger)" aria-label="Remove '+esc(w.name)+'" onclick="deleteWorkout('+i+')">✕</button></span></div>'+

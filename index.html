@@ -847,10 +847,11 @@ input,select,textarea{font-size:16px!important}
           </div>
           <p id="csvBackupStatus" class="sub" aria-live="polite" style="margin-top:12px">Supports Hevy, Strong, FitNotes and standard exercise/set CSVs. Imported history is merged without replacing existing logs.</p>
           <div style="height:1px;background:var(--line);margin:16px 0"></div>
-          <p>Gymplified starts with a clean slate. You can reset your saved progress from this device and your synced account.</p>
+          <p>Gymplified starts with a clean slate. You can reset your saved progress from this device and your synced account.</p><p class="sub" style="margin:10px 0">Legal information: <a href="./privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="./terms.html" target="_blank" rel="noopener">Terms of service</a></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             
             <button class="btn" onclick="resetAllData()" style="color:var(--danger);border-color:var(--danger)">Reset All My Progress</button>
+            <button class="btn" onclick="deleteGymplifiedAccount()" style="color:var(--danger);border-color:var(--danger)">Delete my account permanently</button>
           </div>
         </div>
       </section>
@@ -1648,6 +1649,19 @@ function importGymplifiedCSV(input){
   reader.readAsText(file);
 }
 
+async function deleteGymplifiedAccount(){
+ if(!currentUser||!sb)return showToast('Sign in to manage your account');
+ const typed=prompt('This permanently deletes your Gymplified account, profile, synced progress, support requests and profile picture. Type DELETE to continue.');
+ if(typed!=='DELETE')return;
+ if(!confirm('Final confirmation: permanently delete this Gymplified account? This cannot be undone.'))return;
+ try{
+  const result=await sb.functions.invoke('gymplified-delete-account',{body:{confirmation:'DELETE'}});
+  if(result.error)throw result.error;
+  await sb.auth.signOut().catch(()=>{});
+  localStorage.removeItem(STORAGE_KEY);currentUser=null;currentProfile=null;cloudSyncUserId=null;state=bootState();saveState();renderFriends();
+  showToast('Your Gymplified account has been deleted');
+ }catch(e){showToast(e&&e.message?e.message:'Could not delete your account. Please contact support.');}
+}
 function resetAllData() {
   if (confirm('This will reset all your Gymplified progress on this device and in your synced account, including workouts, nutrition, goals and personal records. This cannot be undone. Continue?')) {
     localStorage.removeItem(STORAGE_KEY);

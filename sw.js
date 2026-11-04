@@ -1,5 +1,5 @@
-const CACHE_NAME = 'gymplified-shell-v6';
-const APP_SHELL = ['./index.html', './manifest.webmanifest', './gymplified-app-icon.jpg', './gymplified-brand.jpg', './apple-touch-icon.png'];
+const CACHE_NAME = 'gymplified-shell-v7';
+const APP_SHELL = ['./index.html', './manifest.webmanifest', './gymplified-app-icon.jpg', './gymplified-brand.jpg', './apple-touch-icon.png', './privacy.html', './terms.html'];
 
 self.addEventListener('install', event => {
   event.waitUntil(

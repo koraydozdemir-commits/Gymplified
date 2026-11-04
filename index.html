@@ -1262,32 +1262,6 @@ function renderPRs() {
   }).join('') + `</div>`;
 }
 
-function renderTrainingLog() {
-  const container = document.getElementById('trainingLogList');
-  if (state.workouts.length === 0) {
-    container.innerHTML = `
-      <div class="empty-box">
-        <p>Session log is clean. Record exercises above to write into browser memory.</p>
-      </div>`;
-    return;
-  }
-
-  container.innerHTML = state.workouts.map((w, i) => `
-    <div class="item-row">
-      <div class="row-idx">${String(i + 1).padStart(2, '0')}</div>
-      <div>
-        <strong style="display:block; font-size:14px;">${esc(w.name)}</strong>
-        <span style="font-size:12px; color:var(--muted);">${esc(w.muscle)} target · ${w.weight} kg load</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:10px;">
-        <span style="font-size:12px; font-weight:700;">${w.sets} sets × ${w.reps} reps</span>
-        <button class="check-btn ${w.done ? 'done' : ''}" onclick="toggleWorkoutDone(${i})">${w.done ? '✓' : ''}</button>
-        <button class="btn btn-icon-only" style="color:var(--danger); height:30px; width:30px; font-size:12px;" onclick="deleteWorkout(${i})">✕</button>
-      </div>
-    </div>
-  `).join('');
-}
-
 function renderNutrition() {
   const foods=state.foods||[],targets=state.nutritionTargets||{protein:0,carbs:0,fat:0};
   const set=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
@@ -1433,12 +1407,6 @@ function saveDirectExercise() {
   document.getElementById('inputExName').value = '';
   saveState();
   showToast(`Saved exercise: ${name}`);
-}
-
-function toggleWorkoutDone(index) {
-  state.workouts[index].done = !state.workouts[index].done;
-  saveState();
-  showToast(state.workouts[index].done ? 'Exercise completed' : 'Exercise uncompleted');
 }
 
 function deleteWorkout(index) {
@@ -1749,7 +1717,6 @@ function addCustomWater(){const v=parseFloat($('customWater').value);if(!(v>0&&v
 function undoWater(){const l=state.waterLog.pop();if(!l)return showToast('Nothing to undo');state.water=Math.max(0,+(state.water-l).toFixed(3));saveState();showToast('Undid '+Math.round(l*1000)+' ml');}
 let tI=null;
 function rest(n){clearInterval(tI);const o=$('timerOut');o.textContent=n+'s';tI=setInterval(()=>{n--;o.textContent=n>0?n+'s':'Go! 💪';if(n<=0){clearInterval(tI);navigator.vibrate&&navigator.vibrate(200);showToast('Rest over — next set!');}},1000);}
-function reuseRoutine(){if(!state.lastSession.length)return showToast('No previous routine yet');state.workouts=state.workouts.concat(state.lastSession.map(w=>Object.assign({},w,{done:false,xp:0})));saveState();showToast('Routine loaded');}
 function markNav(){document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.classList.contains('active')?'page':'false'));}
 function setBar(id,p,label){const b=$(id)&&$(id).parentElement;if(!b)return;b.setAttribute('role','progressbar');b.setAttribute('aria-label',label);b.setAttribute('aria-valuemin','0');b.setAttribute('aria-valuemax','100');b.setAttribute('aria-valuenow',p);}
 function renderExtras(){

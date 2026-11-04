@@ -2,7 +2,15 @@
 <html lang="en" data-theme="dark" data-color="blue" data-contrast="normal" data-motion="normal" data-font="default" data-scale="md">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#0b0f17">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Gymplified">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="./icon.svg">
 <title>Gymplified — Training Log, PR Tracker & Muscle Diagram</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Space+Grotesk:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap');
@@ -400,6 +408,48 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
 .account-hint{font-size:12px;color:var(--muted);line-height:1.55}
 @media(max-width:520px){.account-head{align-items:flex-start}.account-avatar{width:64px;height:64px}.profile-row{gap:8px}.profile-row .btn{padding-inline:8px}}
 
+/* Installed-app polish, safe areas and touch-first controls */
+html,body{min-height:100%;min-height:100dvh;overscroll-behavior-y:contain}
+body{padding:0;margin:0}
+button,.btn,.check-btn,nav button,.machine-card,.food-suggestion{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:disabled{opacity:.55;cursor:not-allowed;transform:none!important}
+input,select,textarea{font-size:16px!important}
+.app{width:100%}
+.topbar{padding-top:env(safe-area-inset-top);height:calc(62px + env(safe-area-inset-top))}
+.install-trigger{white-space:nowrap}
+.install-help{position:relative;z-index:35;margin:12px 16px 0;padding:16px 18px;border:1px solid var(--brand);border-radius:12px;background:var(--panel);box-shadow:0 8px 28px rgba(0,0,0,.16)}
+.install-help[hidden]{display:none}
+.install-help h2{font:700 16px var(--font-heading);margin-bottom:6px}
+.install-help p{font-size:13px;color:var(--muted);line-height:1.55;margin:6px 0}
+.install-help .install-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.install-help ol{padding-left:20px;margin:8px 0;color:var(--ink);font-size:13px}
+.install-help li{padding:3px 0}
+.app.is-installed .install-trigger{display:none}
+@media(max-width:860px){
+ .app{max-width:none;border:0}
+ .topbar{padding-left:16px;padding-right:16px}
+ .top-actions{gap:6px}
+ .date-tag{display:none}
+ .topbar .btn{min-height:40px}
+ aside{height:calc(64px + env(safe-area-inset-bottom));padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+ nav{height:100%;align-items:center}
+ nav button{min-height:48px;font-size:10px;padding:5px 1px;gap:3px}
+ nav button svg{width:18px;height:18px}
+ main{padding:18px 14px calc(86px + env(safe-area-inset-bottom))}
+ .install-help{margin:10px 12px 0}
+}
+@media(max-width:420px){
+ .brand{font-size:19px}
+ .topbar{padding-left:12px;padding-right:12px}
+ .topbar .btn{padding:0 10px;font-size:12px}
+ .topbar .btn-icon-only{width:40px}
+ h1{font-size:25px}
+ .panel{padding:15px}
+ .form-grid{grid-template-columns:1fr}
+ .setrow{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 38px 34px;gap:4px}
+}
+@media(display-mode:standalone){body,.app{min-height:100dvh}.topbar{position:sticky;top:0}}
+@media(hover:none){.btn:hover,.panel:hover,.machine-card:hover{transform:none}}
 </style>
 </head>
 <body>
@@ -414,9 +464,16 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
     <div class="top-actions">
       <span class="date-tag" id="currentDate">Today</span>
       <button class="btn btn-primary" onclick="openLogModal()">+ Log Exercise</button>
-      <button class="btn btn-icon-only" title="Quick Theme Switcher" onclick="toggleQuickTheme()">◐</button>
+      <button class="btn install-trigger" id="installAppButton" type="button" onclick="installGymplified()">Install app</button>
+      <button class="btn btn-icon-only" title="Quick Theme Switcher" aria-label="Switch theme" onclick="toggleQuickTheme()">◐</button>
     </div>
   </header>
+  <section class="install-help" id="installHelp" hidden aria-live="polite">
+    <h2>Make Gymplified your app</h2>
+    <p id="installHelpIntro">Add Gymplified to your Home Screen for a full-screen app experience.</p>
+    <ol id="installSteps"><li>Open your browser's share or menu button.</li><li>Choose “Add to Home Screen”.</li><li>Tap Add. Gymplified will open from its own icon.</li></ol>
+    <div class="install-actions"><button class="btn btn-primary" type="button" onclick="installGymplified()">Install</button><button class="btn" type="button" onclick="closeInstallHelp()">Got it</button></div>
+  </section>
 
   <div class="layout">
     <!-- Sidebar Navigation -->
@@ -1753,6 +1810,50 @@ async function respondFriendRequest(id,accept){
 async function removeFriend(id){
  if(!confirm('Remove this friend or cancel this request?'))return;try{const r=await sb.from('friend_requests').delete().eq('id',id);if(r.error)throw r.error;await fetchSocialData();renderFriends();showToast('Connection removed');}catch(e){socialError(e);}
 }
+// ===== Installable app / offline shell =====
+let deferredInstallPrompt=null;
+function isGymplifiedInstalled(){
+ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+}
+function updateInstallUI(){
+ const app=document.querySelector('.app'),button=$('installAppButton');
+ if(isGymplifiedInstalled()){app&&app.classList.add('is-installed');return;}
+ app&&app.classList.remove('is-installed');
+ if(button)button.textContent=deferredInstallPrompt?'Install app':'Add to Home Screen';
+}
+function closeInstallHelp(){const panel=$('installHelp');if(panel)panel.hidden=true;}
+function installGymplified(){
+ if(isGymplifiedInstalled()){showToast('Gymplified is already installed');return;}
+ if(deferredInstallPrompt){
+  const prompt=deferredInstallPrompt;deferredInstallPrompt=null;prompt.prompt();
+  prompt.userChoice.then(function(choice){if(choice&&choice.outcome==='accepted')showToast('Gymplified added to your apps');updateInstallUI();}).catch(updateInstallUI);
+  return;
+ }
+ const panel=$('installHelp'),intro=$('installHelpIntro'),steps=$('installSteps');
+ const ua=navigator.userAgent||'',isApple=/iPad|iPhone|iPod/.test(ua)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const isSafari=isApple&&!/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+ if(isApple){
+  intro.textContent=isSafari?'Install directly from Safari:':'For the best iPhone/iPad install experience, open this page in Safari, then use Share → Add to Home Screen.';
+  steps.innerHTML='<li>Open this page in <strong>Safari</strong>.</li><li>Tap the <strong>Share</strong> button (square with an upward arrow).</li><li>Scroll down and choose <strong>Add to Home Screen</strong>.</li><li>Keep “Open as Web App” enabled if shown, then tap <strong>Add</strong>.</li>';
+ }else{
+  intro.textContent='Install Gymplified from your browser menu:';
+  steps.innerHTML='<li>Open the browser menu (⋮).</li><li>Choose <strong>Install app</strong> or <strong>Add to Home Screen</strong>.</li><li>Confirm the install, then launch Gymplified from its new app icon.</li>';
+ }
+ panel.hidden=false;panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+window.addEventListener('beforeinstallprompt',function(event){event.preventDefault();deferredInstallPrompt=event;updateInstallUI();});
+window.addEventListener('appinstalled',function(){deferredInstallPrompt=null;closeInstallHelp();updateInstallUI();showToast('Gymplified installed');});
+window.addEventListener('online',function(){showToast('You are back online');});
+window.addEventListener('offline',function(){showToast('Offline mode · your on-device logs still work');});
+if('serviceWorker' in navigator){
+ window.addEventListener('load',function(){
+  navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(function(reg){reg.update().catch(function(){});})
+   .catch(function(err){console.warn('Gymplified offline support unavailable:',err);});
+ });
+}
+updateInstallUI();
+window.addEventListener('pageshow',updateInstallUI);
+
 // Boot initial render
 initPicker();
 initSocial();

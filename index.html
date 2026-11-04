@@ -1737,13 +1737,13 @@ function setBar(id,p,label){const b=$(id)&&$(id).parentElement;if(!b)return;b.se
 function weeklyRecapData(){
  const now=new Date(),start=new Date(now);start.setHours(0,0,0,0);start.setDate(start.getDate()-6);
  const prevStart=new Date(start);prevStart.setDate(prevStart.getDate()-7);
- const valid=(state.sessions||[]).filter(x=>x&&x.date&&/^\\d{4}-\\d{2}-\\d{2}$/.test(String(x.date)));
+ const valid=(state.sessions||[]).filter(x=>x&&x.date&&/^\d{4}-\d{2}-\d{2}$/.test(String(x.date)));
  const current=valid.filter(x=>{const d=new Date(x.date+'T12:00:00');return d>=start&&d<=now;});
  const previous=valid.filter(x=>{const d=new Date(x.date+'T12:00:00');return d>=prevStart&&d<start;});
  const sum=(arr,key)=>arr.reduce((n,x)=>n+(Number(x[key])||0),0);
  return {current,previous,sets:sum(current,'sets'),volume:sum(current,'vol'),minutes:sum(current,'mins'),goal:state.weeklyGoal||3,weekCount:weekInfo().n};
 }
-function weeklyRecapText(){const w=weeklyRecapData();return 'My Gymplified weekly recap\\n'+w.current.length+' workouts completed\\n'+w.sets+' sets completed\\n'+Math.round(w.volume).toLocaleString()+' kg total volume\\n'+w.minutes+' minutes training\\n'+w.weekCount+'/'+w.goal+' weekly workout goal';}
+function weeklyRecapText(){const w=weeklyRecapData();return 'My Gymplified weekly recap\n'+w.current.length+' workouts completed\\n'+w.sets+' sets completed\\n'+Math.round(w.volume).toLocaleString()+' kg total volume\\n'+w.minutes+' minutes training\\n'+w.weekCount+'/'+w.goal+' weekly workout goal';}
 async function shareWeeklyRecap(){const recap=weeklyRecapText();try{if(navigator.share)await navigator.share({title:'My Gymplified weekly recap',text:recap});else if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(recap);showToast('Weekly recap copied');}else showToast('Sharing is not available on this device');}catch(e){if(e&&e.name!=='AbortError')showToast('Could not share recap');}}
 function weeklyRecapMarkup(){
  const w=weeklyRecapData(),delta=w.current.length-w.previous.length;

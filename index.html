@@ -1085,8 +1085,41 @@ function showToast(message) {
 function saveState() {
   rewards();
   try{localStorage.setItem(STORAGE_KEY, JSON.stringify(state));}catch(e){}
+  queueCloudStateSave();
   renderAll();
 }
+/* Cloud progress sync: signed-in members can use their Gymplified progress across devices.
+   The admin service can manage this same private per-user snapshot through a protected Edge Function. */
+let cloudSyncUserId=null,cloudSaveTimer=null,cloudSaveBusy=false;
+function queueCloudStateSave(){
+  if(!sb||!currentUser)return;
+  if(cloudSaveTimer)clearTimeout(cloudSaveTimer);
+  cloudSaveTimer=setTimeout(async function(){
+    if(cloudSaveBusy||!sb||!currentUser)return;
+    cloudSaveBusy=true;
+    try{
+      const r=await sb.from('user_app_state').upsert({user_id:currentUser.id,state:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+      if(r.error)console.warn('Gymplified cloud progress sync:',r.error.message);
+    }catch(e){console.warn('Gymplified cloud progress sync failed:',e);}
+    finally{cloudSaveBusy=false;}
+  },900);
+}
+async function syncUserAppState(){
+  if(!sb||!currentUser||cloudSyncUserId===currentUser.id)return;
+  const id=currentUser.id;cloudSyncUserId=id;
+  try{
+    const r=await sb.from('user_app_state').select('state').eq('user_id',id).maybeSingle();
+    if(r.error)throw r.error;
+    if(r.data&&r.data.state&&typeof r.data.state==='object'){
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(r.data.state));
+      state=bootState();applySettings();renderAll();
+    }else{
+      const saved=await sb.from('user_app_state').upsert({user_id:id,state:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+      if(saved.error)throw saved.error;
+    }
+  }catch(e){cloudSyncUserId=null;console.warn('Gymplified cloud progress could not be loaded:',e.message||e);}
+}
+
 
 function applySettings() {
   const s = state.settings || cleanState.settings;
@@ -1871,8 +1904,8 @@ async function initSocial(){
  const host=$('friendStatus');if(!window.supabase||!window.supabase.createClient){host.textContent='Account services could not load. Refresh and try again.';return;}
  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  const r=await sb.auth.getSession();if(r.error)socialError(r.error);currentUser=r.data&&r.data.session?r.data.session.user:null;
- if(currentUser)await loadMyProfile();renderFriends();
- sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){currentUser=session?session.user:null;currentProfile=null;if(currentUser)await loadMyProfile();friendRequests=[];friendProfiles={};renderFriends();},0);});
+ if(currentUser){await loadMyProfile();await syncUserAppState();}renderFriends();
+ sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed)await syncUserAppState();}else{cloudSyncUserId=null;}friendRequests=[];friendProfiles={};renderFriends();},0);});
 }
 async function loadMyProfile(){if(!currentUser){currentProfile=null;return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url,created_at').eq('id',currentUser.id).maybeSingle();if(r.error){socialError(r.error);return;}currentProfile=r.data;}
 function renderAuthPanel(message){
@@ -1883,7 +1916,7 @@ function renderAuthPanel(message){
  (up?'<div class="field"><label for="authUsername">Username</label><input id="authUsername" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="e.g. johnny_fitness"><div class="account-hint">3–20 characters. Letters, numbers and underscores only.</div></div><div class="field"><label for="authDisplayName">Display name</label><input id="authDisplayName" name="displayName" maxlength="32" placeholder="How should friends see you?"></div>':'')+
  '<div class="field"><label for="authEmail">Email address</label><input id="authEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div><div class="field"><label for="authPassword">Password</label><input id="authPassword" name="password" type="password" required minlength="8" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 8 characters"></div>'+
  '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p></form>'+
- '<p class="account-hint">Your workout and food diary remain saved on this device. Only your Gymplified profile and friend connections are stored online.</p>';
+ '<p class="account-hint">When you sign in, your workouts, nutrition, personal records and goals sync securely across your devices.</p>';
 }
 function switchAuthMode(mode){authMode=mode==='login'?'login':'signup';renderAuthPanel('');}
 async function handleAuthSubmit(event){

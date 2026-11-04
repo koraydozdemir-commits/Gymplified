@@ -513,7 +513,7 @@ input,select,textarea{font-size:16px!important}
       <section id="dashboard" class="screen active">
         <div class="eyebrow">Overview</div>
         <h1>Daily Dashboard</h1>
-        <p class="subtitle">Real-time metrics, active session logs, and nutrition tracking.</p>
+        <p class="subtitle">Your training, nutrition and daily progress at a glance.</p>
 
         <div class="panel" id="gamePanel" style="margin-bottom:20px" aria-label="Progress and streaks"></div>
         <div class="grid-2">
@@ -740,7 +740,7 @@ input,select,textarea{font-size:16px!important}
       </section>
 
       <section id="friends" class="screen">
-        <div class="eyebrow">Community</div><h1>Friends & Accounts</h1>
+        <div class="eyebrow">Community</div><h1>Friends & Community</h1>
         <p class="subtitle">Create your Gymplified identity, add friends by username and customise your profile.</p>
         <div class="panel account-panel" id="friendStatus" style="margin-bottom:20px"></div>
         <div id="friendConnections" class="panel" style="margin-bottom:20px;display:none"></div>
@@ -1916,7 +1916,7 @@ async function replyToSupportTicket(){
 
 function renderAuthPanel(message){
  const up=authMode==='signup';
- $('friendStatus').innerHTML='<div class="section-title">Your Gymplified account</div><p class="account-hint">Sign in to use your profile across devices, choose a profile picture and connect with friends.</p>'+
+ $('friendStatus').innerHTML='<div class="section-title">Your Gymplified account</div><p class="account-hint">Create your profile, connect with friends and sync your progress across devices. We verify email addresses to help protect accounts.</p>'+
  '<div class="account-tabs"><button class="btn '+(up?'active':'')+'" onclick="switchAuthMode(\'signup\')">Create account</button><button class="btn '+(!up?'active':'')+'" onclick="switchAuthMode(\'login\')">Log in</button></div>'+
  '<form class="account-form" onsubmit="handleAuthSubmit(event)">'+
  (up?'<div class="field"><label for="authUsername">Username</label><input id="authUsername" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="e.g. johnny_fitness"><div class="account-hint">3–20 characters. Letters, numbers and underscores only.</div></div><div class="field"><label for="authDisplayName">Display name</label><input id="authDisplayName" name="displayName" maxlength="32" placeholder="How should friends see you?"></div>':'')+

@@ -1310,16 +1310,17 @@ function selectMachine(id) {
 
 function addSelectedMachineToLog() {
   if (!selectedMachine) return;
-  state.workouts.push({
-    name: selectedMachine.name,
-    muscle: selectedMachine.primary[0] ? selectedMachine.primary[0].toUpperCase() : 'GENERAL',
-    weight: 45,
-    sets: 3,
-    reps: 10,
-    done: false
-  });
+  const previous=previousExercisePerformance(selectedMachine.name);
+  const last=previous&&previous.sets.length?previous.sets[previous.sets.length-1]:null;
+  const kg=last?Number(last.kg):(state.lastKg[selectedMachine.name]||20);
+  const reps=last?Number(last.reps):10;
+  state.workouts.push(syncW({
+    name:selectedMachine.name,
+    muscle:selectedMachine.primary[0]?selectedMachine.primary[0].toUpperCase():'GENERAL',
+    setList:[0,1,2].map(()=>({kg,reps,done:false}))
+  }));
   saveState();
-  showToast(`${esc(selectedMachine.name)} added to log`);
+  showToast(previous?'Previous performance loaded':'Exercise added to workout');
 }
 
 function renderAll() {

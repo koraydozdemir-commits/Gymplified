@@ -236,7 +236,13 @@ html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
 /* Human Muscle Heatmap SVG Visualizer */
 .body-visualizer { display: flex; justify-content: center; align-items: center; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-height: 380px; position: relative; }
 .muscle-svg { height: 320px; width: auto; fill: var(--muscle); stroke: var(--panel); stroke-width: 1.5; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2)); }
-.muscle-anatomy-image { display:block; width:100%; max-width:560px; max-height:360px; height:auto; object-fit:contain; border-radius:4px; background:#f5f1e8; }
+.muscle-map-mount { width:100%; display:flex; justify-content:center; align-items:center; min-height:300px; }
+.muscle-map-mount svg { display:block; width:100%; max-width:390px; height:auto; max-height:460px; overflow:visible; }
+.muscle-map-legend { display:flex; justify-content:center; flex-wrap:wrap; gap:14px; font-size:10px; color:var(--muted); margin-bottom:6px; }
+.muscle-map-legend span { display:inline-flex; align-items:center; gap:5px; }
+.muscle-map-dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+.muscle-map-dot.primary { background:#e6b93f; }
+.muscle-map-dot.secondary { background:#c18d27; opacity:.65; }
 .muscle-image-credit { font-size:10px; color:var(--muted); text-align:center; margin-top:8px; }
 
 .muscle-path { transition: fill 0.35s var(--ease-out), stroke 0.35s var(--ease-out), opacity 0.35s var(--ease-out); cursor: pointer; opacity: 0.6; }
@@ -651,7 +657,7 @@ input,select,textarea{font-size:16px!important}
   <details id="customBox" style="margin-top:10px"><summary>Can't find it? Add a custom exercise</summary>
    <div class="row-wrap" style="margin-top:8px"><input type="text" id="cName" maxlength="60" placeholder="Exercise name" aria-label="Custom exercise name"><select id="cMuscle" aria-label="Primary muscle"></select><select id="cEquip" aria-label="Equipment"></select><button class="btn btn-primary" onclick="addCustom()">Create & add</button></div></details>
  </div>
- <div><div class="body-visualizer" style="display:block;text-align:center;padding:14px"><img class="muscle-anatomy-image" src="https://commons.wikimedia.org/wiki/Special:Redirect/file/Muscles_front_and_back.svg" alt="Anatomical illustration showing the major muscles from the front and back" loading="lazy"><div class="muscle-image-credit">Anatomical muscle illustration · OpenStax / Tomáš Kebert · CC BY-SA 4.0 · <a href="https://commons.wikimedia.org/wiki/File:Muscles_front_and_back.svg" target="_blank" rel="noopener">Source & licence</a></div></div><div class="panel" id="exPreview" style="margin-top:12px" aria-live="polite"></div></div>
+ <div><div class="body-visualizer" style="display:block;text-align:center;padding:14px"><div class="muscle-map-legend"><span><i class="muscle-map-dot primary"></i>Primary muscle</span><span><i class="muscle-map-dot secondary"></i>Supporting muscle</span></div><div id="muscleMapMount" class="muscle-map-mount" aria-live="polite"></div><div class="muscle-image-credit">Anatomical illustration: OpenStax, Tomáš Kebert & umimeto.org · CC BY-SA 4.0 · <a href="https://commons.wikimedia.org/wiki/File:Muscles_front_and_back.svg" target="_blank" rel="noopener">Source & licence</a></div></div><div class="panel" id="exPreview" style="margin-top:12px" aria-live="polite"></div></div>
 </div>
 <div id="liveStats"></div>
 <div class="section-title"><span>Today's Workout</span><button class="btn" onclick="clearAllWorkouts()" style="color:var(--danger)">Clear all</button></div>
@@ -1860,8 +1866,62 @@ function addEx(id){const x=allEx().find(e=>e.id===id);if(!x)return;
 function addCustom(){const n=$('cName').value.trim().slice(0,60);if(!n)return showToast('Enter an exercise name');
   if(!allEx().some(x=>x.name.toLowerCase()===n.toLowerCase()))state.customEx.push(mkEx(n,$('cEquip').value,$('cMuscle').value,[],true));
   const x=allEx().find(e=>e.name.toLowerCase()===n.toLowerCase());$('cName').value='';addEx(x.id);renderPicker();}
+let muscleMapTemplatePromise=null;
+let muscleMapRenderVersion=0;
+const MUSCLE_MAP_ALIASES={
+ chest:'pectoralis_major',lats:'latissimus_dorsi',shoulders:'deltoid',
+ biceps:'biceps_brachii',forearms:'forearm_muscles',abs:'rectus_abdominis',
+ quads:'quadriceps',calves:'gastrocnemius',glutes:'gluteus_maximus',
+ traps:'trapezius'
+};
+function muscleMapKeys(name){
+ const key=String(name||'').trim().toLowerCase();
+ if(key==='traps')return ['trapezius','traps'];
+ return [MUSCLE_MAP_ALIASES[key]||key].filter(Boolean);
+}
+async function renderMuscleMap(exercise){
+ const mount=$('muscleMapMount');if(!mount)return;
+ const request=++muscleMapRenderVersion;
+ try{
+  if(!muscleMapTemplatePromise){
+   muscleMapTemplatePromise=fetch('./assets/muscle-map-template.svg').then(response=>{
+    if(!response.ok)throw new Error('Could not load anatomical muscle illustration');
+    return response.text();
+   }).then(source=>{
+    const doc=new DOMParser().parseFromString(source,'image/svg+xml');
+    const svg=doc.documentElement;
+    if(doc.querySelector('parsererror')||svg.localName!=='svg')throw new Error('Invalid anatomical SVG');
+    return svg;
+   });
+  }
+  const template=await muscleMapTemplatePromise;
+  if(request!==muscleMapRenderVersion)return;
+  const svg=template.cloneNode(true);
+  svg.removeAttribute('width');svg.removeAttribute('height');
+  svg.style.width='100%';svg.style.height='auto';svg.style.maxHeight='none';
+  svg.setAttribute('role','img');
+  svg.setAttribute('aria-label',exercise?exercise.name+' muscle groups highlighted, front and back':'Front and back anatomical muscle map');
+  const primary=new Set(muscleMapKeys(exercise&&exercise.pm));
+  const secondary=new Set((exercise&&exercise.sec||[]).flatMap(muscleMapKeys));
+  svg.querySelectorAll('[data-muscle]').forEach(path=>{
+   const raw=path.getAttribute('data-muscle')||'';
+   const base=raw.replace(/_(left|right)$/,'');
+   if(primary.has(raw)||primary.has(base))path.classList.add('active');
+   else if(secondary.has(raw)||secondary.has(base))path.classList.add('secondary');
+  });
+  const style=document.createElementNS('http://www.w3.org/2000/svg','style');
+  style.textContent='#layer2 path.active{fill:#e6b93f!important;fill-opacity:.96!important;stroke:#9a7019!important;stroke-opacity:1!important;stroke-width:.8!important}#layer2 path.secondary{fill:#c18d27!important;fill-opacity:.72!important;stroke:#9a7019!important;stroke-opacity:.9!important;stroke-width:.65!important}';
+  svg.insertBefore(style,svg.firstChild);
+  mount.replaceChildren(svg);
+ }catch(error){
+  if(request!==muscleMapRenderVersion)return;
+  mount.innerHTML='<p class="sub">The muscle illustration could not be loaded. Please refresh the app to try again.</p>';
+  console.error(error);
+ }
+}
 function previewEx(id){const x=id&&allEx().find(e=>e.id===id),b=$('exPreview');
-  if(!x){b.innerHTML='<p class="sub">Select an exercise to see its target muscles and recent performance.</p>';return;}
+  renderMuscleMap(x);
+  if(!x){b.innerHTML='<p class="sub">Select an exercise to highlight its primary and supporting muscles.</p>';return;}
   const prev=previousExercisePerformance(x.name),last=prev&&prev.sets.length?prev.sets[prev.sets.length-1]:null;
   b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+x.eq+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="sub" style="margin-top:10px">Last time · '+esc(prev.date)+' · '+esc(last.kg)+' kg × '+esc(last.reps)+' reps</p>':'<p class="sub" style="margin-top:10px">No previous performance logged yet.</p>')+'<button class="btn" style="margin-top:10px" onclick="viewExerciseHistoryById(\''+x.id+'\')">View exercise history</button>';}
 function renderPicker(){const q=$('exSearch').value.toLowerCase().trim(),m=$('exMuscle').value,e=$('exEquip').value;

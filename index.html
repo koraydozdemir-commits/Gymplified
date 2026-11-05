@@ -236,6 +236,8 @@ html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
 /* Human Muscle Heatmap SVG Visualizer */
 .body-visualizer { display: flex; justify-content: center; align-items: center; padding: 24px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); min-height: 380px; position: relative; }
 .muscle-svg { height: 320px; width: auto; fill: var(--muscle); stroke: var(--panel); stroke-width: 1.5; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.2)); }
+.muscle-anatomy-image { display:block; width:100%; max-width:560px; max-height:360px; height:auto; object-fit:contain; border-radius:4px; background:#f5f1e8; }
+.muscle-image-credit { font-size:10px; color:var(--muted); text-align:center; margin-top:8px; }
 
 .muscle-path { transition: fill 0.35s var(--ease-out), stroke 0.35s var(--ease-out), opacity 0.35s var(--ease-out); cursor: pointer; opacity: 0.6; }
 .muscle-path:hover { opacity: 0.9; stroke: var(--brand); }
@@ -649,39 +651,14 @@ input,select,textarea{font-size:16px!important}
   <details id="customBox" style="margin-top:10px"><summary>Can't find it? Add a custom exercise</summary>
    <div class="row-wrap" style="margin-top:8px"><input type="text" id="cName" maxlength="60" placeholder="Exercise name" aria-label="Custom exercise name"><select id="cMuscle" aria-label="Primary muscle"></select><select id="cEquip" aria-label="Equipment"></select><button class="btn btn-primary" onclick="addCustom()">Create & add</button></div></details>
  </div>
- <div><div class="body-visualizer"><svg class="muscle-svg" viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg">
-                <!-- Head & Torso Silhouette -->
-                <circle cx="100" cy="25" r="13" fill="none" stroke="var(--line)" stroke-width="2"/>
-                <path d="M 85,42 Q 100,48 115,42 L 135,65 L 145,120 L 135,130 L 130,200 L 122,280 L 102,280 L 100,160 L 98,280 L 78,280 L 70,200 L 65,130 L 55,120 L 65,65 Z" fill="none" stroke="var(--line)" stroke-width="1.5"/>
-                
-                <!-- Target Muscle SVG Paths -->
-                <!-- Chest -->
-                <path id="svg-chest" class="muscle-path" d="M 82,65 Q 100,70 118,65 L 120,88 Q 100,98 80,88 Z" title="Chest / Pectorals"/>
-                <!-- Lats / Back -->
-                <path id="svg-lats" class="muscle-path" d="M 72,90 Q 65,115 78,135 Q 100,120 122,135 Q 135,115 128,90 Q 100,102 72,90 Z" title="Lats / Back"/>
-                <!-- Shoulders (Deltoids) -->
-                <path id="svg-shoulders" class="muscle-path" d="M 68,62 L 82,65 L 76,90 L 58,100 Z M 132,62 L 118,65 L 124,90 L 142,100 Z" title="Shoulders / Deltoids"/>
-                <!-- Biceps -->
-                <path id="svg-biceps" class="muscle-path" d="M 57,102 L 74,96 L 68,125 L 54,120 Z" title="Biceps"/>
-                <!-- Triceps -->
-                <path id="svg-triceps" class="muscle-path" d="M 143,102 L 126,96 L 132,125 L 146,120 Z" title="Triceps"/>
-                <!-- Abs / Core -->
-                <path id="svg-abs" class="muscle-path" d="M 82,94 Q 100,98 118,94 L 116,145 Q 100,150 84,145 Z" title="Abs / Core"/>
-                <!-- Quads -->
-                <path id="svg-quadriceps" class="muscle-path" d="M 74,155 L 97,155 L 94,220 L 76,215 Z M 103,155 L 126,155 L 124,215 L 106,220 Z" title="Quadriceps"/>
-                <!-- Hamstrings -->
-                <path id="svg-hamstrings" class="muscle-path" d="M 76,218 L 94,222 L 91,255 L 78,250 Z M 124,218 L 106,222 L 109,255 L 122,250 Z" title="Hamstrings"/>
-                <!-- Calves -->
-                <path id="svg-calves" class="muscle-path" d="M 78,254 L 91,257 L 88,285 L 80,285 Z M 122,254 L 109,257 L 112,285 L 120,285 Z" title="Calves"/>
-              <path id="svg-traps" class="muscle-path" d="M 88,44 Q 100,50 112,44 L 124,58 L 118,65 Q 100,60 82,65 L 76,58 Z"/>
-<path id="svg-forearms" class="muscle-path" d="M 54,122 L 68,127 L 62,160 L 50,155 Z M 146,122 L 132,127 L 138,160 L 150,155 Z"/>
-<path id="svg-glutes" class="muscle-path" d="M 78,140 Q 100,130 122,140 L 124,155 L 76,155 Z"/></svg></div><div class="panel" id="exPreview" style="margin-top:12px" aria-live="polite"></div></div>
+ <div><div class="body-visualizer" style="display:block;text-align:center;padding:14px"><img class="muscle-anatomy-image" src="https://commons.wikimedia.org/wiki/Special:Redirect/file/Muscles_front_and_back.svg" alt="Anatomical illustration showing the major muscles from the front and back" loading="lazy"><div class="muscle-image-credit">Anatomical muscle illustration · OpenStax / Tomáš Kebert · CC BY-SA 4.0 · <a href="https://commons.wikimedia.org/wiki/File:Muscles_front_and_back.svg" target="_blank" rel="noopener">Source & licence</a></div></div><div class="panel" id="exPreview" style="margin-top:12px" aria-live="polite"></div></div>
 </div>
 <div id="liveStats"></div>
 <div class="section-title"><span>Today's Workout</span><button class="btn" onclick="clearAllWorkouts()" style="color:var(--danger)">Clear all</button></div>
 <div id="trainingLogList" style="margin-bottom:20px"></div>
 <div id="sessionSummary"></div>
-<div class="panel"><div class="section-title">Recent Sessions</div><div id="sessionHistory"></div></div>
+<div id="exerciseHistoryPanel"></div>
+<div class="panel"><div class="section-title">Workout History</div><p class="sub" style="margin-bottom:12px">Open any finished workout to review the exercises and sets you completed.</p><div id="sessionHistory"></div></div>
       </section>
 
       <!-- 5. NUTRITION SCREEN -->
@@ -1838,6 +1815,7 @@ function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names
   state.workouts.forEach(w=>{const d=w.setList.filter(x=>x.done);if(d.length){ex++;names.push(w.name);}d.forEach(x=>{st++;r+=x.reps;v+=x.kg*x.reps;});});
   if(!st){if(confirm('No sets are ticked off yet. End without saving?')){state.session=null;saveState();}return;}
   const sum={date:dayKey(),mins:Math.max(1,Math.round((Date.now()-state.session.start)/6e4)),vol:Math.round(v),sets:st,reps:r,ex,names};
+  sum.exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,sets:w.setList.filter(x=>x.done).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||0}))})).filter(x=>x.sets.length);
   state.sessions.unshift(sum);state.sessions=state.sessions.slice(0,200);state.lastSummary=sum;state.session=null;
   gainXP(40,'Workout complete');if(weekInfo().n===state.weeklyGoal)gainXP(50,'Weekly goal hit! 🗓');confetti();saveState();}
 function reuseRoutine(){if(!state.lastSession.length)return showToast('No previous routine yet');state.workouts=state.workouts.concat(state.lastSession.map(w=>{const c=JSON.parse(JSON.stringify(w));c.setList.forEach(x=>x.done=false);c.xp=0;return syncW(c);}));saveState();showToast('Routine loaded');}
@@ -1846,14 +1824,43 @@ function toggleSet(i,j){const w=state.workouts[i],x=w.setList[j];x.done=!x.done;
 function addSet(i){const w=state.workouts[i],l=w.setList[w.setList.length-1]||{kg:20,reps:10};w.setList.push({kg:l.kg,reps:l.reps,done:false});syncW(w);saveState();}
 function removeSet(i,j){const w=state.workouts[i];if(w.setList.length<=1)return showToast('Keep one set, or remove the exercise');w.setList.splice(j,1);syncW(w);saveState();}
 function toggleWorkoutDone(i){const w=state.workouts[i],v=!w.done;w.setList.forEach(x=>x.done=v);syncW(w);saveState();}
-function addEx(id){const x=allEx().find(e=>e.id===id);if(!x)return;const kg=state.lastKg[x.name]||20;state.workouts.push(syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg,reps:10,done:false}))}));saveState();showToast(x.name+' added · 3 sets');previewEx(id);}
+function previousExercisePerformance(name){
+ const key=String(name||'').trim().toLowerCase();
+ for(const session of (state.sessions||[])){
+  const ex=(session.exercises||[]).find(x=>String(x.name||'').trim().toLowerCase()===key);
+  if(ex&&Array.isArray(ex.sets)&&ex.sets.length){
+   const sets=ex.sets.filter(x=>Number.isFinite(Number(x.kg))&&Number.isFinite(Number(x.reps)));
+   if(sets.length)return {sets, date:session.date};
+  }
+ }
+ return null;
+}
+function exerciseHistoryMarkup(name){
+ const key=String(name||'').trim().toLowerCase();
+ const rows=[];
+ (state.sessions||[]).forEach(session=>(session.exercises||[]).filter(ex=>String(ex.name||'').trim().toLowerCase()===key).forEach(ex=>rows.push({date:session.date,sets:ex.sets||[]})));
+ if(!rows.length)return '<p class="sub">No saved exercise history yet. Finish a workout with this exercise to start building your history.</p>';
+ return '<div class="exercise-history-list">'+rows.slice(0,12).map(row=>'<div class="quest"><span><strong>'+esc(row.date)+'</strong><br><small class="sub">'+row.sets.length+' sets</small></span><span>'+row.sets.map(x=>esc(x.kg)+' kg × '+esc(x.reps)).join(' · ')+'</span></div>').join('')+'</div>';
+}
+function viewExerciseHistory(name){
+ const host=$('exerciseHistoryPanel');if(!host)return;
+ const same=host.dataset.exercise===name;
+ if(same){host.innerHTML='';host.dataset.exercise='';return;}
+ host.dataset.exercise=name;
+ host.innerHTML='<div class="panel" style="margin:16px 0"><div class="section-title"><span>'+esc(name)+' · History</span><button class="btn" onclick="viewExerciseHistory('+JSON.stringify(name).replace(/"/g,'&quot;')+')">Close</button></div>'+exerciseHistoryMarkup(name)+'</div>';
+}
+function addEx(id){const x=allEx().find(e=>e.id===id);if(!x)return;
+ const previous=previousExercisePerformance(x.name),latest=previous&&previous.sets.length?previous.sets[previous.sets.length-1]:null;
+ const kg=latest?Number(latest.kg):(state.lastKg[x.name]||20),reps=latest?Number(latest.reps):10;
+ state.workouts.push(syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg,reps,done:false}))}));
+ saveState();showToast(previous?x.name+' added · previous performance loaded':' '+x.name+' added · 3 sets');previewEx(id);}
 function addCustom(){const n=$('cName').value.trim().slice(0,60);if(!n)return showToast('Enter an exercise name');
   if(!allEx().some(x=>x.name.toLowerCase()===n.toLowerCase()))state.customEx.push(mkEx(n,$('cEquip').value,$('cMuscle').value,[],true));
   const x=allEx().find(e=>e.name.toLowerCase()===n.toLowerCase());$('cName').value='';addEx(x.id);renderPicker();}
-function previewEx(id){document.querySelectorAll('.muscle-path').forEach(e=>e.classList.remove('active','secondary'));const x=id&&allEx().find(e=>e.id===id),b=$('exPreview');
-  if(!x){b.innerHTML='<p class="sub">Hover or tap an exercise to see the muscles it works.</p>';return;}
-  const a=$('svg-'+x.pm);if(a)a.classList.add('active');x.sec.forEach(m=>{const e=$('svg-'+m);if(e)e.classList.add('secondary');});
-  b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+x.eq+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+x.pm+'</span>'+x.sec.map(m=>'<span class="tag">'+m+'</span>').join('')+'</div>';}
+function previewEx(id){const x=id&&allEx().find(e=>e.id===id),b=$('exPreview');
+  if(!x){b.innerHTML='<p class="sub">Select an exercise to see its target muscles and recent performance.</p>';return;}
+  const prev=previousExercisePerformance(x.name),last=prev&&prev.sets.length?prev.sets[prev.sets.length-1]:null;
+  b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+x.eq+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="sub" style="margin-top:10px">Last time · '+esc(prev.date)+' · '+esc(last.kg)+' kg × '+esc(last.reps)+' reps</p>':'<p class="sub" style="margin-top:10px">No previous performance logged yet.</p>')+'<button class="btn" style="margin-top:10px" onclick="viewExerciseHistory('+JSON.stringify(x.name).replace(/"/g,'&quot;')+')">View exercise history</button>';}
 function renderPicker(){const q=$('exSearch').value.toLowerCase().trim(),m=$('exMuscle').value,e=$('exEquip').value;
   const r=allEx().filter(x=>(!m||x.pm===m||x.sec.includes(m))&&(!e||x.eq===e)&&(!q||(x.name+' '+x.eq+' '+x.pm+' '+x.sec.join(' ')).toLowerCase().includes(q)));
   r.sort((a,b)=>(b.name.toLowerCase().startsWith(q)-a.name.toLowerCase().startsWith(q))||a.name.localeCompare(b.name));
@@ -1871,7 +1878,7 @@ function renderTrainingLog(){renderRoutineLibrary();const wi=weekInfo(),sb=$('se
    '<div class="sub" style="margin-top:6px">Volume: '+Math.round(vol(w))+' kg</div></div>').join(''):'<div class="empty-box"><p>No exercises yet. Search the library above and tap “+ Add”.</p></div>';
   const m=state.lastSummary,p=state.sessions[1];
   $('sessionSummary').innerHTML=m?'<div class="panel" style="margin-bottom:20px"><div class="section-title"><span>🎉 Workout complete</span><button class="btn" onclick="state.lastSummary=null;saveState()">Dismiss</button></div><div class="stat-row"><div class="stat"><b>'+m.mins+' min</b><span>duration</span></div><div class="stat"><b>'+m.vol.toLocaleString()+' kg</b><span>total volume</span></div><div class="stat"><b>'+m.sets+'</b><span>sets</span></div><div class="stat"><b>'+m.reps+'</b><span>reps</span></div><div class="stat"><b>'+m.ex+'</b><span>exercises</span></div></div><p class="sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc(m.names.join(', '))+'</p></div>':'';
-  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.slice(0,6).map(x=>'<div class="quest"><span>'+x.date+' · '+x.mins+' min · '+x.ex+' exercises</span><span>'+x.vol.toLocaleString()+' kg · '+x.sets+' sets · '+x.reps+' reps</span></div>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
+  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.slice(0,30).map((x,i)=>'<details class="history-session" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+(x.vol||0).toLocaleString()+' kg · '+(x.sets||0)+' sets</span></summary><div style="margin-top:12px">'+((x.exercises||[]).length?(x.exercises||[]).map(ex=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(ex.name)+'</strong><button class="btn" onclick="viewExerciseHistory('+JSON.stringify(ex.name).replace(/"/g,'&quot;')+');event.preventDefault()">Exercise history</button></div><div class="sub" style="margin-top:5px">'+(ex.sets||[]).map((set,j)=>'Set '+(j+1)+': '+esc(set.kg)+' kg × '+esc(set.reps)).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
 
 // ===== Gymplified accounts + real friend connections =====
 const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';

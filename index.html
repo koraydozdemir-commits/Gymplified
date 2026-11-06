@@ -311,7 +311,7 @@ html[data-spacing=wide] body{letter-spacing:.04em;line-height:1.8;word-spacing:.
 .pick-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:20px}@media(max-width:800px){.pick-grid{grid-template-columns:1fr}}
 .ex-results{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius)}
 .ex-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer}.ex-row:hover,.ex-row:focus-within{background:var(--brand-light)}
-.setrow{display:grid;grid-template-columns:34px 1fr 1fr 40px 36px;gap:6px;align-items:center;margin:4px 0}.setrow input{width:100%}.sub{font-size:12px;color:var(--muted)}.sr{position:absolute;left:-999px}
+.setrow{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 40px 36px;gap:6px;align-items:center;margin:4px 0}.setrow input{width:100%;min-width:0;min-height:42px;font-size:16px;text-align:center;touch-action:manipulation}.setrow .check-btn{width:40px;height:40px}.set-estimate{font-size:11px;color:var(--gold);font-weight:700;grid-column:2/4;margin-top:-2px}.set-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:7px 0 12px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius)}.set-tools small{color:var(--muted)}.sub{font-size:12px;color:var(--muted)}.sr{position:absolute;left:-999px}
 html{color-scheme:dark}html[data-theme=light]{color-scheme:light}
 :root{--brand-text:#60a5fa;--muscle:#3b4a63}html[data-theme=light]{--muscle:#cbd5e1}
 html[data-color=blue]{--brand-text:#60a5fa}html[data-color=emerald]{--brand-text:#34d399}html[data-color=slate]{--brand-text:#cbd5e1}html[data-color=crimson]{--brand-text:#f87171}html[data-color=amber]{--brand-text:#fbbf24}html[data-color=violet]{--brand-text:#a78bfa}
@@ -1178,9 +1178,12 @@ function nextQuote() {
 
 // --- ESTIMATED 1RM CALCULATOR (Epley Formula) ---
 function calculate1RM(weight, reps) {
-  if (reps === 1) return weight;
-  return Math.round(weight * (1 + reps / 30));
+  weight=Number(weight);reps=Math.max(1,Math.round(Number(reps)||1));
+  if(!Number.isFinite(weight)||weight<=0)return 0;
+  if(reps===1)return Math.round(weight*10)/10;
+  return Math.round(weight*(1+reps/30)*10)/10;
 }
+function format1RM(weight,reps){const n=calculate1RM(weight,reps);return n>0?n.toLocaleString(undefined,{maximumFractionDigits:1})+' kg':'—';}
 
 // --- RENDERING LOGIC ---
 function renderDashboard() {
@@ -1832,14 +1835,20 @@ function addSet(i){const w=state.workouts[i],l=w.setList[w.setList.length-1]||{k
 function removeSet(i,j){const w=state.workouts[i];if(w.setList.length<=1)return showToast('Keep one set, or remove the exercise');w.setList.splice(j,1);syncW(w);saveState();}
 function toggleWorkoutDone(i){const w=state.workouts[i],v=!w.done;w.setList.forEach(x=>x.done=v);syncW(w);saveState();}
 function previousExercisePerformance(name){
- const key=String(name||'').trim().toLowerCase();
- for(const session of (state.sessions||[])){
-  const ex=(session.exercises||[]).find(x=>String(x.name||'').trim().toLowerCase()===key);
-  if(ex&&Array.isArray(ex.sets)&&ex.sets.length){
-   const sets=ex.sets.filter(x=>Number.isFinite(Number(x.kg))&&Number.isFinite(Number(x.reps)));
-   if(sets.length)return {sets, date:session.date};
+  const key=String(name||'').trim().toLowerCase();
+  for(const session of (state.sessions||[])){
+   const ex=(session.exercises||[]).find(x=>String(x.name||'').trim().toLowerCase()===key);
+   if(ex&&Array.isArray(ex.sets)&&ex.sets.length){
+    const sets=ex.sets.filter(x=>Number.isFinite(Number(x.kg))&&Number.isFinite(Number(x.reps))&&Number(x.kg)>=0&&Number(x.reps)>0);
+    if(sets.length)return {sets, date:session.date};
+   }
   }
- }
+  return null;
+}
+function bestPreviousSet(sets){return (sets||[]).reduce((best,x)=>!best||calculate1RM(x.kg,x.reps)>calculate1RM(best.kg,best.reps)?x:best,null);}
+function applyPreviousBest(i){const w=state.workouts[i],p=previousExercisePerformance(w&&w.name);if(!w||!p)return showToast('No previous performance for this exercise yet');const best=bestPreviousSet(p.sets);if(!best)return;w.setList.forEach(x=>{x.kg=Number(best.kg);x.reps=Number(best.reps);});saveState();showToast('Previous best applied to all sets');}
+function setEstimateMarkup(i,j,x){return '<div class="set-estimate" id="setEstimate-'+i+'-'+j+'">Est. 1RM: '+format1RM(x.kg,x.reps)+'</div>';}
+function updateSetEstimate(i,j,field,value){const x=state.workouts[i]?.setList?.[j];if(!x)return;const n=Number(value);if(Number.isFinite(n)&&n>=0)x[field]=field==='reps'?Math.max(1,Math.round(n)||1):Math.min(1000,Math.round(n*100)/100);const el=$('setEstimate-'+i+'-'+j);if(el)el.textContent='Est. 1RM: '+format1RM(x.kg,x.reps);}
  return null;
 }
 function exerciseHistoryMarkup(name){
@@ -1859,10 +1868,10 @@ function viewExerciseHistory(name){
  host.innerHTML='<div class="panel" style="margin:16px 0"><div class="section-title"><span>'+esc(name)+' · History</span><button class="btn" onclick="closeExerciseHistory()">Close</button></div>'+exerciseHistoryMarkup(name)+'</div>';
 }
 function addEx(id){const x=allEx().find(e=>e.id===id);if(!x)return;
- const previous=previousExercisePerformance(x.name),latest=previous&&previous.sets.length?previous.sets[previous.sets.length-1]:null;
- const kg=latest?Number(latest.kg):(state.lastKg[x.name]||20),reps=latest?Number(latest.reps):10;
+ const previous=previousExercisePerformance(x.name),best=previous&&previous.sets.length?bestPreviousSet(previous.sets):null;
+ const kg=best?Number(best.kg):(state.lastKg[x.name]||20),reps=best?Number(best.reps):10;
  state.workouts.push(syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg,reps,done:false}))}));
- saveState();showToast(previous?x.name+' added · previous performance loaded':' '+x.name+' added · 3 sets');previewEx(id);}
+ saveState();showToast(previous?'Previous best loaded · '+kg+' kg × '+reps:' '+x.name+' added · 3 sets');previewEx(id);}
 function addCustom(){const n=$('cName').value.trim().slice(0,60);if(!n)return showToast('Enter an exercise name');
   if(!allEx().some(x=>x.name.toLowerCase()===n.toLowerCase()))state.customEx.push(mkEx(n,$('cEquip').value,$('cMuscle').value,[],true));
   const x=allEx().find(e=>e.name.toLowerCase()===n.toLowerCase());$('cName').value='';addEx(x.id);renderPicker();}
@@ -1937,8 +1946,8 @@ function renderTrainingLog(){renderRoutineLibrary();const wi=weekInfo(),sb=$('se
   $('liveStats').innerHTML=state.workouts.length?'<div class="stat-row"><div class="stat"><b>'+Math.round(v).toLocaleString()+'</b><span>kg volume</span></div><div class="stat"><b>'+sd+'/'+st+'</b><span>sets done</span></div><div class="stat"><b>'+r+'</b><span>reps done</span></div><div class="stat"><b>'+state.workouts.length+'</b><span>exercises</span></div></div>':'';
   $('trainingLogList').innerHTML=state.workouts.length?state.workouts.map((w,i)=>'<div class="panel" style="margin-bottom:12px"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button class="btn" onclick="addSet('+i+')">+ Set</button><button class="btn btn-icon-only" style="color:var(--danger)" aria-label="Remove '+esc(w.name)+'" onclick="deleteWorkout('+i+')">✕</button></span></div>'+
    '<div class="setrow sub"><span>Set</span><span>kg</span><span>Reps</span><span>Done</span><span></span></div>'+
-   w.setList.map((x,j)=>'<div class="setrow"><span>#'+(j+1)+'</span><input type="number" min="0" step="0.5" value="'+x.kg+'" aria-label="'+esc(w.name)+' set '+(j+1)+' weight in kilograms" onchange="setVal('+i+','+j+',\'kg\',this.value)"><input type="number" min="1" step="1" value="'+x.reps+'" aria-label="'+esc(w.name)+' set '+(j+1)+' reps" onchange="setVal('+i+','+j+',\'reps\',this.value)"><button class="check-btn '+(x.done?'done':'')+'" aria-pressed="'+x.done+'" aria-label="Set '+(j+1)+' done" onclick="toggleSet('+i+','+j+')">'+(x.done?'✓':'')+'</button><button class="btn btn-icon-only" aria-label="Remove set '+(j+1)+'" onclick="removeSet('+i+','+j+')">−</button></div>').join('')+
-   '<div class="sub" style="margin-top:6px">Volume: '+Math.round(vol(w))+' kg</div></div>').join(''):'<div class="empty-box"><p>No exercises yet. Search the library above and tap “+ Add”.</p></div>';
+   w.setList.map((x,j)=>'<div class="setrow"><span>#'+(j+1)+'</span><input type="number" inputmode="decimal" min="0" step="0.5" value="'+x.kg+'" aria-label="'+esc(w.name)+' set '+(j+1)+' weight in kilograms" oninput="updateSetEstimate('+i+','+j+',\'kg\',this.value)" onchange="setVal('+i+','+j+',\'kg\',this.value)"><input type="number" inputmode="numeric" min="1" step="1" value="'+x.reps+'" aria-label="'+esc(w.name)+' set '+(j+1)+' reps" oninput="updateSetEstimate('+i+','+j+',\'reps\',this.value)" onchange="setVal('+i+','+j+',\'reps\',this.value)"><button class="check-btn '+(x.done?'done':'')+'" aria-pressed="'+x.done+'" aria-label="Set '+(j+1)+' done" onclick="toggleSet('+i+','+j+')">'+(x.done?'✓':'')+'</button><button class="btn btn-icon-only" aria-label="Remove set '+(j+1)+'" onclick="removeSet('+i+','+j+')">−</button>'+setEstimateMarkup(i,j,x)+'</div>').join('')+
+   (previousExercisePerformance(w.name)?'<div class="set-tools"><small>Previous best: '+esc(bestPreviousSet(previousExercisePerformance(w.name)).kg)+' kg × '+esc(bestPreviousSet(previousExercisePerformance(w.name)).reps)+' · '+format1RM(bestPreviousSet(previousExercisePerformance(w.name)).kg,bestPreviousSet(previousExercisePerformance(w.name)).reps)+' e1RM</small><button class="btn" onclick="applyPreviousBest('+i+')">↺ Use previous best</button></div>':'<div class="set-tools"><small>Estimated 1RM updates as you enter weight and reps.</small></div>')+'<div class="sub" style="margin-top:6px">Volume: '+Math.round(vol(w))+' kg</div></div>').join(''):'<div class="empty-box"><p>No exercises yet. Search the library above and tap “+ Add”.</p></div>';
   const m=state.lastSummary,p=state.sessions[1];
   $('sessionSummary').innerHTML=m?'<div class="panel" style="margin-bottom:20px"><div class="section-title"><span>🎉 Workout complete</span><button class="btn" onclick="state.lastSummary=null;saveState()">Dismiss</button></div><div class="stat-row"><div class="stat"><b>'+m.mins+' min</b><span>duration</span></div><div class="stat"><b>'+m.vol.toLocaleString()+' kg</b><span>total volume</span></div><div class="stat"><b>'+m.sets+'</b><span>sets</span></div><div class="stat"><b>'+m.reps+'</b><span>reps</span></div><div class="stat"><b>'+m.ex+'</b><span>exercises</span></div></div><p class="sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc(m.names.join(', '))+'</p></div>':'';
   $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="history-session" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+(x.vol||0).toLocaleString()+' kg · '+(x.sets||0)+' sets</span></summary><div style="margin-top:12px">'+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(ex.name)+'</strong><button class="btn" onclick="viewExerciseHistoryForSession('+i+','+exIndex+');event.preventDefault()">Exercise history</button></div><div class="sub" style="margin-top:5px">'+(ex.sets||[]).map((set,j)=>'Set '+(j+1)+': '+esc(set.kg)+' kg × '+esc(set.reps)).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}

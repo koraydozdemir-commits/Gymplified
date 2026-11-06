@@ -1849,8 +1849,6 @@ function bestPreviousSet(sets){return (sets||[]).reduce((best,x)=>!best||calcula
 function applyPreviousBest(i){const w=state.workouts[i],p=previousExercisePerformance(w&&w.name);if(!w||!p)return showToast('No previous performance for this exercise yet');const best=bestPreviousSet(p.sets);if(!best)return;w.setList.forEach(x=>{x.kg=Number(best.kg);x.reps=Number(best.reps);});saveState();showToast('Previous best applied to all sets');}
 function setEstimateMarkup(i,j,x){return '<div class="set-estimate" id="setEstimate-'+i+'-'+j+'">Est. 1RM: '+format1RM(x.kg,x.reps)+'</div>';}
 function updateSetEstimate(i,j,field,value){const x=state.workouts[i]?.setList?.[j];if(!x)return;const n=Number(value);if(Number.isFinite(n)&&n>=0)x[field]=field==='reps'?Math.max(1,Math.round(n)||1):Math.min(1000,Math.round(n*100)/100);const el=$('setEstimate-'+i+'-'+j);if(el)el.textContent='Est. 1RM: '+format1RM(x.kg,x.reps);}
- return null;
-}
 function exerciseHistoryMarkup(name){
  const key=String(name||'').trim().toLowerCase();
  const rows=[];

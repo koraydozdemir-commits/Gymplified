@@ -1320,9 +1320,9 @@ function selectMachine(id) {
 function addSelectedMachineToLog() {
   if (!selectedMachine) return;
   const previous=previousExercisePerformance(selectedMachine.name);
-  const last=previous&&previous.sets.length?previous.sets[previous.sets.length-1]:null;
-  const kg=last?Number(last.kg):(state.lastKg[selectedMachine.name]||20);
-  const reps=last?Number(last.reps):10;
+  const best=previous&&previous.sets.length?bestPreviousSet(previous.sets):null;
+  const kg=best?Number(best.kg):(state.lastKg[selectedMachine.name]||20);
+  const reps=best?Number(best.reps):10;
   state.workouts.push(syncW({
     name:selectedMachine.name,
     muscle:selectedMachine.primary[0]?selectedMachine.primary[0].toUpperCase():'GENERAL',

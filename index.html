@@ -1481,7 +1481,8 @@ function resetWater() {
 
 function openLogModal() {
   showScreen('training', document.querySelectorAll('nav button')[2]);
-  document.getElementById('inputExName').focus();
+  const search=$('exSearch');
+  if(search){search.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>search.focus({preventScroll:true}),180);}
 }
 
 function openCalorieModal() {
@@ -1815,7 +1816,23 @@ Bodyweight:'Pull-Up:la:bi;Chin-Up:bi:la;Inverted Row:la:bi;Push-Up:ch:tr,sh;Dips
 const EX=[];Object.keys(LIB).forEach(eq=>LIB[eq].split(';').forEach(t=>{const p=t.split(':');EX.push(mkEx(p[0],eq,MC[p[1]],(p[2]?p[2].split(','):[]).map(c=>MC[c]),false));}));
 const allEx=()=>EX.concat(state.customEx);
 function syncW(w){w.sets=w.setList.length;w.weight=Math.max(0,...w.setList.map(x=>x.kg));w.reps=w.setList.length?w.setList[0].reps:0;w.done=w.setList.length>0&&w.setList.every(x=>x.done);return w;}
-function ensureSets(w){if(!Array.isArray(w.setList))w.setList=Array.from({length:Math.max(1,w.sets||3)},()=>({kg:w.weight||0,reps:w.reps||10,done:!!w.done}));return syncW(w);}
+function ensureSets(w){
+ if(!w||typeof w!=='object')w={};
+ w.name=String(w.name||w.exercise||'Exercise');
+ w.muscle=String(w.muscle||'');
+ if(!Array.isArray(w.setList)||!w.setList.length){
+  const count=Math.max(1,Math.min(20,Number(w.sets)||3));
+  w.setList=Array.from({length:count},()=>({kg:Number(w.weight)||0,reps:Number(w.reps)||10,done:!!w.done}));
+ }else{
+  w.setList=w.setList.filter(x=>x&&typeof x==='object').map(x=>({
+   kg:Number.isFinite(Number(x.kg))?Math.max(0,Number(x.kg)):0,
+   reps:Number.isFinite(Number(x.reps))?Math.max(1,Math.round(Number(x.reps))):10,
+   done:!!x.done
+  }));
+  if(!w.setList.length)w.setList=[{kg:0,reps:10,done:false}];
+ }
+ return syncW(w);
+}
 const vol=w=>w.setList.filter(x=>x.done).reduce((a,x)=>a+x.kg*x.reps,0);
 const prevWk=k=>{const d=new Date(k+'T12:00');d.setDate(d.getDate()-7);return dayKey(d);};
 const wkKey=d=>{const x=new Date(d);x.setDate(x.getDate()-(x.getDay()+6)%7);return dayKey(x);};
@@ -1824,7 +1841,7 @@ const clock=()=>{const t=Math.floor((Date.now()-state.session.start)/1000),h=Mat
 setInterval(()=>{const e=$('sessClock');if(e&&state.session)e.textContent=clock();},1000);
 function localDateTimeValue(timestamp){const d=new Date(Number(timestamp)||Date.now());const offset=d.getTimezoneOffset()*60000;return new Date(d.getTime()-offset).toISOString().slice(0,16);}
 function editSessionStart(value){if(!state.session||!value)return;const parsed=new Date(value).getTime();if(!Number.isFinite(parsed)||parsed>Date.now()+60000){showToast('Choose a valid start time');renderTrainingLog();return;}state.session.start=parsed;saveState();showToast('Workout start time updated');}
-function startSession(){if(state.session)return;state.session={start:Date.now()};saveState();showToast('Workout started — good luck! 💪');}
+function startSession(){if(state.session)return;const field=$('plannedSessionStart'),chosen=field&&field.value?new Date(field.value).getTime():Date.now();if(!Number.isFinite(chosen)||chosen>Date.now()+60000){showToast('Choose a valid start date and time');return;}state.session={start:chosen};saveState();showToast('Workout started — good luck! 💪');}
 function cancelSession(){if(confirm('Cancel this workout without saving stats?')){state.session=null;saveState();}}
 function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names=[];
   state.workouts.forEach(w=>{const d=w.setList.filter(x=>x.done);if(d.length){ex++;names.push(w.name);}d.forEach(x=>{st++;r+=x.reps;v+=x.kg*x.reps;});});
@@ -1963,9 +1980,10 @@ function initPicker(){const mo=Object.values(MC).map(m=>'<option value="'+m+'">'
   $('exMuscle').innerHTML='<option value="">All muscles</option>'+mo;$('exEquip').innerHTML='<option value="">All equipment</option>'+eo;$('cMuscle').innerHTML=mo;$('cEquip').innerHTML=eo+'<option>Other</option>';renderPicker();previewEx(null);}
 function renderTrainingLog(){
  if(!Array.isArray(state.workouts))state.workouts=[];
- state.workouts.forEach(w=>{if(w)ensureSets(w);});
+ state.workouts=state.workouts.filter(w=>w&&typeof w==='object').map(w=>ensureSets(w));
+ if(!Array.isArray(state.sessions))state.sessions=[];
  renderRoutineLibrary();const wi=weekInfo(),sb=$('sessBar');
-  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="sub" style="display:grid;gap:5px">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" onchange="editSessionStart(this.value)" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" onclick="endSession()">■ Finish workout</button><button class="btn" onclick="cancelSession()">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" onclick="startSession()">▶ Start workout</button><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
+  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="sub" style="display:grid;gap:5px">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" onchange="editSessionStart(this.value)" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" onclick="endSession()">■ Finish workout</button><button class="btn" onclick="cancelSession()">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" onclick="startSession()">▶ Start workout</button><label class="sub" style="display:grid;gap:5px">Set start date & time <input id="plannedSessionStart" type="datetime-local" value="'+localDateTimeValue(Date.now())+'" aria-label="Choose workout start date and time"></label><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
   let v=0,sd=0,st=0,r=0;state.workouts.forEach(w=>{v+=vol(w);st+=w.setList.length;w.setList.forEach(x=>{if(x.done){sd++;r+=x.reps;}});});
   $('liveStats').innerHTML=state.workouts.length?'<div class="stat-row"><div class="stat"><b>'+Math.round(v).toLocaleString()+'</b><span>kg volume</span></div><div class="stat"><b>'+sd+'/'+st+'</b><span>sets done</span></div><div class="stat"><b>'+r+'</b><span>reps done</span></div><div class="stat"><b>'+state.workouts.length+'</b><span>exercises</span></div></div>':'';
   $('trainingLogList').innerHTML=state.workouts.length?state.workouts.map((w,i)=>'<div class="panel" style="margin-bottom:12px"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button class="btn" onclick="addSet('+i+')">+ Set</button><button class="btn btn-icon-only" style="color:var(--danger)" aria-label="Remove '+esc(w.name)+'" onclick="deleteWorkout('+i+')">✕</button></span></div>'+

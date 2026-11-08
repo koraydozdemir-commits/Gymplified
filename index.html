@@ -1381,21 +1381,21 @@ function clearAllPRs() {
 
 // --- WORKOUT ACTIONS ---
 function saveDirectExercise() {
-  const name = document.getElementById('inputExName').value.trim();
-  const muscle = document.getElementById('inputExMuscle').value;
-  const weight = Math.max(0, parseFloat(document.getElementById('inputExWeight').value) || 0);
-  const sets = Math.max(1, parseInt(document.getElementById('inputExSets').value) || 1);
-  const reps = Math.max(1, parseInt(document.getElementById('inputExReps').value) || 1);
-
-  if (!name) {
-    showToast('Please enter an exercise or machine name');
-    return;
-  }
-
-  state.workouts.push({ name, muscle, weight, sets, reps, done: false });
-  document.getElementById('inputExName').value = '';
-  saveState();
-  showToast(`Saved exercise: ${name}`);
+  const name = $('inputExName').value.trim();
+  const muscle = $('inputExMuscle').value || 'chest';
+  const weight = Math.max(0,Number($('inputExWeight').value)||0);
+  const sets = Math.max(1,Math.min(30,parseInt($('inputExSets').value,10)||3));
+  const reps = Math.max(1,Math.min(1000,parseInt($('inputExReps').value,10)||10));
+  if(!name){showToast('Please enter an exercise or machine name');return;}
+  const workout=syncW({name,muscle:cap(muscle),setList:Array.from({length:sets},()=>({kg:weight,reps,done:false}))});
+  if(!Array.isArray(state.workouts))state.workouts=[];
+  state.workouts.push(workout);
+  $('inputExName').value='';
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){console.error('Workout save failed',e);}
+  try{queueCloudStateSave();}catch(e){console.warn(e);}
+  try{renderTrainingLog();}catch(e){console.error('Training log render failed',e);showToast('Exercise saved, but the workout list could not refresh. Please reload.');}
+  try{renderDashboard();}catch(e){console.warn(e);}
+  showToast('Added '+name+' · '+sets+' editable sets');
 }
 
 function deleteWorkout(index) {
@@ -1822,15 +1822,20 @@ const wkKey=d=>{const x=new Date(d);x.setDate(x.getDate()-(x.getDay()+6)%7);retu
 function weekInfo(){const c={};state.sessions.forEach(x=>{const k=wkKey(x.date+'T12:00');c[k]=(c[k]||0)+1;});const g=state.weeklyGoal,cur=wkKey(new Date()),n=c[cur]||0;let k=n>=g?cur:prevWk(cur),st=0;while((c[k]||0)>=g&&st<520){st++;k=prevWk(k);}return{n,g,st};}
 const clock=()=>{const t=Math.floor((Date.now()-state.session.start)/1000),h=Math.floor(t/3600),m=Math.floor(t%3600/60),q=t%60;return (h?h+':':'')+String(m).padStart(h?2:1,'0')+':'+String(q).padStart(2,'0');};
 setInterval(()=>{const e=$('sessClock');if(e&&state.session)e.textContent=clock();},1000);
+function localDateTimeValue(timestamp){const d=new Date(Number(timestamp)||Date.now());const offset=d.getTimezoneOffset()*60000;return new Date(d.getTime()-offset).toISOString().slice(0,16);}
+function editSessionStart(value){if(!state.session||!value)return;const parsed=new Date(value).getTime();if(!Number.isFinite(parsed)||parsed>Date.now()+60000){showToast('Choose a valid start time');renderTrainingLog();return;}state.session.start=parsed;saveState();showToast('Workout start time updated');}
 function startSession(){if(state.session)return;state.session={start:Date.now()};saveState();showToast('Workout started — good luck! 💪');}
 function cancelSession(){if(confirm('Cancel this workout without saving stats?')){state.session=null;saveState();}}
 function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names=[];
   state.workouts.forEach(w=>{const d=w.setList.filter(x=>x.done);if(d.length){ex++;names.push(w.name);}d.forEach(x=>{st++;r+=x.reps;v+=x.kg*x.reps;});});
   if(!st){if(confirm('No sets are ticked off yet. End without saving?')){state.session=null;saveState();}return;}
-  const sum={date:dayKey(),mins:Math.max(1,Math.round((Date.now()-state.session.start)/6e4)),vol:Math.round(v),sets:st,reps:r,ex,names};
+  const finishedAt=Date.now(),startedAt=Number(state.session.start)||finishedAt;
+  const sum={date:dayKey(new Date(startedAt)),startedAt:new Date(startedAt).toISOString(),finishedAt:new Date(finishedAt).toISOString(),mins:Math.max(1,Math.round((finishedAt-startedAt)/6e4)),vol:Math.round(v),sets:st,reps:r,ex,names};
   sum.exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,sets:w.setList.filter(x=>x.done).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||0}))})).filter(x=>x.sets.length);
   state.sessions.unshift(sum);state.sessions=state.sessions.slice(0,200);state.lastSummary=sum;state.session=null;
   gainXP(40,'Workout complete');if(weekInfo().n===state.weeklyGoal)gainXP(50,'Weekly goal hit! 🗓');confetti();saveState();}
+function editHistoryTime(index,value){const session=state.sessions[index];if(!session||!value)return;const timestamp=new Date(value).getTime();if(!Number.isFinite(timestamp)){showToast('Enter a valid workout date and time');return;}session.startedAt=new Date(timestamp).toISOString();session.date=dayKey(new Date(timestamp));if(session.finishedAt){const elapsed=Math.max(1,Math.round((new Date(session.finishedAt).getTime()-timestamp)/60000));session.mins=elapsed;}saveState();showToast('Workout date and time updated');}
+function editHistoryDuration(index,value){const session=state.sessions[index];if(!session)return;const mins=Math.max(1,Math.min(1440,parseInt(value,10)||1));session.mins=mins;if(session.startedAt)session.finishedAt=new Date(new Date(session.startedAt).getTime()+mins*60000).toISOString();saveState();showToast('Workout duration updated');}
 function reuseRoutine(){if(!state.lastSession.length)return showToast('No previous routine yet');state.workouts=state.workouts.concat(state.lastSession.map(w=>{const c=JSON.parse(JSON.stringify(w));c.setList.forEach(x=>x.done=false);c.xp=0;return syncW(c);}));saveState();showToast('Routine loaded');}
 function setVal(i,j,k,v){const w=state.workouts[i],x=w.setList[j];v=parseFloat(v);if(!(v>=0))v=0;x[k]=k==='reps'?Math.max(1,Math.round(v)||1):Math.min(1000,Math.round(v*100)/100);syncW(w);saveState();}
 function toggleSet(i,j){const w=state.workouts[i],x=w.setList[j];x.done=!x.done;if(x.done)state.lastKg[w.name]=x.kg;syncW(w);saveState();}
@@ -1956,8 +1961,11 @@ function renderPicker(){const q=$('exSearch').value.toLowerCase().trim(),m=$('ex
   $('customBox').open=!r.length;if(!r.length&&!$('cName').value)$('cName').value=$('exSearch').value.slice(0,60);}
 function initPicker(){const mo=Object.values(MC).map(m=>'<option value="'+m+'">'+cap(m)+'</option>').join(''),eo=Object.keys(LIB).map(e=>'<option>'+e+'</option>').join('');
   $('exMuscle').innerHTML='<option value="">All muscles</option>'+mo;$('exEquip').innerHTML='<option value="">All equipment</option>'+eo;$('cMuscle').innerHTML=mo;$('cEquip').innerHTML=eo+'<option>Other</option>';renderPicker();previewEx(null);}
-function renderTrainingLog(){renderRoutineLibrary();const wi=weekInfo(),sb=$('sessBar');
-  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><button class="btn btn-primary" onclick="endSession()">■ Finish workout</button><button class="btn" onclick="cancelSession()">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" onclick="startSession()">▶ Start workout</button><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
+function renderTrainingLog(){
+ if(!Array.isArray(state.workouts))state.workouts=[];
+ state.workouts.forEach(w=>{if(w)ensureSets(w);});
+ renderRoutineLibrary();const wi=weekInfo(),sb=$('sessBar');
+  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="sub" style="display:grid;gap:5px">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" onchange="editSessionStart(this.value)" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" onclick="endSession()">■ Finish workout</button><button class="btn" onclick="cancelSession()">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" onclick="startSession()">▶ Start workout</button><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
   let v=0,sd=0,st=0,r=0;state.workouts.forEach(w=>{v+=vol(w);st+=w.setList.length;w.setList.forEach(x=>{if(x.done){sd++;r+=x.reps;}});});
   $('liveStats').innerHTML=state.workouts.length?'<div class="stat-row"><div class="stat"><b>'+Math.round(v).toLocaleString()+'</b><span>kg volume</span></div><div class="stat"><b>'+sd+'/'+st+'</b><span>sets done</span></div><div class="stat"><b>'+r+'</b><span>reps done</span></div><div class="stat"><b>'+state.workouts.length+'</b><span>exercises</span></div></div>':'';
   $('trainingLogList').innerHTML=state.workouts.length?state.workouts.map((w,i)=>'<div class="panel" style="margin-bottom:12px"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button class="btn" onclick="addSet('+i+')">+ Set</button><button class="btn btn-icon-only" style="color:var(--danger)" aria-label="Remove '+esc(w.name)+'" onclick="deleteWorkout('+i+')">✕</button></span></div>'+
@@ -1966,7 +1974,7 @@ function renderTrainingLog(){renderRoutineLibrary();const wi=weekInfo(),sb=$('se
    (previousExercisePerformance(w.name)?'<div class="set-tools"><small>Previous best: '+esc(bestPreviousSet(previousExercisePerformance(w.name)).kg)+' kg × '+esc(bestPreviousSet(previousExercisePerformance(w.name)).reps)+' · '+format1RM(bestPreviousSet(previousExercisePerformance(w.name)).kg,bestPreviousSet(previousExercisePerformance(w.name)).reps)+' e1RM</small><button class="btn" onclick="applyPreviousBest('+i+')">↺ Use previous best</button></div>':'<div class="set-tools"><small>Estimated 1RM updates as you enter weight and reps.</small></div>')+'<div class="sub" style="margin-top:6px">Volume: '+Math.round(vol(w))+' kg</div></div>').join(''):'<div class="empty-box"><p>No exercises yet. Search the library above and tap “+ Add”.</p></div>';
   const m=state.lastSummary,p=state.sessions[1];
   $('sessionSummary').innerHTML=m?'<div class="panel" style="margin-bottom:20px"><div class="section-title"><span>🎉 Workout complete</span><button class="btn" onclick="state.lastSummary=null;saveState()">Dismiss</button></div><div class="stat-row"><div class="stat"><b>'+m.mins+' min</b><span>duration</span></div><div class="stat"><b>'+m.vol.toLocaleString()+' kg</b><span>total volume</span></div><div class="stat"><b>'+m.sets+'</b><span>sets</span></div><div class="stat"><b>'+m.reps+'</b><span>reps</span></div><div class="stat"><b>'+m.ex+'</b><span>exercises</span></div></div><p class="sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc(m.names.join(', '))+'</p></div>':'';
-  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="history-session" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+(x.vol||0).toLocaleString()+' kg · '+(x.sets||0)+' sets</span></summary><div style="margin-top:12px">'+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(ex.name)+'</strong><button class="btn" onclick="viewExerciseHistoryForSession('+i+','+exIndex+');event.preventDefault()">Exercise history</button></div><div class="sub" style="margin-top:5px">'+(ex.sets||[]).map((set,j)=>'Set '+(j+1)+': '+esc(set.kg)+' kg × '+esc(set.reps)).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
+  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="history-session" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+(x.vol||0).toLocaleString()+' kg · '+(x.sets||0)+' sets</span></summary><div style="margin-top:12px"><div class="row-wrap" style="padding:10px 0;border-bottom:1px solid var(--line)"><label class="sub" style="display:grid;gap:5px">Workout date & start time<input type="datetime-local" value="'+localDateTimeValue(x.startedAt?new Date(x.startedAt).getTime():new Date((x.date||dayKey())+'T12:00').getTime())+'" onchange="editHistoryTime('+i+',this.value)"></label><label class="sub" style="display:grid;gap:5px">Duration (minutes)<input type="number" min="1" max="1440" value="'+(x.mins||1)+'" onchange="editHistoryDuration('+i+',this.value)"></label></div>'+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(ex.name)+'</strong><button class="btn" onclick="viewExerciseHistoryForSession('+i+','+exIndex+');event.preventDefault()">Exercise history</button></div><div class="sub" style="margin-top:5px">'+(ex.sets||[]).map((set,j)=>'Set '+(j+1)+': '+esc(set.kg)+' kg × '+esc(set.reps)).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
 
 // ===== Gymplified accounts + real friend connections =====
 const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';

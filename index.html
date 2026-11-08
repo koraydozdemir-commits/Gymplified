@@ -1099,20 +1099,43 @@ function queueCloudStateSave(){
     finally{cloudSaveBusy=false;}
   },900);
 }
+function migrateAccountSnapshot(snapshot){
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot));
+ state=bootState();
+ state.workouts=(Array.isArray(state.workouts)?state.workouts:[]).filter(w=>w&&typeof w==='object').map(w=>ensureSets(w));
+ state.customEx=(Array.isArray(state.customEx)?state.customEx:[]).map((x,i)=>normalizeCustomExercise(x,i)).filter(Boolean);
+ state.routines=(Array.isArray(state.routines)?state.routines:[]).filter(r=>r&&typeof r==='object').map((r,i)=>{
+  const exercises=(Array.isArray(r.exercises)?r.exercises:[]).filter(Boolean).map(w=>{
+   const sets=(Array.isArray(w.setList)?w.setList:[]).filter(Boolean).map(s=>({kg:Math.max(0,Number(s.kg)||0),reps:Math.max(1,Math.round(Number(s.reps)||10)),done:false}));
+   return {name:String(w.name||w.exercise||'Exercise'),muscle:String(w.muscle||''),setList:sets.length?sets:[{kg:0,reps:10,done:false}]};
+  });
+  return {id:String(r.id||'legacy-routine-'+i),name:String(r.name||'Saved routine'),exercises};
+ });
+ state.sessions=(Array.isArray(state.sessions)?state.sessions:[]).filter(s=>s&&typeof s==='object').map(s=>{
+  const exercises=(Array.isArray(s.exercises)?s.exercises:[]).filter(Boolean).map(ex=>{
+   const sets=(Array.isArray(ex.sets)?ex.sets:[]).filter(Boolean).map(set=>({kg:Math.max(0,Number(set.kg)||0),reps:Math.max(1,Math.round(Number(set.reps)||1))}));
+   return {name:String(ex.name||'Exercise'),sets};
+  });
+  return Object.assign({},s,{date:String(s.date||dayKey()),exercises});
+ });
+ localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+}
 async function syncUserAppState(){
-  if(!sb||!currentUser||cloudSyncUserId===currentUser.id)return;
-  const id=currentUser.id;cloudSyncUserId=id;
-  try{
-    const r=await sb.from('user_app_state').select('state').eq('user_id',id).maybeSingle();
-    if(r.error)throw r.error;
-    if(r.data&&r.data.state&&typeof r.data.state==='object'){
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(r.data.state));
-      state=bootState();applySettings();renderAll();
-    }else{
-      const saved=await sb.from('user_app_state').upsert({user_id:id,state:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-      if(saved.error)throw saved.error;
-    }
-  }catch(e){cloudSyncUserId=null;console.warn('Gymplified cloud progress could not be loaded:',e.message||e);}
+ if(!sb||!currentUser||cloudSyncUserId===currentUser.id)return;
+ const id=currentUser.id;cloudSyncUserId=id;
+ try{
+  const r=await sb.from('user_app_state').select('state').eq('user_id',id).maybeSingle();
+  if(r.error)throw r.error;
+  if(r.data&&r.data.state&&typeof r.data.state==='object'){
+   migrateAccountSnapshot(r.data.state);
+   applySettings();renderAll();initPicker();
+   const migrated=await sb.from('user_app_state').upsert({user_id:id,state:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+   if(migrated.error)console.warn('Gymplified account migration could not be saved:',migrated.error.message);
+  }else{
+   const saved=await sb.from('user_app_state').upsert({user_id:id,state:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+   if(saved.error)throw saved.error;
+  }
+ }catch(e){cloudSyncUserId=null;console.warn('Gymplified cloud progress could not be loaded:',e.message||e);}
 }
 
 
@@ -1734,7 +1757,9 @@ function weeklyRecapMarkup(){
  '<div class="meta-row"><span>'+comparison+'</span><span>'+w.weekCount+'/'+w.goal+' weekly goal</span></div><div class="row-wrap" style="margin-top:10px"><button class="btn" type="button" onclick="shareWeeklyRecap()">Share weekly recap</button></div>';
 }
 function renderRoutineLibrary(){
- const host=$('routineLibrary');if(!host)return;const routines=Array.isArray(state.routines)?state.routines:[];
+ const host=$('routineLibrary');if(!host)return;
+ state.routines=(Array.isArray(state.routines)?state.routines:[]).filter(r=>r&&typeof r==='object').map((r,i)=>({id:String(r.id||'legacy-routine-'+i),name:String(r.name||'Saved routine'),exercises:Array.isArray(r.exercises)?r.exercises:[]}));
+ const routines=state.routines;
  host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="btn" style="height:25px;padding:0 7px;margin-left:5px" onclick="loadSavedRoutine('+i+')">Load</button> <button class="btn" style="height:25px;padding:0 7px" aria-label="Delete '+esc(r.name)+'" onclick="deleteSavedRoutine('+i+')">×</button></span>').join('')+'</div>':'<p class="sub" style="margin-top:8px">Save your favourite workout combinations here so you can reuse them anytime.</p>';
 }
 function saveCurrentRoutine(){
@@ -1814,7 +1839,15 @@ Cable:'Cable Triceps Pushdown:tr;Rope Pushdown:tr;Cable Biceps Curl:bi;Cable Row
 Kettlebell:'Kettlebell Swing:gl:ha;Kettlebell Goblet Squat:qu:gl;Kettlebell Clean:sh:gl;Kettlebell Clean and Press:sh:tr,gl;Kettlebell Snatch:sh:gl;Kettlebell Turkish Get-Up:ab:sh;Kettlebell Windmill:ab:sh;Kettlebell Suitcase Carry:ab:fo;Kettlebell Deadlift:ha:gl;Kettlebell Reverse Lunge:qu:gl',
 Bodyweight:'Pull-Up:la:bi;Chin-Up:bi:la;Inverted Row:la:bi;Push-Up:ch:tr,sh;Dips:tr:ch,sh;Pike Push-Up:sh:tr;Plank:ab;Crunch:ab;Hanging Leg Raise:ab;Russian Twist:ab;Mountain Climbers:ab:sh;Bodyweight Squat:qu:gl;Walking Lunge:qu:gl;Glute Bridge:gl:ha;Calf Raise (Bodyweight):ca;Burpees:qu:ch,sh;Dead Hang:fo:la'};
 const EX=[];Object.keys(LIB).forEach(eq=>LIB[eq].split(';').forEach(t=>{const p=t.split(':');EX.push(mkEx(p[0],eq,MC[p[1]],(p[2]?p[2].split(','):[]).map(c=>MC[c]),false));}));
-const allEx=()=>EX.concat(state.customEx);
+function normalizeCustomExercise(x,i){
+ if(!x||typeof x!=='object')return null;
+ const validMuscles=Object.values(MC);
+ const pm=validMuscles.includes(x.pm)?x.pm:(validMuscles.includes(x.muscle)?x.muscle:'chest');
+ const sec=(Array.isArray(x.sec)?x.sec:[]).filter(m=>validMuscles.includes(m)&&m!==pm);
+ const name=String(x.name||x.title||'Custom exercise').trim().slice(0,80)||'Custom exercise';
+ return {id:String(x.id||('c-'+slug(name)+'-'+i)),name,eq:String(x.eq||x.equipment||'Other'),pm,sec,custom:true};
+}
+const allEx=()=>EX.concat((Array.isArray(state.customEx)?state.customEx:[]).map((x,i)=>normalizeCustomExercise(x,i)).filter(Boolean));
 function syncW(w){w.sets=w.setList.length;w.weight=Math.max(0,...w.setList.map(x=>x.kg));w.reps=w.setList.length?w.setList[0].reps:0;w.done=w.setList.length>0&&w.setList.every(x=>x.done);return w;}
 function ensureSets(w){
  if(!w||typeof w!=='object')w={};
@@ -1973,7 +2006,7 @@ function previewEx(id){const x=id&&allEx().find(e=>e.id===id),b=$('exPreview');
   const prev=previousExercisePerformance(x.name),last=prev&&prev.sets.length?prev.sets[prev.sets.length-1]:null;
   b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+x.eq+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="sub" style="margin-top:10px">Last time · '+esc(prev.date)+' · '+esc(last.kg)+' kg × '+esc(last.reps)+' reps</p>':'<p class="sub" style="margin-top:10px">No previous performance logged yet.</p>')+'<button class="btn" style="margin-top:10px" onclick="viewExerciseHistoryById(\''+x.id+'\')">View exercise history</button>';}
 function renderPicker(){const q=$('exSearch').value.toLowerCase().trim(),m=$('exMuscle').value,e=$('exEquip').value;
-  const r=allEx().filter(x=>(!m||x.pm===m||x.sec.includes(m))&&(!e||x.eq===e)&&(!q||(x.name+' '+x.eq+' '+x.pm+' '+x.sec.join(' ')).toLowerCase().includes(q)));
+  const r=allEx().filter(x=>(!m||x.pm===m||(Array.isArray(x.sec)&&x.sec.includes(m)))&&(!e||x.eq===e)&&(!q||(x.name+' '+x.eq+' '+x.pm+' '+(Array.isArray(x.sec)?x.sec:[]).join(' ')).toLowerCase().includes(q)));
   r.sort((a,b)=>(b.name.toLowerCase().startsWith(q)-a.name.toLowerCase().startsWith(q))||a.name.localeCompare(b.name));
   $('exResults').innerHTML=r.length?r.slice(0,80).map(x=>'<div class="ex-row" role="listitem" onmouseenter="previewEx(\''+x.id+'\')" onclick="previewEx(\''+x.id+'\')"><div><strong>'+esc(x.name)+'</strong><br><span class="sub">'+x.eq+' · '+x.pm+(x.sec.length?' + '+x.sec.join(', '):'')+'</span></div><button type="button" class="btn btn-primary" aria-label="Add '+esc(x.name)+'" onclick="addEx(\''+x.id+'\')">+ Add</button></div>').join(''):'<div class="empty-box"><p>No match for “'+esc(q)+'”. Add it as a custom exercise below.</p></div>';
   $('customBox').open=!r.length;if(!r.length&&!$('cName').value)$('cName').value=$('exSearch').value.slice(0,60);}

@@ -1085,19 +1085,34 @@ function saveState() {
 }
 /* Cloud progress sync: signed-in members can use their Gymplified progress across devices.
    The admin service can manage this same private per-user snapshot through a protected Edge Function. */
-let cloudSyncUserId=null,cloudSaveTimer=null,cloudSaveBusy=false;
+let cloudSyncUserId=null,cloudSaveTimer=null,cloudSaveBusy=false,cloudSavePending=false;
+function resetCloudSaveQueue(){
+ if(cloudSaveTimer)clearTimeout(cloudSaveTimer);
+ cloudSaveTimer=null;cloudSavePending=false;
+}
 function queueCloudStateSave(){
-  if(!sb||!currentUser)return;
-  if(cloudSaveTimer)clearTimeout(cloudSaveTimer);
-  cloudSaveTimer=setTimeout(async function(){
-    if(cloudSaveBusy||!sb||!currentUser)return;
-    cloudSaveBusy=true;
-    try{
-      const r=await sb.from('user_app_state').upsert({user_id:currentUser.id,state:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-      if(r.error)console.warn('Gymplified cloud progress sync:',r.error.message);
-    }catch(e){console.warn('Gymplified cloud progress sync failed:',e);}
-    finally{cloudSaveBusy=false;}
-  },900);
+ if(!sb||!currentUser)return;
+ cloudSavePending=true;
+ if(cloudSaveTimer)clearTimeout(cloudSaveTimer);
+ cloudSaveTimer=setTimeout(flushCloudStateSave,500);
+}
+async function flushCloudStateSave(){
+ cloudSaveTimer=null;
+ if(!cloudSavePending||!sb||!currentUser)return;
+ if(cloudSaveBusy){cloudSaveTimer=setTimeout(flushCloudStateSave,250);return;}
+ cloudSaveBusy=true;cloudSavePending=false;
+ const userId=currentUser.id;
+ let snapshot;
+ try{snapshot=JSON.parse(JSON.stringify(state));}
+ catch(e){cloudSaveBusy=false;console.warn('Gymplified could not prepare progress for sync:',e);return;}
+ try{
+  const r=await sb.from('user_app_state').upsert({user_id:userId,state:snapshot,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+  if(r.error)throw r.error;
+ }catch(e){console.warn('Gymplified cloud progress sync failed:',e.message||e);}
+ finally{
+  cloudSaveBusy=false;
+  if(cloudSavePending&&sb&&currentUser&&currentUser.id===userId)cloudSaveTimer=setTimeout(flushCloudStateSave,100);
+ }
 }
 function migrateAccountSnapshot(snapshot){
  localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot));
@@ -2040,7 +2055,7 @@ async function initSocial(){
  const r=await sb.auth.getSession();if(r.error)socialError(r.error);currentUser=r.data&&r.data.session?r.data.session.user:null;
  if(currentUser&&!currentUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;authMode='signup';renderAuthPanel('Please verify your email address before using your Gymplified account.');}
  if(currentUser){await loadMyProfile();await syncUserAppState();loadSupportTickets();}renderFriends();
- sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed)await syncUserAppState();loadSupportTickets();}else{cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';}friendRequests=[];friendProfiles={};renderFriends();},0);});
+ sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);if(changed){resetCloudSaveQueue();cloudSyncUserId=null;}currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed)await syncUserAppState();loadSupportTickets();}else{resetCloudSaveQueue();cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';}friendRequests=[];friendProfiles={};renderFriends();},0);});
 }
 async function loadMyProfile(){if(!currentUser){currentProfile=null;return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url,created_at').eq('id',currentUser.id).maybeSingle();if(r.error){socialError(r.error);return;}currentProfile=r.data;}
 

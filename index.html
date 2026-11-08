@@ -1868,11 +1868,20 @@ function viewExerciseHistory(name){
  host.dataset.exercise=name;
  host.innerHTML='<div class="panel" style="margin:16px 0"><div class="section-title"><span>'+esc(name)+' · History</span><button class="btn" onclick="closeExerciseHistory()">Close</button></div>'+exerciseHistoryMarkup(name)+'</div>';
 }
-function addEx(id){const x=allEx().find(e=>e.id===id);if(!x)return;
- const previous=previousExercisePerformance(x.name),best=previous&&previous.sets.length?bestPreviousSet(previous.sets):null;
- const kg=best?Number(best.kg):(state.lastKg[x.name]||20),reps=best?Number(best.reps):10;
- state.workouts.push(syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg,reps,done:false}))}));
- saveState();showToast(previous?'Previous best loaded · '+kg+' kg × '+reps:' '+x.name+' added · 3 sets');previewEx(id);}
+function addEx(id){
+ try{
+  const x=allEx().find(e=>e.id===String(id));if(!x){showToast('Could not find that exercise. Refresh and try again.');return;}
+  if(!Array.isArray(state.workouts))state.workouts=[];
+  if(!state.lastKg||typeof state.lastKg!=='object')state.lastKg={};
+  const previous=previousExercisePerformance(x.name),best=previous&&Array.isArray(previous.sets)&&previous.sets.length?bestPreviousSet(previous.sets):null;
+  const kg=best?Number(best.kg):(Number(state.lastKg[x.name])||20),reps=best?Number(best.reps):10;
+  const workout=syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg,reps,done:false}))});
+  state.workouts.push(workout);
+  saveState();
+  showToast(previous?'Previous best loaded · '+kg+' kg × '+reps:x.name+' added · 3 sets');
+  previewEx(id);
+ }catch(error){console.error('Gymplified add exercise failed:',error);showToast('Could not add exercise. Please refresh and try again.');}
+}
 function addCustom(){const n=$('cName').value.trim().slice(0,60);if(!n)return showToast('Enter an exercise name');
   if(!allEx().some(x=>x.name.toLowerCase()===n.toLowerCase()))state.customEx.push(mkEx(n,$('cEquip').value,$('cMuscle').value,[],true));
   const x=allEx().find(e=>e.name.toLowerCase()===n.toLowerCase());$('cName').value='';addEx(x.id);renderPicker();}
@@ -1937,7 +1946,7 @@ function previewEx(id){const x=id&&allEx().find(e=>e.id===id),b=$('exPreview');
 function renderPicker(){const q=$('exSearch').value.toLowerCase().trim(),m=$('exMuscle').value,e=$('exEquip').value;
   const r=allEx().filter(x=>(!m||x.pm===m||x.sec.includes(m))&&(!e||x.eq===e)&&(!q||(x.name+' '+x.eq+' '+x.pm+' '+x.sec.join(' ')).toLowerCase().includes(q)));
   r.sort((a,b)=>(b.name.toLowerCase().startsWith(q)-a.name.toLowerCase().startsWith(q))||a.name.localeCompare(b.name));
-  $('exResults').innerHTML=r.length?r.slice(0,80).map(x=>'<div class="ex-row" role="listitem" onmouseenter="previewEx(\''+x.id+'\')" onclick="previewEx(\''+x.id+'\')"><div><strong>'+esc(x.name)+'</strong><br><span class="sub">'+x.eq+' · '+x.pm+(x.sec.length?' + '+x.sec.join(', '):'')+'</span></div><button class="btn btn-primary" aria-label="Add '+esc(x.name)+'" onclick="event.stopPropagation();addEx(\''+x.id+'\')">+ Add</button></div>').join(''):'<div class="empty-box"><p>No match for “'+esc(q)+'”. Add it as a custom exercise below.</p></div>';
+  $('exResults').innerHTML=r.length?r.slice(0,80).map(x=>'<div class="ex-row" role="listitem" onmouseenter="previewEx(\''+x.id+'\')" onclick="previewEx(\''+x.id+'\')"><div><strong>'+esc(x.name)+'</strong><br><span class="sub">'+x.eq+' · '+x.pm+(x.sec.length?' + '+x.sec.join(', '):'')+'</span></div><button type="button" class="btn btn-primary" aria-label="Add '+esc(x.name)+'" onclick="addEx(\''+x.id+'\')">+ Add</button></div>').join(''):'<div class="empty-box"><p>No match for “'+esc(q)+'”. Add it as a custom exercise below.</p></div>';
   $('customBox').open=!r.length;if(!r.length&&!$('cName').value)$('cName').value=$('exSearch').value.slice(0,60);}
 function initPicker(){const mo=Object.values(MC).map(m=>'<option value="'+m+'">'+cap(m)+'</option>').join(''),eo=Object.keys(LIB).map(e=>'<option>'+e+'</option>').join('');
   $('exMuscle').innerHTML='<option value="">All muscles</option>'+mo;$('exEquip').innerHTML='<option value="">All equipment</option>'+eo;$('cMuscle').innerHTML=mo;$('cEquip').innerHTML=eo+'<option>Other</option>';renderPicker();previewEx(null);}

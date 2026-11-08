@@ -1873,10 +1873,11 @@ function addEx(id){
  if(!x){showToast('Exercise not found. Please refresh and try again.');return;}
  if(!Array.isArray(state.workouts))state.workouts=[];
  if(!state.lastKg||typeof state.lastKg!=='object')state.lastKg={};
- let previous=null,best=null;
- try{previous=previousExercisePerformance(x.name);best=previous&&Array.isArray(previous.sets)&&previous.sets.length?bestPreviousSet(previous.sets):null;}catch(error){console.warn('Previous exercise data unavailable:',error);}
- const kg=best?Number(best.kg):(Number(state.lastKg[x.name])||20),reps=best?Number(best.reps):10;
- const workout=syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg,reps,done:false}))});
+ let previous=null;
+ try{previous=previousExercisePerformance(x.name);}catch(error){console.warn('Previous exercise data unavailable:',error);}
+ // Start with neutral editable values. Previous performance remains an optional
+ // suggestion in the workout card, never an automatic override of the user's plan.
+ const workout=syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg:0,reps:10,done:false}))});
  state.workouts.push(workout);
  // Persist this workout directly. The general saveState() also runs rewards and
  // every app renderer; an unrelated dashboard/rewards error must not block logging.
@@ -1884,7 +1885,7 @@ function addEx(id){
  try{queueCloudStateSave();}catch(error){console.warn('Cloud workout save could not be queued:',error);}
  try{renderTrainingLog();}catch(error){console.error('Workout list refresh failed:',error);}
  try{renderDashboard();}catch(error){console.warn('Dashboard refresh failed:',error);}
- showToast(previous?'Previous best loaded · '+kg+' kg × '+reps:x.name+' added · 3 sets');
+ showToast(x.name+' added · 3 editable sets');
  try{previewEx(id);}catch(error){console.warn('Exercise preview refresh failed:',error);}
 }
 function addCustom(){const n=$('cName').value.trim().slice(0,60);if(!n)return showToast('Enter an exercise name');

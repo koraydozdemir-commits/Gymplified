@@ -1869,18 +1869,23 @@ function viewExerciseHistory(name){
  host.innerHTML='<div class="panel" style="margin:16px 0"><div class="section-title"><span>'+esc(name)+' · History</span><button class="btn" onclick="closeExerciseHistory()">Close</button></div>'+exerciseHistoryMarkup(name)+'</div>';
 }
 function addEx(id){
- try{
-  const x=allEx().find(e=>e.id===String(id));if(!x){showToast('Could not find that exercise. Refresh and try again.');return;}
-  if(!Array.isArray(state.workouts))state.workouts=[];
-  if(!state.lastKg||typeof state.lastKg!=='object')state.lastKg={};
-  const previous=previousExercisePerformance(x.name),best=previous&&Array.isArray(previous.sets)&&previous.sets.length?bestPreviousSet(previous.sets):null;
-  const kg=best?Number(best.kg):(Number(state.lastKg[x.name])||20),reps=best?Number(best.reps):10;
-  const workout=syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg,reps,done:false}))});
-  state.workouts.push(workout);
-  saveState();
-  showToast(previous?'Previous best loaded · '+kg+' kg × '+reps:x.name+' added · 3 sets');
-  previewEx(id);
- }catch(error){console.error('Gymplified add exercise failed:',error);showToast('Could not add exercise. Please refresh and try again.');}
+ const x=allEx().find(e=>e.id===String(id));
+ if(!x){showToast('Exercise not found. Please refresh and try again.');return;}
+ if(!Array.isArray(state.workouts))state.workouts=[];
+ if(!state.lastKg||typeof state.lastKg!=='object')state.lastKg={};
+ let previous=null,best=null;
+ try{previous=previousExercisePerformance(x.name);best=previous&&Array.isArray(previous.sets)&&previous.sets.length?bestPreviousSet(previous.sets):null;}catch(error){console.warn('Previous exercise data unavailable:',error);}
+ const kg=best?Number(best.kg):(Number(state.lastKg[x.name])||20),reps=best?Number(best.reps):10;
+ const workout=syncW({name:x.name,muscle:cap(x.pm),setList:[0,1,2].map(()=>({kg,reps,done:false}))});
+ state.workouts.push(workout);
+ // Persist this workout directly. The general saveState() also runs rewards and
+ // every app renderer; an unrelated dashboard/rewards error must not block logging.
+ try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(error){console.warn('Local workout save failed:',error);}
+ try{queueCloudStateSave();}catch(error){console.warn('Cloud workout save could not be queued:',error);}
+ try{renderTrainingLog();}catch(error){console.error('Workout list refresh failed:',error);}
+ try{renderDashboard();}catch(error){console.warn('Dashboard refresh failed:',error);}
+ showToast(previous?'Previous best loaded · '+kg+' kg × '+reps:x.name+' added · 3 sets');
+ try{previewEx(id);}catch(error){console.warn('Exercise preview refresh failed:',error);}
 }
 function addCustom(){const n=$('cName').value.trim().slice(0,60);if(!n)return showToast('Enter an exercise name');
   if(!allEx().some(x=>x.name.toLowerCase()===n.toLowerCase()))state.customEx.push(mkEx(n,$('cEquip').value,$('cMuscle').value,[],true));

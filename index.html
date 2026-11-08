@@ -1860,15 +1860,16 @@ function addSet(i){const w=state.workouts[i],l=w.setList[w.setList.length-1]||{k
 function removeSet(i,j){const w=state.workouts[i];if(w.setList.length<=1)return showToast('Keep one set, or remove the exercise');w.setList.splice(j,1);syncW(w);saveState();}
 function toggleWorkoutDone(i){const w=state.workouts[i],v=!w.done;w.setList.forEach(x=>x.done=v);syncW(w);saveState();}
 function previousExercisePerformance(name){
-  const key=String(name||'').trim().toLowerCase();
-  for(const session of (state.sessions||[])){
-   const ex=(session.exercises||[]).find(x=>String(x.name||'').trim().toLowerCase()===key);
-   if(ex&&Array.isArray(ex.sets)&&ex.sets.length){
-    const sets=ex.sets.filter(x=>Number.isFinite(Number(x.kg))&&Number.isFinite(Number(x.reps))&&Number(x.kg)>=0&&Number(x.reps)>0);
-    if(sets.length)return {sets, date:session.date};
-   }
+ const key=String(name||'').trim().toLowerCase();
+ for(const session of (Array.isArray(state.sessions)?state.sessions:[])){
+  const exercises=Array.isArray(session&&session.exercises)?session.exercises:[];
+  const ex=exercises.find(x=>String(x&&x.name||'').trim().toLowerCase()===key);
+  if(ex&&Array.isArray(ex.sets)&&ex.sets.length){
+   const sets=ex.sets.filter(x=>x&&Number.isFinite(Number(x.kg))&&Number.isFinite(Number(x.reps))&&Number(x.kg)>=0&&Number(x.reps)>0);
+   if(sets.length)return {sets,date:String(session.date||'')};
   }
-  return null;
+ }
+ return null;
 }
 function bestPreviousSet(sets){return (sets||[]).reduce((best,x)=>!best||calculate1RM(x.kg,x.reps)>calculate1RM(best.kg,best.reps)?x:best,null);}
 function applyPreviousBest(i){const w=state.workouts[i],p=previousExercisePerformance(w&&w.name);if(!w||!p)return showToast('No previous performance for this exercise yet');const best=bestPreviousSet(p.sets);if(!best)return;w.setList.forEach(x=>{x.kg=Number(best.kg);x.reps=Number(best.reps);});saveState();showToast('Previous best applied to all sets');}

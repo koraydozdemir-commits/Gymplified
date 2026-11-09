@@ -34,3 +34,26 @@ Updated: 8 November 2026
 ## Merge semantics
 
 Records with IDs merge as independent entries. When both devices edit the same record, nested fields merge and scalar conflicts resolve to the last database update. The system now handles reset generations and record tombstones, but it is not a full operation-based sync protocol with per-field conflict resolution.
+
+## Data-integrity repair pass — 9 November 2026
+
+Implemented in the app and live Supabase project:
+- [x] Bind cloud progress RPC writes to the authenticated user ID in the state payload; the database rejects a payload whose owner marker does not match `auth.uid()`.
+- [x] Keep separate local snapshots per signed-in account, restore the matching account snapshot on account switches, clear the active local state on sign-out, and block cloud saves until the account's initial sync completes.
+- [x] Clear completed-set flags after a workout is recorded, preventing the same checked sets from being counted in the next session.
+- [x] Remove the silent 200-session truncation. History is retained up to an explicit 5,000-session limit; the app warns and blocks a further completion rather than silently discarding older records.
+- [x] Preserve imported duration, distance, set order and notes through state sanitization and cloud synchronization.
+- [x] Improve CSV duplicate identity using workout name, source workout ID, timing, duration and complete set metadata.
+- [x] Reject ambiguous day/month CSV dates instead of guessing; convert explicit pounds, miles and minutes; require explicit units for generic weight columns.
+- [x] Create support tickets and their first message inside one authenticated database transaction.
+- [x] Replace the Deluxe day-selection browser prompt with an accessible in-app dialog and tombstone the replaced active workout records.
+- [x] Fix the default gold theme's text accent and clear the deleted account's local cache after account deletion.
+- [x] Add regression checks for the new data-integrity paths. The latest static-validation workflow passed.
+
+Still not fully resolved / requires external or runtime work:
+- [ ] Same-record edits made concurrently on two devices remain last-write-wins. The sync is not a full operation-based or per-field conflict-resolution protocol.
+- [ ] Strict CSP and verified SRI still require a broader inline-handler/style refactor and an independently verified CDN digest.
+- [ ] Enable leaked-password protection and confirm email verification / production SMTP in the Supabase Auth dashboard.
+- [ ] Run end-to-end sign-in, account switching, account deletion, two-device conflict, offline and iPad Safari tests with disposable accounts/devices.
+- [ ] Produce approved 192px, 512px and maskable PNG icon exports; existing approved artwork was not replaced or fabricated.
+- [ ] Complete legal review of the privacy policy and terms.

@@ -909,9 +909,9 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center">
             <span class="deluxe-pill" id="deluxeStatus">PREVIEW MODE</span>
             <button class="btn btn-primary" type="button" onclick="openDeluxeDemo()">Explore Deluxe</button>
-            <button class="btn" type="button" onclick="toggleDeluxeDemo()" id="deluxeDemoToggle">Enable demo unlock</button>
+            <span class="sub" id="deluxeDemoToggle" role="status">Preview only</span>
           </div>
-          <div class="deluxe-demo-note">Prototype only: payment processing is not connected. Demo unlock is stored on this device and does not grant a real purchase or account entitlement.</div>
+          <div class="deluxe-demo-note">Preview only. Payments are not connected, and this page does not offer paid access or account entitlements.</div>
         </div>
         <div class="section-title">What's included <span class="sub">PREVIEW · PAYMENT NOT CONNECTED</span></div>
         <div class="deluxe-grid">
@@ -2683,17 +2683,14 @@ updateInstallUI();
 window.addEventListener('pageshow',updateInstallUI);
 
 
-function deluxeDemoEnabled(){try{return localStorage.getItem('gymplified_deluxe_demo')==='1';}catch(e){return false;}}
+function deluxeDemoEnabled(){return false;}
 function updateDeluxeUI(){
  const enabled=deluxeDemoEnabled(),status=$('deluxeStatus'),toggle=$('deluxeDemoToggle');
  if(status){status.textContent=enabled?'DEMO UNLOCKED':'PREVIEW MODE';status.style.background=enabled?'rgba(16,185,129,.12)':'';status.style.borderColor=enabled?'#10b981':'#b99342';status.style.color=enabled?'#10b981':'#d6b15e';}
  if(toggle)toggle.textContent=enabled?'Turn off demo unlock':'Enable demo unlock';
  document.querySelectorAll('.deluxe-feature .lock').forEach(function(el){el.textContent=enabled?'✨':'🔒';});
 }
-function toggleDeluxeDemo(){
- try{localStorage.setItem('gymplified_deluxe_demo',deluxeDemoEnabled()?'0':'1');updateDeluxeUI();showToast(deluxeDemoEnabled()?'Deluxe demo unlocked on this device':'Deluxe demo lock restored');}
- catch(e){showToast('Could not save demo setting on this device');}
-}
+function toggleDeluxeDemo(){showToast('Deluxe is currently preview-only');}
 function openDeluxeDemo(){previewDeluxeFeature('Gymplified Deluxe');}
 function previewDeluxeFeature(name){
  const copy={

@@ -103,7 +103,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .app { max-width: var(--max); margin: 0 auto; min-height: 100vh; border-left: 1px solid var(--line); border-right: 1px solid var(--line); background: var(--bg); transition: border-color 0.25s var(--ease-out); }
 
 /* Topbar Header */
-.topbar { height: 62px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--panel); position: sticky; top: 0; z-index: 40; transition: background-color 0.25s var(--ease-out), border-color 0.25s var(--ease-out); }
+.topbar { min-height: calc(62px + env(safe-area-inset-top)); border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; padding: env(safe-area-inset-top) 24px 0; background: var(--panel); position: sticky; top: 0; z-index: 40; transition: background-color 0.25s var(--ease-out), border-color 0.25s var(--ease-out); }
 .brand { font-family: var(--font-heading); font-weight: 700; font-size:calc(21px * var(--text-scale, 1)); letter-spacing: -0.04em; color: var(--ink); display: flex; align-items: center; gap: 8px; }
 .brand-dot { width: 8px; height: 8px; background: var(--brand); border-radius: 50%; display: inline-block; transition: background-color 0.25s var(--ease-out); }
 
@@ -582,7 +582,7 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
             <div class="progress-bar"><i id="dashWaterBar" style="width: 0%"></i></div>
             <div class="meta-row">
               <span id="waterMeta">Goal</span>
-              <button class="btn btn-icon-only" style="height:22px; width:22px; font-size:calc(10px * var(--text-scale, 1))" onclick="resetWater()" title="Reset Water">↺</button>
+              <button aria-label="Reset water tracker" class="btn btn-icon-only" style="height:22px; width:22px; font-size:calc(10px * var(--text-scale, 1))" onclick="resetWater()" title="Reset Water">↺</button>
             </div>
             <div id="waterBtns" class="water-btns" style="margin-top:12px"></div>
 <div style="margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);">

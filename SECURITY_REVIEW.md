@@ -54,7 +54,7 @@ Implemented in the app and live Supabase project:
 Still not fully resolved / requires external or runtime work:
 - [ ] Same-record edits made concurrently on two devices remain last-write-wins. The sync is not a full operation-based or per-field conflict-resolution protocol.
 - [ ] Strict CSP and verified SRI still require a broader inline-handler/style refactor and an independently verified CDN digest.
-- [ ] Enable leaked-password protection and confirm email verification / production SMTP in the Supabase Auth dashboard.
+- [ ] Upgrade the Supabase organization from Free to Pro (the current plan does not include leaked-password protection), then enable it and confirm email verification / production SMTP in the Auth dashboard.
 - [ ] Run end-to-end sign-in, account switching, account deletion, two-device conflict, offline and iPad Safari tests with disposable accounts/devices.
 - [ ] Produce approved 192px, 512px and maskable PNG icon exports; existing approved artwork was not replaced or fabricated.
 - [ ] Complete legal review of the privacy policy and terms.

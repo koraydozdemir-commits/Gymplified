@@ -2387,7 +2387,7 @@ async function resendSignupConfirmation(){
 function renderAccountPanel(){
  const p=currentProfile||{username:currentUser.email?currentUser.email.split('@')[0]:'member',display_name:'Gymplified member'};
  $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+
- '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong>'+(state.deluxe&&state.deluxe.profileFlair?'<span class="deluxe-pill" style="margin-left:6px">DELUXE</span>':'')+'<div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
+ '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong>'+(deluxeEnabled()&&state.deluxe&&state.deluxe.profileFlair?'<span class="deluxe-pill" style="margin-left:6px">DELUXE</span>':'')+'<div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
  '<div class="account-actions"><button class="btn" onclick="$(\'avatarFile\').click()">Change picture</button><button class="btn" onclick="signOutAccount()">Sign out</button></div></div>'+
  '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp" hidden onchange="uploadAvatar(this.files[0])">'+
  '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" onclick="saveProfile()">Save profile</button></div>'+
@@ -2603,7 +2603,7 @@ function renderDeluxeAnalytics(){
  const max=Math.max(1,...weeks.map(w=>w.volume));
  $('deluxeVolumeChart').innerHTML=weeks.map(w=>'<span class="deluxe-bar" style="height:'+Math.max(3,w.volume/max*100)+'%" title="'+esc(w.label)+': '+Math.round(w.volume)+' kg"></span>').join('');
  $('deluxeVolumeLabels').innerHTML='<span>'+esc(weeks[0].label)+'</span><span>'+esc(weeks[weeks.length-1].label)+'</span>';
- const muscles={};sessions.forEach(s=>(s.exercises||[]).forEach(e=>{const k=String(e.muscle||'Other').trim()||'Other';muscles[k]=(muscles[k]||0)+(e.sets||[]).length;}));
+ const muscles={};month.forEach(s=>(s.exercises||[]).forEach(e=>{const k=String(e.muscle||'Other').trim()||'Other';muscles[k]=(muscles[k]||0)+(e.sets||[]).length;}));
  const muscleRows=Object.entries(muscles).sort((a,b)=>b[1]-a[1]).slice(0,8),muscleMax=Math.max(1,...muscleRows.map(x=>x[1]));
  $('deluxeMuscleBreakdown').innerHTML=muscleRows.length?muscleRows.map(([name,n])=>'<div style="margin:10px 0"><div class="meta-row"><strong>'+esc(name)+'</strong><span>'+n+' sets</span></div><div class="progress-bar"><i style="width:'+(n/muscleMax*100)+'%"></i></div></div>').join(''):'<p class="sub">Finish workouts with exercises to see your muscle-group workload.</p>';
  const insights=[];
@@ -2611,6 +2611,9 @@ function renderDeluxeAnalytics(){
  else{
   if(change!==null)insights.push(change>10?'Your recorded training volume is rising compared with the previous four weeks. Keep progression gradual.':change< -10?'Your recorded training volume is lower than the previous four weeks. Check whether this matches your current training plan.':'Your training volume is relatively steady across the two four-week periods.');
   const under=muscleRows.filter(x=>x[1]===Math.min(...muscleRows.map(y=>y[1])));if(under.length&&muscleRows.length>1)insights.push('Least represented logged muscle group: '+under[0][0]+'. This is a logging-based balance prompt, not a prescription.');
+  const recentCutoff=Date.now()-48*3600000,recentMuscles=[];
+  sessions.filter(s=>new Date((s.date||'')+'T23:59:59').getTime()>=recentCutoff).forEach(s=>(s.exercises||[]).forEach(e=>{const m=String(e.muscle||'').trim();if(m&&!recentMuscles.includes(m))recentMuscles.push(m);}));
+  if(recentMuscles.length)insights.push('Recently logged in the last 48 hours: '+recentMuscles.join(', ')+'. Use your own recovery needs to decide when to train these areas again.');
   const latest=sessions[sessions.length-1],days=Math.floor((Date.now()-new Date((latest.date||'')+'T12:00:00').getTime())/86400000);
   if(Number.isFinite(days))insights.push(days===0?'You have a workout logged today.':days===1?'Your last completed workout was yesterday.':days+' days since your last completed workout.');
  }

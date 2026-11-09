@@ -96,3 +96,16 @@ Still required before launch:
 - [ ] Plan the separate single-file app/module and targeted-render refactor
 
 See [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for implementation notes and limits. Static checks do not count as a substitute for real-device or account-level tests.
+
+## Data-integrity repair pass — 9 November 2026
+- [x] Isolate local progress snapshots by account and bind every cloud write to the authenticated owner.
+- [x] Prevent completed workout sets from being counted again in a later session.
+- [x] Preserve cardio metadata and notes during CSV import, local persistence and cloud sanitization.
+- [x] Remove silent 200-session history truncation; warn at the explicit 5,000-session safety limit.
+- [x] Improve duplicate detection, reject ambiguous CSV dates and validate/convert explicit units.
+- [x] Make support ticket creation atomic with its first message.
+- [x] Replace the Deluxe plan day browser prompt with an in-app picker.
+- [ ] Test account switching and cloud sync with two disposable accounts and two devices.
+- [ ] Test concurrent edits to the same record; these still use last-write-wins semantics.
+- [ ] Enable leaked-password protection and verify production SMTP/email confirmation in Supabase Auth.
+- [ ] Complete strict CSP/SRI work, approved PWA icon variants and EU/UK legal review.

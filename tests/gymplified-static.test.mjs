@@ -207,3 +207,12 @@ test('unassigned recovery data remains available after switching accounts', asyn
   assert.match(html, /else if\(unassigned\)/);
   assert.match(html, /pendingLegacyAccountId=userId;return true/);
 });
+
+test('workout history displays preserved cardio and notes fields', async () => {
+  const html = await read('index.html');
+  assert.match(html, /function sessionSetSummary/);
+  assert.match(html, /Number\(set\.duration\)>0/);
+  assert.match(html, /Number\(set\.distance\)>0/);
+  assert.match(html, /esc\(set\.notes\)/);
+  assert.match(html, /row\.sets\.map\(sessionSetSummary\)/);
+});

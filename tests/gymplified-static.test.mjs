@@ -175,3 +175,10 @@ test('unowned legacy local data requires an explicit account migration choice', 
   assert.match(html, /downloadLegacyLocalBackup/);
   assert.match(html, /ACCOUNT_STATE_PREFIX\+'unassigned'/);
 });
+
+test('CSV importer rejects contradictory or missing weight and distance units', async () => {
+  const html = await read('index.html');
+  assert.match(html, /Weight column and weight unit disagree/);
+  assert.match(html, /Distance units are unclear/);
+  assert.match(html, /Distance column and distance unit disagree/);
+});

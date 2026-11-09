@@ -54,18 +54,18 @@ html[data-theme="light"] {
   --ink: #0f172a;
   --muted: #64748b;
   --line: #e2e8f0;
-  --brand-light: #eff6ff;
+  --brand-light: #fef3c7;
   --brand-ink: #ffffff;
 }
 
 /* Color Accents */
-html[data-color="blue"] { --brand: #2563eb; }
-html[data-color="emerald"] { --brand: #047857; }
-html[data-color="slate"] { --brand: #475569; }
-html[data-color="crimson"] { --brand: #dc2626; }
-html[data-color="amber"] { --brand: #b45309; }
-html[data-color="gold"] { --brand: #c9a24e; --brand-light: #292316; --brand-ink: #15120b; }
-html[data-color="violet"] { --brand: #7c3aed; }
+html[data-color="blue"] { --brand: #2563eb; --brand-light: #dbeafe; --brand-ink: #ffffff; }
+html[data-color="emerald"] { --brand: #047857; --brand-light: #d1fae5; --brand-ink: #ffffff; }
+html[data-color="slate"] { --brand: #475569; --brand-light: #e2e8f0; --brand-ink: #ffffff; }
+html[data-color="crimson"] { --brand: #dc2626; --brand-light: #fee2e2; --brand-ink: #ffffff; }
+html[data-color="amber"] { --brand: #b45309; --brand-light: #fef3c7; --brand-ink: #ffffff; }
+html[data-color="gold"] { --brand: #c9a24e; --brand-light: #fef3c7; --brand-ink: #2b2110; }
+html[data-color="violet"] { --brand: #7c3aed; --brand-light: #ede9fe; --brand-ink: #ffffff; }
 
 /* High Contrast Mode */
 html[data-contrast="high"] {
@@ -298,21 +298,21 @@ html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
 /* Responsive adjustments */
 @media (max-width: 860px) {
   .layout { grid-template-columns: 1fr; }
-  aside { position: fixed; bottom: 0; top: auto; height: calc(60px + env(safe-area-inset-bottom)); width: 100%; border-right: 0; border-top: 1px solid var(--line); padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); z-index: 50; }
+  aside { position: fixed; bottom: 0; top: auto; height: calc(88px + env(safe-area-inset-bottom)); width: 100%; border-right: 0; border-top: 1px solid var(--line); padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); z-index: 50; }
   aside .nav-label { display: none; }
-  nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; }
+  nav { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
   nav button { text-align: center; font-size: 9px; padding: 6px 2px; flex-direction: column; gap: 4px; justify-content: center; margin: 0; }
   nav button svg { width: 16px; height: 16px; }
-  main { padding: 18px 16px calc(80px + env(safe-area-inset-bottom)); }
+  main { padding: 18px 16px calc(108px + env(safe-area-inset-bottom)); }
   .grid-2, .machine-grid { grid-template-columns: 1fr; }
 }
 
-.skip{position:absolute;left:-999px;top:8px;background:var(--brand);color:#fff;padding:8px 12px;border-radius:6px;z-index:999}.skip:focus{left:8px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--brand);color:var(--brand-ink);padding:8px 12px;border-radius:6px;z-index:999}.skip:focus{left:8px}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}.stat{flex:1;min-width:110px;background:var(--brand-light);border:1px solid var(--line);border-radius:var(--radius);padding:12px}.stat b{font:700 24px var(--font-heading);display:block}.stat span{font-size:12px;color:var(--muted)}
 .quest{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}.quest.ok{color:var(--success)}
 .badges,.week,.water-btns,.row-wrap{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.badge{padding:6px 10px;border:1px solid var(--line);border-radius:99px;font-size:13px}.badge.off{opacity:.45;filter:grayscale(1)}
-.wd{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px}.wd.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.wd{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:11px}.wd.on{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
 .water-btns input{width:84px}.sub-h{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 6px}
 .cf{position:fixed;top:-30px;font-size:22px;z-index:999;pointer-events:none;animation:fall 2s linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
 html[data-spacing=wide] body{letter-spacing:.04em;line-height:1.8;word-spacing:.12em}
@@ -630,19 +630,19 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
           <div class="section-title">Record New Personal Best</div>
           <div class="form-grid">
             <div class="field">
-              <label>Lift / Exercise</label>
+              <label for="inputPRName">Lift / Exercise</label>
               <input type="text" id="inputPRName" placeholder="e.g. Barbell Squat, Bench Press">
             </div>
             <div class="field">
-              <label>Weight (kg)</label>
-              <input type="number" id="inputPRWeight" value="100" min="0" step="2.5">
+              <label for="inputPRWeight">Weight (kg)</label>
+              <input type="number" id="inputPRWeight" value="" min="0" step="2.5">
             </div>
             <div class="field">
-              <label>Reps Performed</label>
+              <label for="inputPRReps">Reps Performed</label>
               <input type="number" id="inputPRReps" value="5" min="1" max="50">
             </div>
             <div class="field">
-              <label>Date Achieved</label>
+              <label for="inputPRDate">Date Achieved</label>
               <input type="date" id="inputPRDate">
             </div>
           </div>
@@ -783,13 +783,13 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
           <div style="margin-top: 14px;">
             <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">UI Accent Palette</label>
             <div class="color-picker">
-              <div class="color-dot" style="background: #2563eb;" title="Electric Blue" onclick="changeColor('blue', this)"></div>
-              <div class="color-dot" style="background: #059669;" title="Emerald Green" onclick="changeColor('emerald', this)"></div>
-              <div class="color-dot" style="background: #475569;" title="Slate Gray" onclick="changeColor('slate', this)"></div>
-              <div class="color-dot" style="background: #dc2626;" title="Crimson Red" onclick="changeColor('crimson', this)"></div>
-              <div class="color-dot" style="background: #d97706;" title="Amber" onclick="changeColor('amber', this)"></div>
-              <div class="color-dot" style="background: linear-gradient(135deg,#f5df9b,#c9a24e 55%,#8d682b);" title="Gymplified Gold" onclick="changeColor('gold', this)"></div>
-              <div class="color-dot" style="background: #7c3aed;" title="Violet Purple" onclick="changeColor('violet', this)"></div>
+              <button type="button" class="color-dot" style="background: #2563eb;" title="Electric Blue" aria-label="Electric Blue accent" onclick="changeColor('blue', this)"></button>
+              <button type="button" class="color-dot" style="background: #059669;" title="Emerald Green" aria-label="Emerald Green accent" onclick="changeColor('emerald', this)"></button>
+              <button type="button" class="color-dot" style="background: #475569;" title="Slate Gray" aria-label="Slate Gray accent" onclick="changeColor('slate', this)"></button>
+              <button type="button" class="color-dot" style="background: #dc2626;" title="Crimson Red" aria-label="Crimson Red accent" onclick="changeColor('crimson', this)"></button>
+              <button type="button" class="color-dot" style="background: #d97706;" title="Amber" aria-label="Amber accent" onclick="changeColor('amber', this)"></button>
+              <button type="button" class="color-dot" style="background: linear-gradient(135deg,#f5df9b,#c9a24e 55%,#8d682b);" title="Gymplified Gold" aria-label="Gymplified Gold accent" onclick="changeColor('gold', this)"></button>
+              <button type="button" class="color-dot" style="background: #7c3aed;" title="Violet Purple" aria-label="Violet Purple accent" onclick="changeColor('violet', this)"></button>
             </div>
           </div>
         </div>
@@ -904,8 +904,8 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
         <p class="subtitle">More insight. Smarter training. Your progress, without limits.</p>
         <div class="deluxe-hero">
           <div class="deluxe-wordmark">GYMPLIFIED DELUXE</div>
-          <div class="deluxe-price">€9.99 <span style="font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0">once. yours forever.</span></div>
-          <p style="font-size:13px;color:var(--muted);max-width:620px">Unlock the complete Gymplified training toolkit with one lifetime payment. No monthly fees and no subscription.</p>
+          <div class="deluxe-price">€9.99 <span style="font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0">payment setup pending</span></div>
+          <p style="font-size:13px;color:var(--muted);max-width:620px">Preview the Deluxe features. Payments and account entitlements are not available yet.</p>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center">
             <span class="deluxe-pill" id="deluxeStatus">PREVIEW MODE</span>
             <button class="btn btn-primary" type="button" onclick="openDeluxeDemo()">Explore Deluxe</button>
@@ -913,7 +913,7 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
           </div>
           <div class="deluxe-demo-note">Prototype only: payment processing is not connected. Demo unlock is stored on this device and does not grant a real purchase or account entitlement.</div>
         </div>
-        <div class="section-title">What's included <span class="sub">LIFETIME ACCESS · €9.99</span></div>
+        <div class="section-title">What's included <span class="sub">PREVIEW · PAYMENT NOT CONNECTED</span></div>
         <div class="deluxe-grid">
           <article class="deluxe-feature"><div class="lock">📈</div><h3>Advanced analytics</h3><p>Track strength trends, volume progression, estimated 1RM and training consistency with detailed charts.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Advanced analytics')">Preview feature</button></article>
           <article class="deluxe-feature"><div class="lock">🧠</div><h3>Smart training insights</h3><p>See muscle-group workload, identify neglected areas and get useful recovery guidance from your logged sessions.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Smart training insights')">Preview feature</button></article>
@@ -1744,7 +1744,7 @@ function changeContrast(val) { state.settings.contrast = val; saveState(); }
 function changeMotion(val) { state.settings.motion = val; saveState(); }
 
 // Full-state CSV backup. JSON values inside quoted CSV cells preserve nested objects and arrays.
-function csvCell(value){return '"'+String(value==null?'':value).replace(/"/g,'""')+'"';}
+function csvCell(value){let text=String(value==null?'':value);if(/^[\\s]*[=+@-]/.test(text))text="'"+text;return '"'+text.replace(/"/g,'""')+'"';}
 function parseGymCSV(text){
   const rows=[];let row=[],cell='',quoted=false;
   for(let i=0;i<text.length;i++){

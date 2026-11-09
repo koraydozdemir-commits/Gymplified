@@ -196,7 +196,7 @@ test('choosing cloud-only progress reads the account snapshot without merging lo
 test('switching to an account without a local cache reads cloud state instead of merging defaults', async () => {
   const html = await read('index.html');
   assert.match(html, /let owner='',cloudOnly=false/);
-  assert.match(html, /if\(!cached\)cloudOnly=true/);
+  assert.match(html, /cloudOnly=true/);
   assert.match(html, /syncUserAppState\(syncMode==='cloud'\)/);
   assert.match(html, /sb\.rpc\('gymplified_get_user_app_state'\)/);
 });

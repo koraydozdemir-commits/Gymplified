@@ -182,3 +182,13 @@ test('CSV importer rejects contradictory or missing weight and distance units', 
   assert.match(html, /Distance units are unclear/);
   assert.match(html, /Distance column and distance unit disagree/);
 });
+
+test('choosing cloud-only progress reads the account snapshot without merging local data', async () => {
+  const html = await read('index.html');
+  const migration = await read('supabase/migrations/20261109173834_gymplified_read_own_cloud_state_for_safe_account_switch.sql');
+  assert.match(html, /syncUserAppState\(cloudOnly=false\)/);
+  assert.match(html, /sb\.rpc\('gymplified_get_user_app_state'\)/);
+  assert.match(html, /syncUserAppState\(!merge\)/);
+  assert.match(migration, /SECURITY INVOKER/);
+  assert.match(migration, /WHERE user_id = auth\.uid\(\)/);
+});

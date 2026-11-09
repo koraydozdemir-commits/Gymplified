@@ -2080,6 +2080,7 @@ function validateBackupData(raw){
  const fields=['workouts','foods','prs','sessions','routines','customEx','customFoods','lastSession','waterLog','waterEntries'];
  fields.forEach(k=>{if(raw[k]!=null&&!Array.isArray(raw[k]))throw new Error('Invalid backup field: '+k);});
  if(JSON.stringify(raw).length>10*1024*1024)throw new Error('Backup is larger than 10 MB.');
+  if(Array.isArray(raw.sessions)&&raw.sessions.length>5000)throw new Error('This backup contains more than 5,000 workout sessions. Export or split the backup before restoring it.');
  const check=(items,key,label)=>{(items||[]).forEach((x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))throw new Error('Invalid '+label+' record '+(i+1)+'.');if(key&&x[key]!=null&&!Array.isArray(x[key]))throw new Error('Invalid '+label+' '+key+' list.');});};
  check(raw.workouts,'setList','workout');check(raw.sessions,'exercises','session');check(raw.routines,'exercises','routine');
  (raw.workouts||[]).forEach((w,i)=>(w.setList||[]).forEach((s,j)=>{if(!s||typeof s!=='object'||!Number.isFinite(Number(s.kg))||!Number.isFinite(Number(s.reps)))throw new Error('Invalid set '+(j+1)+' in workout '+(i+1)+'.');}));

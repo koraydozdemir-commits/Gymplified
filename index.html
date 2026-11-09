@@ -1836,10 +1836,11 @@ function gymImportRows(rows,fileName){
     lastDate=date;
     const rawWeight=gymPick(row,headers,weightKeys);
     const rawWeightHeader=headers.find(h=>weightKeys.map(gymHeader).includes(h))||'';
-    const rawWeightUnit=gymPick(row,headers,weightUnitKeys);
-    if(rawWeight&&/^(?:weight|weight lifted|load)$/.test(rawWeightHeader)&&!rawWeightUnit)throw new Error('Weight units are unclear on CSV row '+rowNumber+'. Rename the column to Weight (kg) or Weight (lbs), or add a Weight Unit column.');
+    const rawWeightUnit=gymPick(row,headers,weightUnitKeys),unitIsLb=/^(?:lb|lbs|pound|pounds)$/i.test(rawWeightUnit),unitIsKg=/^(?:kg|kgs|kilogram|kilograms)$/i.test(rawWeightUnit),headerIsLb=/\blb/.test(rawWeightHeader),headerIsKg=/\bkg/.test(rawWeightHeader);
+    if(rawWeight&&/^(?:weight|weight lifted|load)$/.test(rawWeightHeader)&&!unitIsLb&&!unitIsKg)throw new Error('Weight units are unclear on CSV row '+rowNumber+'. Rename the column to Weight (kg) or Weight (lbs), or add a Weight Unit column containing kg or lbs.');
+    if((headerIsKg&&unitIsLb)||(headerIsLb&&unitIsKg))throw new Error('Weight column and weight unit disagree on CSV row '+rowNumber+'.');
     let weightKg=gymNumber(rawWeight,'weight',rowNumber,true);
-    if(/\blb/.test(rawWeightHeader)||/^(?:lb|lbs|pound|pounds)$/i.test(rawWeightUnit))weightKg=weightKg*0.45359237;
+    if(headerIsLb||(!headerIsKg&&unitIsLb))weightKg=weightKg*0.45359237;
     weightKg=Math.round(weightKg*100)/100;
     if(weightKg>1000)throw new Error('Weight exceeds 1,000 kg on CSV row '+rowNumber+'.');
     const rawReps=gymPick(row,headers,repKeys);

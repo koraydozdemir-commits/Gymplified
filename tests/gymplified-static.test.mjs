@@ -149,3 +149,19 @@ test('gold accent uses gold text rather than the old blue default', async () => 
   assert.match(html, /:root\{--brand-text:#e8b84b/);
   assert.match(html, /data-color=gold\]\{--brand-text:#92400e/);
 });
+
+test('Deluxe day loading uses an in-app picker and tombstones replaced workouts', async () => {
+  const html = await read('index.html');
+  assert.match(html, /id="deluxePlanDayDialog"/);
+  assert.match(html, /function confirmLoadDeluxePlan\(\)/);
+  assert.match(html, /markRecordDeleted\('workouts',x\)/);
+  assert.doesNotMatch(html, /const day=prompt\('Which day should be loaded/);
+});
+
+test('CSV importer requires explicit units for ambiguous weights and converts supported units', async () => {
+  const html = await read('index.html');
+  assert.match(html, /Weight units are unclear/);
+  assert.match(html, /0\.45359237/);
+  assert.match(html, /distance\*=1\.609344/);
+  assert.match(html, /duration\*=60/);
+});

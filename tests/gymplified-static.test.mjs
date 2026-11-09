@@ -216,3 +216,9 @@ test('workout history displays preserved cardio and notes fields', async () => {
   assert.match(html, /esc\(set\.notes\)/);
   assert.match(html, /row\.sets\.map\(sessionSetSummary\)/);
 });
+
+test('JSON restore refuses histories above the explicit session limit', async () => {
+  const html = await read('index.html');
+  assert.match(html, /raw\.sessions\.length>5000/);
+  assert.match(html, /more than 5,000 workout sessions/);
+});

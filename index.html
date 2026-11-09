@@ -1266,7 +1266,7 @@ async function flushCloudStateSave(){
  cloudSaveBusy=true;cloudSavePending=false;
  const userId=currentUser.id,revision=stateRevision;
  let snapshot;
- try{snapshot=JSON.parse(JSON.stringify(sanitizeStateSnapshot(state)));}
+ try{const clean=sanitizeStateSnapshot(state);if(clean.accountOwnerId!==userId)throw new Error('Local progress belongs to a different account; cloud upload was blocked.');snapshot=JSON.parse(JSON.stringify(clean));}
  catch(error){cloudSaveBusy=false;console.error('Could not prepare state for cloud sync:',error);showToast('Progress could not be prepared for cloud sync. Your device copy is still saved.');return;}
  try{
   const result=await sb.rpc('gymplified_merge_user_app_state',{p_state:snapshot});
@@ -1866,7 +1866,7 @@ function importGymplifiedCSV(input){
       if(result.type==='backup'){
         if(!confirm('Restore this validated Gymplified backup? Existing Gymplified data on this device and in your synced account will be replaced.')){input.value='';return;}
         const restored=validateBackupData(result.state);
-        restored.resetAt=Date.now();restored.deletedRecordIds=[];
+        restored.resetAt=Date.now();restored.deletedRecordIds=[];restored.accountOwnerId=currentUser?currentUser.id:'';
         state=restored;persistLocalState();queueCloudStateSave();applySettings();renderAll();initPicker();initGoals();
         status.textContent='Validated Gymplified backup restored · '+file.name;showToast('Gymplified data restored');
       }else{
@@ -1928,8 +1928,9 @@ async function confirmDeleteGymplifiedAccount(){
  try{
   const result=await sb.functions.invoke('gymplified-delete-account',{body:{confirmation:'DELETE'}});
   if(result.error)throw result.error;
-  await sb.auth.signOut().catch(()=>{});
-  localStorage.removeItem(STORAGE_KEY);currentUser=null;currentProfile=null;cloudSyncUserId=null;state=bootState();closeAccountDialogs();renderFriends();
+  const deletedUserId=currentUser.id;await sb.auth.signOut().catch(()=>{});
+  resetCloudSaveQueue();cloudSyncUserId=null;cloudSyncLoadingUserId=null;currentUser=null;currentProfile=null;
+  localStorage.removeItem(STORAGE_KEY);localStorage.removeItem(ACCOUNT_STATE_PREFIX+deletedUserId);localStorage.removeItem(ACCOUNT_OWNER_KEY);state=bootState();closeAccountDialogs();renderFriends();
   showToast('Your Gymplified account has been deleted');
  }catch(error){showToast(error&&error.message?error.message:'Could not delete your account. Please contact support.');}
  finally{button.disabled=false;button.textContent='Delete permanently';}

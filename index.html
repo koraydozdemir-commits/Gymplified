@@ -1514,6 +1514,7 @@ function renderAll() {
   renderTrainingLog();
   renderNutrition();
   renderExtras();
+  if(typeof renderDeluxeUI==='function')renderDeluxeUI();
 
   const now = new Date();
   document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -2612,7 +2613,7 @@ function renderDeluxeAnalytics(){
   if(change!==null)insights.push(change>10?'Your recorded training volume is rising compared with the previous four weeks. Keep progression gradual.':change< -10?'Your recorded training volume is lower than the previous four weeks. Check whether this matches your current training plan.':'Your training volume is relatively steady across the two four-week periods.');
   const under=muscleRows.filter(x=>x[1]===Math.min(...muscleRows.map(y=>y[1])));if(under.length&&muscleRows.length>1)insights.push('Least represented logged muscle group: '+under[0][0]+'. This is a logging-based balance prompt, not a prescription.');
   const recentCutoff=Date.now()-48*3600000,recentMuscles=[];
-  sessions.filter(s=>new Date((s.date||'')+'T23:59:59').getTime()>=recentCutoff).forEach(s=>(s.exercises||[]).forEach(e=>{const m=String(e.muscle||'').trim();if(m&&!recentMuscles.includes(m))recentMuscles.push(m);}));
+  sessions.filter(s=>new Date(s.finishedAt||((s.date||'')+'T23:59:59')).getTime()>=recentCutoff).forEach(s=>(s.exercises||[]).forEach(e=>{const m=String(e.muscle||'').trim();if(m&&!recentMuscles.includes(m))recentMuscles.push(m);}));
   if(recentMuscles.length)insights.push('Recently logged in the last 48 hours: '+recentMuscles.join(', ')+'. Use your own recovery needs to decide when to train these areas again.');
   const latest=sessions[sessions.length-1],days=Math.floor((Date.now()-new Date((latest.date||'')+'T12:00:00').getTime())/86400000);
   if(Number.isFinite(days))insights.push(days===0?'You have a workout logged today.':days===1?'Your last completed workout was yesterday.':days+' days since your last completed workout.');

@@ -1329,9 +1329,8 @@ function showScreen(screenId, btn) {
     btn.classList.add('active');
   }
   markNav(); scrollTo(0,0); if(screenId==='friends')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
-  if(screenId === 'prs') {
-    nextQuote();
-  }
+  if(screenId === 'prs') { nextQuote(); }
+  if(screenId === 'deluxe') renderDeluxeUI();
 }
 
 // --- MOTIVATIONAL QUOTE ENGINE ---
@@ -2388,7 +2387,7 @@ async function resendSignupConfirmation(){
 function renderAccountPanel(){
  const p=currentProfile||{username:currentUser.email?currentUser.email.split('@')[0]:'member',display_name:'Gymplified member'};
  $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+
- '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong><div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
+ '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong>'+(state.deluxe&&state.deluxe.profileFlair?'<span class="deluxe-pill" style="margin-left:6px">DELUXE</span>':'')+'<div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
  '<div class="account-actions"><button class="btn" onclick="$(\'avatarFile\').click()">Change picture</button><button class="btn" onclick="signOutAccount()">Sign out</button></div></div>'+
  '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp" hidden onchange="uploadAvatar(this.files[0])">'+
  '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" onclick="saveProfile()">Save profile</button></div>'+
@@ -2545,6 +2544,161 @@ function previewDeluxeFeature(name){
 }
 function closeDeluxeModal(){$('deluxeModal').classList.remove('open');}
 updateDeluxeUI();
+
+
+/* ===== Gymplified Deluxe: real, data-driven tools ===== */
+let deluxePlanDraft=[];
+function deluxeEnabled(){try{return localStorage.getItem('gymplified_deluxe_demo')==='1';}catch(e){return false;}}
+function deluxeDownload(filename,content,type){
+ const blob=new Blob([content],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+function deluxeAllSessions(){return (Array.isArray(state.sessions)?state.sessions:[]).slice().filter(s=>s&&Array.isArray(s.exercises)).sort((a,b)=>String(a.date).localeCompare(String(b.date)));}
+function deluxeSessionVolume(s){return (s.exercises||[]).reduce((n,e)=>n+(e.sets||[]).reduce((v,x)=>v+(Number(x.kg)||0)*(Number(x.reps)||0),0),0);}
+function deluxeWeekStart(date){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()-(d.getDay()+6)%7);return dayKey(d);}
+function deluxeRecentWeeks(count){
+ const out=[],now=new Date();
+ for(let i=count-1;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-(d.getDay()+6)%7-i*7);const key=dayKey(d);out.push({key,label:d.toLocaleDateString(undefined,{month:'short',day:'numeric'}),sessions:deluxeAllSessions().filter(s=>deluxeWeekStart(s.date)===key)});}
+ return out.map(w=>Object.assign(w,{volume:w.sessions.reduce((n,s)=>n+deluxeSessionVolume(s),0),workouts:w.sessions.length,sets:w.sessions.reduce((n,s)=>n+(Number(s.sets)||0),0)}));
+}
+function renderDeluxeUI(){
+ const enabled=deluxeEnabled(),status=$('deluxeStatus'),toggle=$('deluxeDemoToggle'),locked=$('deluxeLockedNotice'),tools=$('deluxeTools');
+ if(status){status.textContent=enabled?'DEMO UNLOCKED':'PREVIEW MODE';status.style.background=enabled?'rgba(16,185,129,.12)':'';status.style.borderColor=enabled?'#10b981':'#b99342';status.style.color=enabled?'#10b981':'#d6b15e';}
+ if(toggle)toggle.textContent=enabled?'Turn off demo unlock':'Enable demo unlock';
+ if(locked)locked.hidden=enabled;if(tools)tools.hidden=!enabled;
+ document.querySelectorAll('.deluxe-feature .lock').forEach(el=>el.textContent=enabled?'✨':'🔒');
+ if(enabled){renderDeluxeAnalytics();renderDeluxePerformanceOptions();renderDeluxePlanLibrary();renderDeluxeCustomisation();}
+}
+function updateDeluxeUI(){renderDeluxeUI();}
+function toggleDeluxeDemo(){
+ try{localStorage.setItem('gymplified_deluxe_demo',deluxeEnabled()?'0':'1');renderDeluxeUI();showToast(deluxeEnabled()?'Deluxe demo unlocked on this device':'Deluxe demo lock restored');}
+ catch(e){showToast('Could not save demo setting on this device');}
+}
+function openDeluxeDemo(){if(!deluxeEnabled()){showToast('Enable the demo unlock to explore the working tools');return;}renderDeluxeAnalytics();}
+function previewDeluxeFeature(name){
+ if(deluxeEnabled()){
+  const actions={'Advanced analytics':()=>renderDeluxeAnalytics(),'Smart training insights':()=>{$('deluxeInsights')?.scrollIntoView({behavior:'smooth',block:'center'});},'Workout planner':()=>{$('deluxePlanName')?.focus();},'Performance lab':()=>{$('deluxeExerciseSelect')?.focus();},'Complete data tools':()=>{$('deluxeExportStatus')?.scrollIntoView({behavior:'smooth',block:'center'});},'Deluxe customisation':()=>{$('deluxeAccent')?.focus();}};
+  if(actions[name]){actions[name]();return;}
+ }
+ $('deluxeModalTitle').textContent=name;
+ $('deluxeModalText').textContent='This tool is part of the Gymplified Deluxe prototype. Enable the local demo unlock to use the working version. The €9.99 payment system has not been connected.';
+ $('deluxeModal').classList.add('open');
+}
+function closeDeluxeModal(){$('deluxeModal').classList.remove('open');}
+function renderDeluxeAnalytics(){
+ if(!deluxeEnabled())return;
+ const sessions=deluxeAllSessions(),weeks=deluxeRecentWeeks(8),recent=weeks.slice(-4),previous=weeks.slice(0,4);
+ const recentVol=recent.reduce((n,w)=>n+w.volume,0),previousVol=previous.reduce((n,w)=>n+w.volume,0);
+ const change=previousVol?((recentVol-previousVol)/previousVol*100):null;
+ $('deluxeVolumeMetric').textContent=recentVol?Math.round(recentVol).toLocaleString()+' kg':'—';
+ $('deluxeVolumeCompare').textContent=change===null?'Log and finish workouts to build a trend':(change>=0?'↑ ':'↓ ')+Math.abs(change).toFixed(1)+'% vs previous 4 weeks';
+ const since=Date.now()-28*86400000,month=sessions.filter(s=>new Date((s.date||'')+'T23:59:59').getTime()>=since);
+ $('deluxeWorkoutMetric').textContent=month.length;
+ $('deluxeWorkoutCompare').textContent=month.reduce((n,s)=>n+(Number(s.sets)||0),0)+' completed sets · last 28 days';
+ const bests=[];
+ sessions.forEach(s=>(s.exercises||[]).forEach(e=>(e.sets||[]).forEach(set=>{const rm=calculate1RM(set.kg,set.reps);if(rm>0)bests.push(rm);})));
+ (state.prs||[]).forEach(p=>{const rm=calculate1RM(p.weight,p.reps);if(rm>0)bests.push(rm);});
+ $('deluxeStrengthMetric').textContent=bests.length?Math.max(...bests).toFixed(1)+' kg':'—';
+ $('deluxeStrengthCompare').textContent=bests.length?'Highest saved estimated 1RM':'Add a PR or complete a workout';
+ const max=Math.max(1,...weeks.map(w=>w.volume));
+ $('deluxeVolumeChart').innerHTML=weeks.map(w=>'<span class="deluxe-bar" style="height:'+Math.max(3,w.volume/max*100)+'%" title="'+esc(w.label)+': '+Math.round(w.volume)+' kg"></span>').join('');
+ $('deluxeVolumeLabels').innerHTML='<span>'+esc(weeks[0].label)+'</span><span>'+esc(weeks[weeks.length-1].label)+'</span>';
+ const muscles={};sessions.forEach(s=>(s.exercises||[]).forEach(e=>{const k=String(e.muscle||'Other').trim()||'Other';muscles[k]=(muscles[k]||0)+(e.sets||[]).length;}));
+ const muscleRows=Object.entries(muscles).sort((a,b)=>b[1]-a[1]).slice(0,8),muscleMax=Math.max(1,...muscleRows.map(x=>x[1]));
+ $('deluxeMuscleBreakdown').innerHTML=muscleRows.length?muscleRows.map(([name,n])=>'<div style="margin:10px 0"><div class="meta-row"><strong>'+esc(name)+'</strong><span>'+n+' sets</span></div><div class="progress-bar"><i style="width:'+(n/muscleMax*100)+'%"></i></div></div>').join(''):'<p class="sub">Finish workouts with exercises to see your muscle-group workload.</p>';
+ const insights=[];
+ if(sessions.length<3)insights.push('Log at least three completed workouts to unlock more useful trend comparisons.');
+ else{
+  if(change!==null)insights.push(change>10?'Your recorded training volume is rising compared with the previous four weeks. Keep progression gradual.':change< -10?'Your recorded training volume is lower than the previous four weeks. Check whether this matches your current training plan.':'Your training volume is relatively steady across the two four-week periods.');
+  const under=muscleRows.filter(x=>x[1]===Math.min(...muscleRows.map(y=>y[1])));if(under.length&&muscleRows.length>1)insights.push('Least represented logged muscle group: '+under[0][0]+'. This is a logging-based balance prompt, not a prescription.');
+  const latest=sessions[sessions.length-1],days=Math.floor((Date.now()-new Date((latest.date||'')+'T12:00:00').getTime())/86400000);
+  if(Number.isFinite(days))insights.push(days===0?'You have a workout logged today.':days===1?'Your last completed workout was yesterday.':days+' days since your last completed workout.');
+ }
+ $('deluxeInsights').innerHTML=insights.map(x=>'<div class="deluxe-insight">• '+esc(x)+'</div>').join('');
+}
+function renderDeluxePerformanceOptions(){
+ const select=$('deluxeExerciseSelect');if(!select)return;
+ const names=new Set();deluxeAllSessions().forEach(s=>(s.exercises||[]).forEach(e=>names.add(e.name)));
+ (state.prs||[]).forEach(p=>names.add(p.name));
+ const old=select.value,sorted=Array.from(names).filter(Boolean).sort();
+ select.innerHTML=sorted.length?sorted.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join(''):'<option value="">No exercise history yet</option>';
+ if(sorted.includes(old))select.value=old;renderDeluxePerformance();
+}
+function renderDeluxePerformance(){
+ const select=$('deluxeExerciseSelect');if(!select)return;const name=select.value;
+ const rows=[];
+ deluxeAllSessions().forEach(s=>(s.exercises||[]).filter(e=>e.name===name).forEach(e=>{const sets=(e.sets||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||0,rm:calculate1RM(x.kg,x.reps)})).filter(x=>x.rm>0);if(sets.length)rows.push({date:s.date,sets,best:Math.max(...sets.map(x=>x.rm))});}));
+ (state.prs||[]).filter(p=>p.name===name).forEach(p=>rows.push({date:p.date,sets:[{kg:p.weight,reps:p.reps,rm:calculate1RM(p.weight,p.reps)}],best:calculate1RM(p.weight,p.reps)}));
+ rows.sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+ const all=rows.flatMap(x=>x.sets),best=all.length?Math.max(...all.map(x=>x.rm)):0,first=rows.length?rows[0].best:0;
+ $('deluxeExerciseBest').textContent=best?best.toFixed(1)+' kg':'—';
+ $('deluxeExerciseChange').textContent=first&&best?((best-first)>=0?'+':'')+(best-first).toFixed(1)+' kg':'—';
+ $('deluxePerformanceRows').innerHTML=rows.length?'<table class="deluxe-table"><thead><tr><th>Date</th><th>Best set</th><th>Est. 1RM</th></tr></thead><tbody>'+rows.slice().reverse().map(r=>{const x=r.sets.reduce((a,b)=>!a||b.rm>a.rm?b:a,null);return '<tr><td>'+esc(r.date)+'</td><td>'+x.kg+' kg × '+x.reps+'</td><td>'+x.rm.toFixed(1)+' kg</td></tr>';}).join('')+'</tbody></table>':'<p class="sub">No saved sets for this exercise yet. Finish a workout or record a personal best.</p>';
+}
+function addDeluxePlanExercise(){
+ const name=$('deluxePlanExercise').value.trim(),sets=Number($('deluxePlanSets').value),reps=Number($('deluxePlanReps').value),kg=Number($('deluxePlanKg').value);
+ if(!name)return showToast('Enter an exercise name for your plan');
+ if(!(sets>=1&&sets<=20&&reps>=1&&reps<=100&&kg>=0&&kg<=1000))return showToast('Check the planned sets, reps and weight');
+ const day=$('deluxePlanDay').value;
+ let target=deluxePlanDraft.find(x=>x.day===day);if(!target){target={day,exercises:[]};deluxePlanDraft.push(target);}
+ target.exercises.push({name,sets,reps,kg});$('deluxePlanExercise').value='';renderDeluxePlanDraft();
+}
+function renderDeluxePlanDraft(){
+ const host=$('deluxePlanDraft');if(!host)return;
+ host.innerHTML=deluxePlanDraft.length?deluxePlanDraft.map((d,i)=>'<div class="deluxe-plan-row"><strong>'+esc(d.day)+'</strong>'+d.exercises.map((e,j)=>'<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>'+esc(e.name)+' · '+e.sets+' × '+e.reps+' · '+e.kg+' kg</span><button class="btn" onclick="removeDeluxeDraftExercise('+i+','+j+')">Remove</button></div>').join('')+'</div>').join(''):'<p class="sub">Your plan is empty. Add exercises to start building it.</p>';
+}
+function removeDeluxeDraftExercise(i,j){if(deluxePlanDraft[i]){deluxePlanDraft[i].exercises.splice(j,1);if(!deluxePlanDraft[i].exercises.length)deluxePlanDraft.splice(i,1);renderDeluxePlanDraft();}}
+function saveDeluxePlan(){
+ const name=$('deluxePlanName').value.trim();if(!name)return showToast('Give your training plan a name');
+ if(!deluxePlanDraft.length)return showToast('Add at least one exercise to your plan');
+ state.deluxe=state.deluxe||{plans:[]};state.deluxe.plans=Array.isArray(state.deluxe.plans)?state.deluxe.plans:[];
+ state.deluxe.plans.unshift({id:newRecordId('deluxe-plan'),name,createdAt:new Date().toISOString(),days:JSON.parse(JSON.stringify(deluxePlanDraft))});
+ state.deluxe.plans=state.deluxe.plans.slice(0,50);deluxePlanDraft=[];$('deluxePlanName').value='';renderDeluxePlanLibrary();renderDeluxePlanDraft();saveState();showToast('Deluxe training plan saved');
+}
+function renderDeluxePlanLibrary(){
+ const host=$('deluxePlanLibrary');if(!host)return;const plans=state.deluxe&&Array.isArray(state.deluxe.plans)?state.deluxe.plans:[];
+ host.innerHTML=plans.length?'<div class="sub-h">Saved plans</div>'+plans.map((p,i)=>'<div class="deluxe-plan-row"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(p.name)+'</strong><span class="sub">'+p.days.reduce((n,d)=>n+d.exercises.length,0)+' planned exercises</span></div><div class="row-wrap" style="margin-top:9px"><button class="btn btn-primary" onclick="loadDeluxePlan('+i+')">Load a day</button><button class="btn" onclick="deleteDeluxePlan('+i+')">Delete</button></div></div>').join(''):'<p class="sub">Your saved training plans will appear here.</p>';
+ renderDeluxePlanDraft();
+}
+function loadDeluxePlan(index){
+ const plan=state.deluxe?.plans?.[index];if(!plan)return;
+ const days=plan.days||[];if(!days.length)return showToast('This plan has no days to load');
+ const day=prompt('Which day should be loaded?\n'+days.map((d,i)=>(i+1)+'. '+d.day).join('\n'),'1');
+ if(day===null)return;const selected=days[Number(day)-1];if(!selected)return showToast('Enter a valid day number');
+ if(state.workouts.length&&!confirm('Replace the current workout with '+selected.day+' from '+plan.name+'?'))return;
+ state.workouts=selected.exercises.map(e=>syncW({name:e.name,muscle:'',setList:Array.from({length:e.sets},()=>({kg:e.kg,reps:e.reps,done:false}))}));
+ saveState();showToast(selected.day+' loaded into Training Log');showScreen('training',document.querySelector('nav button[data-screen="training"]'));
+}
+function deleteDeluxePlan(index){
+ const plans=state.deluxe?.plans;if(!plans||!plans[index]||!confirm('Delete this training plan?'))return;
+ plans.splice(index,1);saveState();renderDeluxePlanLibrary();
+}
+function deluxeCSVCell(value){const s=String(value==null?'':value);return '"'+s.replace(/"/g,'""')+'"';}
+function exportDeluxeCSV(){
+ const rows=[['Workout date','Exercise','Muscle group','Set number','Weight kg','Reps','Estimated 1RM kg']];
+ deluxeAllSessions().forEach(s=>(s.exercises||[]).forEach(e=>(e.sets||[]).forEach((set,i)=>rows.push([s.date,e.name,e.muscle||'',i+1,set.kg,set.reps,calculate1RM(set.kg,set.reps)]))));
+ if(rows.length===1)return showToast('No completed workout sets to export yet');
+ deluxeDownload('gymplified-deluxe-workouts-'+dayKey()+'.csv','\uFEFF'+rows.map(row=>row.map(deluxeCSVCell).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+ $('deluxeExportStatus').textContent='Workout CSV exported · '+(rows.length-1)+' sets.';
+}
+function exportDeluxeReport(){
+ const sessions=deluxeAllSessions();if(!sessions.length)return showToast('Complete a workout before generating your report');
+ const totalVolume=sessions.reduce((n,s)=>n+deluxeSessionVolume(s),0),totalSets=sessions.reduce((n,s)=>n+(Number(s.sets)||0),0);
+ const lines=['GYMPLIFIED DELUXE — TRAINING REPORT','Generated: '+new Date().toLocaleString(),'','SUMMARY','Completed workouts: '+sessions.length,'Completed sets: '+totalSets,'Total logged volume: '+Math.round(totalVolume)+' kg','','WORKOUT HISTORY'];
+ sessions.slice().reverse().forEach(s=>{lines.push('',s.date+' · '+(s.mins||0)+' min · '+Math.round(deluxeSessionVolume(s))+' kg');(s.exercises||[]).forEach(e=>lines.push('  '+e.name+' ('+(e.muscle||'muscle not specified')+'): '+(e.sets||[]).map(x=>x.kg+' kg × '+x.reps+' reps').join(', ')));});
+ deluxeDownload('gymplified-deluxe-report-'+dayKey()+'.txt',lines.join('\n'),'text/plain;charset=utf-8');
+ $('deluxeExportStatus').textContent='Progress report generated from '+sessions.length+' completed workouts.';
+}
+function saveDeluxeCustomisation(){
+ const accent=$('deluxeAccent').value,theme=$('deluxeTheme').value,flair=$('deluxeProfileFlair').checked;
+ state.deluxe=state.deluxe||{};state.deluxe.accent=accent;state.deluxe.theme=theme;state.deluxe.profileFlair=flair;
+ state.settings.color=accent;state.settings.theme=theme;saveState();showToast('Deluxe appearance saved');
+}
+function renderDeluxeCustomisation(){
+ const d=state.deluxe||{};if($('deluxeAccent'))$('deluxeAccent').value=d.accent||'gold';
+ if($('deluxeTheme'))$('deluxeTheme').value=d.theme||'dark';
+ if($('deluxeProfileFlair'))$('deluxeProfileFlair').checked=d.profileFlair!==false;
+}
 
 // Boot initial render
 initPicker();

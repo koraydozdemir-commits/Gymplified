@@ -1292,17 +1292,21 @@ async function flushCloudStateSave(){
   if(!cloudSyncErrorShown){showToast('Cloud sync failed. Your device copy is saved; reconnect and try again.');cloudSyncErrorShown=true;}
  }finally{cloudSaveBusy=false;if(cloudSavePending&&sb&&currentUser&&currentUser.id===userId)cloudSaveTimer=setTimeout(flushCloudStateSave,100);}
 }
-async function syncUserAppState(){
+async function syncUserAppState(cloudOnly=false){
  if(!sb||!currentUser||cloudSyncUserId===currentUser.id||cloudSyncLoadingUserId===currentUser.id)return;
  const id=currentUser.id,revision=stateRevision;cloudSyncLoadingUserId=id;
  try{
-  state.accountOwnerId=id;
-  const snapshot=JSON.parse(JSON.stringify(sanitizeStateSnapshot(state)));snapshot.accountOwnerId=id;
-  const result=await sb.rpc('gymplified_merge_user_app_state',{p_state:snapshot});
+  let result;
+  if(cloudOnly)result=await sb.rpc('gymplified_get_user_app_state');
+  else{state.accountOwnerId=id;const snapshot=JSON.parse(JSON.stringify(sanitizeStateSnapshot(state)));snapshot.accountOwnerId=id;result=await sb.rpc('gymplified_merge_user_app_state',{p_state:snapshot});}
   if(result.error)throw result.error;
-  if(!result.data||typeof result.data!=='object')throw new Error('Cloud sync returned an invalid progress snapshot.');
+  if(!cloudOnly&&(!result.data||typeof result.data!=='object'))throw new Error('Cloud sync returned an invalid progress snapshot.');
   if(currentUser&&currentUser.id===id){
-   if(revision===stateRevision){migrateAccountSnapshot(result.data);applySettings();renderAll();initPicker();}
+   if(revision===stateRevision){
+    if(result.data&&typeof result.data==='object')migrateAccountSnapshot(result.data);
+    else{state=JSON.parse(JSON.stringify(cleanState));state.accountOwnerId=id;state.game.day=dayKey();persistLocalState(false);}
+    applySettings();renderAll();initPicker();
+   }
    cloudSyncUserId=id;cloudSyncErrorShown=false;
    try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);localStorage.setItem(ACCOUNT_STATE_PREFIX+id,JSON.stringify(state));if(clearLegacyBackupAfterSync){localStorage.removeItem(ACCOUNT_STATE_PREFIX+'unassigned');clearLegacyBackupAfterSync=false;}}catch(_){}
    if(revision!==stateRevision)queueCloudStateSave();
@@ -2799,7 +2803,7 @@ function loadDeluxePlan(index){
 }
 function showLegacyLocalDataDialog(){const dialog=$('legacyLocalDataDialog');if(dialog&&!dialog.open)dialog.showModal();}
 function downloadLegacyLocalBackup(){try{const raw=localStorage.getItem(ACCOUNT_STATE_PREFIX+'unassigned');if(!raw)return showToast('No recovery copy is available');const a=document.createElement('a'),url=URL.createObjectURL(new Blob([raw],{type:'application/json'}));a.href=url;a.download='gymplified-local-recovery-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Recovery copy downloaded');}catch(error){showToast('Could not download the recovery copy');}}
-async function resolveLegacyLocalData(merge){const id=pendingLegacyAccountId;if(!id||!currentUser||currentUser.id!==id)return;const dialog=$('legacyLocalDataDialog');if(dialog&&dialog.open)dialog.close();pendingLegacyAccountId=null;if(!merge)state=JSON.parse(JSON.stringify(cleanState));else clearLegacyBackupAfterSync=true;state.accountOwnerId=id;try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);}catch(_){}persistLocalState(false);await syncUserAppState();loadSupportTickets();renderAll();}
+async function resolveLegacyLocalData(merge){const id=pendingLegacyAccountId;if(!id||!currentUser||currentUser.id!==id)return;const dialog=$('legacyLocalDataDialog');if(dialog&&dialog.open)dialog.close();pendingLegacyAccountId=null;if(!merge)state=JSON.parse(JSON.stringify(cleanState));else clearLegacyBackupAfterSync=true;state.accountOwnerId=id;try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);}catch(_){}persistLocalState(false);await syncUserAppState(!merge);loadSupportTickets();renderAll();}
 function closeDeluxePlanDayDialog(){const dialog=$('deluxePlanDayDialog');if(dialog&&dialog.open)dialog.close();deluxePendingPlanIndex=null;}
 function confirmLoadDeluxePlan(){
  const plan=state.deluxe?.plans?.[deluxePendingPlanIndex],select=$('deluxePlanDaySelect');

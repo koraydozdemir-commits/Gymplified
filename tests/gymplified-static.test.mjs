@@ -97,3 +97,55 @@ test('SEO metadata and privacy-safe font configuration exist', async () => {
   assert.match(html, /property="og:title"/);
   assert.doesNotMatch(html, /fonts\.googleapis\.com/);
 });
+
+test('account sync is isolated by authenticated owner', async () => {
+  const html = await read('index.html');
+  const migration = await read('supabase/migrations/20261109173342_gymplified_owner_bound_sync_and_atomic_support_tickets.sql');
+  assert.match(html, /ACCOUNT_OWNER_KEY/);
+  assert.match(html, /prepareLocalAccountState/);
+  assert.match(html, /releaseLocalAccountState/);
+  assert.match(html, /cloudSyncUserId!==currentUser\.id/);
+  assert.match(html, /snapshot\.accountOwnerId=id/);
+  assert.match(migration, /p_state ->> 'accountOwnerId' IS DISTINCT FROM v_user_id::text/);
+});
+
+test('completed workouts cannot count the same checked sets twice', async () => {
+  const html = await read('index.html');
+  assert.match(html, /state\.lastSession=state\.workouts\.map/);
+  assert.match(html, /state\.workouts\.forEach\(w=>\{w\.done=false;\(w\.setList\|\|\[\]\)\.forEach\(x=>\{x\.done=false;/);
+  assert.doesNotMatch(html, /state\.sessions=state\.sessions\.slice\(0,200\)/);
+});
+
+test('session history retains imported cardio metadata and allows 5,000 records', async () => {
+  const html = await read('index.html');
+  assert.match(html, /sessions:list\(raw\.sessions,5000\)/);
+  assert.match(html, /duration:safeStateNumber\(s\.duration,0,86400,0\)/);
+  assert.match(html, /distance:safeStateNumber\(s\.distance,0,1000,0\)/);
+  assert.match(html, /notes:safeStateText\(s\.notes,'',500\)/);
+  assert.match(html, /length>=5000/);
+});
+
+test('CSV import avoids ambiguous dates and compares complete workout identity', async () => {
+  const html = await read('index.html');
+  assert.match(html, /Ambiguous date/);
+  assert.match(html, /sourceWorkoutId/);
+  assert.match(html, /Number\(s\.duration\)\|\|0/);
+  assert.match(html, /weightUnitKeys/);
+  assert.match(html, /length\+fresh\.length>5000/);
+});
+
+test('support ticket and first message are created in one transaction', async () => {
+  const html = await read('index.html');
+  const migration = await read('supabase/migrations/20261109173342_gymplified_owner_bound_sync_and_atomic_support_tickets.sql');
+  assert.match(html, /gymplified_create_support_ticket/);
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.gymplified_create_support_ticket/);
+  assert.match(migration, /SECURITY INVOKER/);
+  assert.match(migration, /INSERT INTO public\.support_tickets/);
+  assert.match(migration, /INSERT INTO public\.support_ticket_messages/);
+});
+
+test('gold accent uses gold text rather than the old blue default', async () => {
+  const html = await read('index.html');
+  assert.match(html, /:root\{--brand-text:#e8b84b/);
+  assert.match(html, /data-color=gold\]\{--brand-text:#92400e/);
+});

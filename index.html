@@ -2,6 +2,15 @@
 <html lang="en" data-theme="dark" data-color="gold" data-contrast="normal" data-motion="normal" data-font="default" data-scale="md">
 <head>
 <meta charset="utf-8">
+<meta name="description" content="Gymplified is a workout and fitness tracker for logging training sessions, tracking personal records, nutrition and weekly progress.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://gymplified.com/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Gymplified | Fitness Tracker">
+<meta property="og:description" content="Track your workouts, personal records, nutrition and training progress with Gymplified.">
+<meta property="og:url" content="https://gymplified.com/">
+<meta property="og:site_name" content="Gymplified">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ouwvujtsrnotnwtbvqhc.supabase.co; font-src 'self' data:; connect-src 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co wss://ouwvujtsrnotnwtbvqhc.supabase.co; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f17">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -11,9 +20,9 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./gymplified-app-icon.jpg" type="image/jpeg">
 <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
-<title>Gymplified — Training Log, PR Tracker & Muscle Diagram</title>
+<title>Gymplified | Fitness Tracker</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..800;1,9..40,400..800&family=Space+Grotesk:wght@500;600;700&family=Atkinson+Hyperlegible:wght@400;700&display=swap');
+/* Local system fonts avoid third-party requests and render-blocking @import. */
 
 :root {
   --bg: #0b0f17;
@@ -30,8 +39,8 @@
   --gold: #d6b15e;
   --max: 1160px;
   --radius: 6px;
-  --font-base: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-heading: "Space Grotesk", sans-serif;
+  --font-base: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-heading: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --scale: 1rem;
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -460,6 +469,17 @@ input,select,textarea{font-size:16px!important}
 }
 @media(display-mode:standalone){body,.app{min-height:100dvh}.topbar{position:sticky;top:0}}
 @media(hover:none){.btn:hover,.panel:hover,.machine-card:hover{transform:none}}
+ 
+.ex-preview-button{border:0;background:transparent;color:inherit;text-align:left;flex:1;min-width:0;cursor:pointer;padding:4px;font:inherit}
+.ex-preview-button:focus-visible,.machine-card:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
+button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.app-dialog{width:min(92vw,480px);border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:22px;box-shadow:0 24px 90px #0009}
+.app-dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
+.app-dialog h2{margin:0 0 8px;font:700 20px var(--font-heading)}
+.app-dialog p{color:var(--muted);line-height:1.55;font-size:13px}
+.app-dialog label{display:block;margin:14px 0 6px;font-size:13px;font-weight:700}
+.app-dialog input{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
+.app-dialog-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:18px}
 </style>
 </head>
 <body>
@@ -488,27 +508,27 @@ input,select,textarea{font-size:16px!important}
     <aside>
       <div class="nav-label">Workspace</div>
       <nav>
-        <button class="active" onclick="showScreen('dashboard', this)">
+        <button class="active" data-screen="dashboard" onclick="showScreen('dashboard', this)">
           <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           Dashboard
         </button>
-        <button onclick="showScreen('prs', this)">
+        <button data-screen="prs" onclick="showScreen('prs', this)">
           <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           Personal Records
         </button>
-        <button onclick="showScreen('training', this)">
+        <button data-screen="training" onclick="showScreen('training', this)">
           <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M10 12h4"/></svg>
           Training Log
         </button>
-        <button onclick="showScreen('nutrition', this)">
+        <button data-screen="nutrition" onclick="showScreen('nutrition', this)">
           <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           Nutrition
         </button>
-        <button onclick="showScreen('friends', this)">
+        <button data-screen="friends" onclick="showScreen('friends', this)">
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Friends
         </button>
-        <button onclick="showScreen('settings', this)">
+        <button data-screen="settings" onclick="showScreen('settings', this)">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Settings
         </button>
@@ -642,10 +662,10 @@ input,select,textarea{font-size:16px!important}
         <div class="eyebrow">Execution</div>
         <h1>Workout Session</h1>
         <p class="subtitle">Start a session, pick exercises from the library, log every set, then finish to see your stats.</p>
-<div class="panel" id="sessBar" style="margin-bottom:20px"></div>
+<div class="panel" id="sessBar" role="status" aria-live="polite" aria-atomic="true" style="margin-bottom:20px"></div>
 <div class="panel" style="margin-bottom:20px"><div class="section-title">Rest Timer & Routine</div><div class="row-wrap">
 <button class="btn" onclick="rest(60)">60s</button><button class="btn" onclick="rest(90)">90s</button><button class="btn" onclick="rest(120)">2 min</button>
-<strong id="timerOut" aria-live="off" style="font:700 22px var(--font-heading);min-width:70px">–</strong>
+<strong id="timerOut" role="timer" aria-label="Rest timer" aria-live="off" style="font:700 22px var(--font-heading);min-width:70px">–</strong>
 <button class="btn" onclick="reuseRoutine()">↻ Reuse last routine</button><button class="btn btn-primary" onclick="saveCurrentRoutine()">＋ Save routine</button></div><div id="routineLibrary" style="margin-top:12px"></div></div>
 
         <div class="pick-grid">
@@ -659,7 +679,7 @@ input,select,textarea{font-size:16px!important}
  </div>
  <div><div class="body-visualizer" style="display:block;text-align:center;padding:14px"><div class="muscle-map-legend"><span><i class="muscle-map-dot primary"></i>Primary muscle</span><span><i class="muscle-map-dot secondary"></i>Supporting muscle</span></div><div id="muscleMapMount" class="muscle-map-mount" aria-live="polite"></div><div class="muscle-image-credit">Anatomical illustration: OpenStax, Tomáš Kebert & umimeto.org · CC BY-SA 4.0 · <a href="https://commons.wikimedia.org/wiki/File:Muscles_front_and_back.svg" target="_blank" rel="noopener">Source & licence</a></div></div><div class="panel" id="exPreview" style="margin-top:12px" aria-live="polite"></div></div>
 </div>
-<div id="liveStats"></div>
+<div id="liveStats" role="status" aria-live="polite" aria-atomic="true"></div>
 <div class="section-title"><span>Today's Workout</span><button class="btn" onclick="clearAllWorkouts()" style="color:var(--danger)">Clear all</button></div>
 <div id="trainingLogList" style="margin-bottom:20px"></div>
 <div id="sessionSummary"></div>
@@ -770,6 +790,16 @@ input,select,textarea{font-size:16px!important}
           </div>
         </div>
 
+        <div class="settings-group" id="privacyPreferences">
+          <h3>Privacy & Analytics</h3>
+          <p>Optional usage analytics are off until you choose to allow them. Gymplified does not attach your account ID to analytics events.</p>
+          <div class="row-wrap">
+            <button class="btn btn-primary" type="button" onclick="setAnalyticsConsent('granted')">Allow anonymous analytics</button>
+            <button class="btn" type="button" onclick="setAnalyticsConsent('denied')">Disable analytics</button>
+          </div>
+          <p id="analyticsConsentStatus" role="status" aria-live="polite" style="margin-top:8px">Analytics preference not yet set.</p>
+        </div>
+
         <!-- Accessibility Options -->
         <div class="settings-group">
           <h3>Accessibility Options</h3>
@@ -842,7 +872,19 @@ input,select,textarea{font-size:16px!important}
   </div>
 </div>
 
-<div class="toast-container" id="toastContainer" role="status" aria-live="polite"></div>
+<div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="false"></div>
+<dialog id="deleteAccountDialog" class="app-dialog" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountDescription">
+  <h2 id="deleteAccountTitle">Permanently delete your account?</h2>
+  <p id="deleteAccountDescription">This removes your account, profile, synced progress, support requests and avatar. This cannot be undone. Type DELETE to confirm.</p>
+  <label for="deleteAccountConfirm">Type DELETE</label>
+  <input id="deleteAccountConfirm" type="text" autocomplete="off" maxlength="6" spellcheck="false" oninput="updateDeleteAccountConfirm()">
+  <div class="app-dialog-actions"><button class="btn" type="button" onclick="closeAccountDialogs()">Cancel</button><button class="btn" id="confirmDeleteAccountButton" type="button" disabled onclick="confirmDeleteGymplifiedAccount()">Delete permanently</button></div>
+</dialog>
+<dialog id="resetProgressDialog" class="app-dialog" aria-labelledby="resetProgressTitle" aria-describedby="resetProgressDescription">
+  <h2 id="resetProgressTitle">Reset all progress?</h2>
+  <p id="resetProgressDescription">This clears workouts, nutrition, goals and personal records on this device and in your synced account. This cannot be undone.</p>
+  <div class="app-dialog-actions"><button class="btn" type="button" onclick="closeAccountDialogs()">Cancel</button><button class="btn" type="button" style="color:var(--danger)" onclick="confirmResetAllData()">Reset progress</button></div>
+</dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script>
@@ -1077,81 +1119,65 @@ function showToast(message) {
 }
 
 // --- PERSISTENCE & SETTINGS ---
-function saveState() {
-  rewards();
-  try{localStorage.setItem(STORAGE_KEY, JSON.stringify(state));}catch(e){}
-  queueCloudStateSave();
-  renderAll();
+let cloudSyncUserId=null,cloudSaveTimer=null,cloudSaveBusy=false,cloudSavePending=false,stateRevision=0,cloudSyncErrorShown=false;
+function markRecordDeleted(kind,item){if(!item||!item.id)return;const value=kind+':'+String(item.id);state.deletedRecordIds=Array.isArray(state.deletedRecordIds)?state.deletedRecordIds:[];if(!state.deletedRecordIds.includes(value))state.deletedRecordIds.push(value);}
+function persistLocalState(markDirty=true){if(markDirty)stateRevision++;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));return true;}catch(error){console.error('Gymplified local save failed:',error);showToast('Could not save on this device. Free storage space, then export a backup and try again.');return false;}}
+function saveState(){rewards();persistLocalState();queueCloudStateSave();renderAll();}
+
+/* Cross-device progress sync. The database merges independent records atomically by ID. */
+function resetCloudSaveQueue(){if(cloudSaveTimer)clearTimeout(cloudSaveTimer);cloudSaveTimer=null;cloudSavePending=false;}
+function queueCloudStateSave(){if(!sb||!currentUser)return;cloudSavePending=true;if(cloudSaveTimer)clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(flushCloudStateSave,500);}
+function mergeSyncedSnapshot(snapshot){
+ const next=sanitizeStateSnapshot(snapshot),today=dayKey();
+ const archive=(day,key,items)=>{if(!items.length)return;const target=next.dailyHistory[day]||(next.dailyHistory[day]={cal:0,protein:0,carbs:0,fat:0,water:0,workouts:[],foods:[],waterEntries:[]});const map=new Map((target[key]||[]).map(x=>[x.id,x]));items.forEach(x=>map.set(x.id,Object.assign({},map.get(x.id)||{},x)));target[key]=Array.from(map.values());};
+ const oldW=new Map(),oldF=new Map(),oldH=new Map();
+ next.workouts.forEach(x=>{if(x.day!==today){if(!oldW.has(x.day))oldW.set(x.day,[]);oldW.get(x.day).push(x);}});
+ next.foods.forEach(x=>{if(x.day!==today){if(!oldF.has(x.day))oldF.set(x.day,[]);oldF.get(x.day).push(x);}});
+ next.waterEntries.forEach(x=>{if(x.day!==today){if(!oldH.has(x.day))oldH.set(x.day,[]);oldH.get(x.day).push(x);}});
+ oldW.forEach((v,k)=>archive(k,'workouts',v));oldF.forEach((v,k)=>archive(k,'foods',v));oldH.forEach((v,k)=>archive(k,'waterEntries',v));
+ next.workouts=next.workouts.filter(x=>x.day===today);next.foods=next.foods.filter(x=>x.day===today);next.waterEntries=next.waterEntries.filter(x=>x.day===today);
+ const removed=new Set(next.deletedRecordIds||[]);
+ ['workouts','foods','prs','sessions','routines','customEx','customFoods','waterEntries'].forEach(key=>{next[key]=next[key].filter(x=>!removed.has(key+':'+x.id));});
+ next.waterLog=next.waterEntries.map(x=>x.amount);next.water=next.waterEntries.reduce((n,x)=>n+x.amount,0);
+ if(next.foods.length){next.cal=next.foods.reduce((n,x)=>n+x.cal,0);next.protein=next.foods.reduce((n,x)=>n+x.protein,0);next.carbs=next.foods.reduce((n,x)=>n+x.carbs,0);next.fat=next.foods.reduce((n,x)=>n+x.fat,0);}
+ next.game.day=today;Object.keys(next.dailyHistory).sort().slice(0,-365).forEach(k=>delete next.dailyHistory[k]);
+ return next;
 }
-/* Cloud progress sync: signed-in members can use their Gymplified progress across devices.
-   The admin service can manage this same private per-user snapshot through a protected Edge Function. */
-let cloudSyncUserId=null,cloudSaveTimer=null,cloudSaveBusy=false,cloudSavePending=false;
-function resetCloudSaveQueue(){
- if(cloudSaveTimer)clearTimeout(cloudSaveTimer);
- cloudSaveTimer=null;cloudSavePending=false;
-}
-function queueCloudStateSave(){
- if(!sb||!currentUser)return;
- cloudSavePending=true;
- if(cloudSaveTimer)clearTimeout(cloudSaveTimer);
- cloudSaveTimer=setTimeout(flushCloudStateSave,500);
-}
+function migrateAccountSnapshot(snapshot){state=mergeSyncedSnapshot(snapshot);persistLocalState(false);}
 async function flushCloudStateSave(){
- cloudSaveTimer=null;
- if(!cloudSavePending||!sb||!currentUser)return;
+ cloudSaveTimer=null;if(!cloudSavePending||!sb||!currentUser)return;
  if(cloudSaveBusy){cloudSaveTimer=setTimeout(flushCloudStateSave,250);return;}
  cloudSaveBusy=true;cloudSavePending=false;
- const userId=currentUser.id;
+ const userId=currentUser.id,revision=stateRevision;
  let snapshot;
- try{snapshot=JSON.parse(JSON.stringify(state));}
- catch(e){cloudSaveBusy=false;console.warn('Gymplified could not prepare progress for sync:',e);return;}
+ try{snapshot=JSON.parse(JSON.stringify(sanitizeStateSnapshot(state)));}
+ catch(error){cloudSaveBusy=false;console.error('Could not prepare state for cloud sync:',error);showToast('Progress could not be prepared for cloud sync. Your device copy is still saved.');return;}
  try{
-  const r=await sb.from('user_app_state').upsert({user_id:userId,state:snapshot,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-  if(r.error)throw r.error;
- }catch(e){console.warn('Gymplified cloud progress sync failed:',e.message||e);}
- finally{
-  cloudSaveBusy=false;
-  if(cloudSavePending&&sb&&currentUser&&currentUser.id===userId)cloudSaveTimer=setTimeout(flushCloudStateSave,100);
- }
-}
-function migrateAccountSnapshot(snapshot){
- localStorage.setItem(STORAGE_KEY,JSON.stringify(snapshot));
- state=bootState();
- state.workouts=(Array.isArray(state.workouts)?state.workouts:[]).filter(w=>w&&typeof w==='object').map(w=>ensureSets(w));
- state.customEx=(Array.isArray(state.customEx)?state.customEx:[]).map((x,i)=>normalizeCustomExercise(x,i)).filter(Boolean);
- state.routines=(Array.isArray(state.routines)?state.routines:[]).filter(r=>r&&typeof r==='object').map((r,i)=>{
-  const exercises=(Array.isArray(r.exercises)?r.exercises:[]).filter(Boolean).map(w=>{
-   const sets=(Array.isArray(w.setList)?w.setList:[]).filter(Boolean).map(s=>({kg:Math.max(0,Number(s.kg)||0),reps:Math.max(1,Math.round(Number(s.reps)||10)),done:false}));
-   return {name:String(w.name||w.exercise||'Exercise'),muscle:String(w.muscle||''),setList:sets.length?sets:[{kg:0,reps:10,done:false}]};
-  });
-  return {id:String(r.id||'legacy-routine-'+i),name:String(r.name||'Saved routine'),exercises};
- });
- state.sessions=(Array.isArray(state.sessions)?state.sessions:[]).filter(s=>s&&typeof s==='object').map(s=>{
-  const exercises=(Array.isArray(s.exercises)?s.exercises:[]).filter(Boolean).map(ex=>{
-   const sets=(Array.isArray(ex.sets)?ex.sets:[]).filter(Boolean).map(set=>({kg:Math.max(0,Number(set.kg)||0),reps:Math.max(1,Math.round(Number(set.reps)||1))}));
-   return {name:String(ex.name||'Exercise'),sets};
-  });
-  return Object.assign({},s,{date:String(s.date||dayKey()),exercises});
- });
- localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+  const result=await sb.rpc('gymplified_merge_user_app_state',{p_state:snapshot});
+  if(result.error)throw result.error;
+  cloudSyncErrorShown=false;
+  if(result.data&&currentUser&&currentUser.id===userId&&revision===stateRevision){state=mergeSyncedSnapshot(result.data);persistLocalState(false);renderAll();}
+ }catch(error){
+  console.warn('Gymplified cloud progress sync failed:',error.message||error);
+  if(!cloudSyncErrorShown){showToast('Cloud sync failed. Your device copy is saved; reconnect and try again.');cloudSyncErrorShown=true;}
+ }finally{cloudSaveBusy=false;if(cloudSavePending&&sb&&currentUser&&currentUser.id===userId)cloudSaveTimer=setTimeout(flushCloudStateSave,100);}
 }
 async function syncUserAppState(){
  if(!sb||!currentUser||cloudSyncUserId===currentUser.id)return;
- const id=currentUser.id;cloudSyncUserId=id;
+ const id=currentUser.id,revision=stateRevision;cloudSyncUserId=id;
  try{
-  const r=await sb.from('user_app_state').select('state').eq('user_id',id).maybeSingle();
-  if(r.error)throw r.error;
-  if(r.data&&r.data.state&&typeof r.data.state==='object'){
-   migrateAccountSnapshot(r.data.state);
-   applySettings();renderAll();initPicker();
-   const migrated=await sb.from('user_app_state').upsert({user_id:id,state:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-   if(migrated.error)console.warn('Gymplified account migration could not be saved:',migrated.error.message);
-  }else{
-   const saved=await sb.from('user_app_state').upsert({user_id:id,state:state,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-   if(saved.error)throw saved.error;
-  }
- }catch(e){cloudSyncUserId=null;console.warn('Gymplified cloud progress could not be loaded:',e.message||e);}
+  const snapshot=JSON.parse(JSON.stringify(sanitizeStateSnapshot(state)));
+  const result=await sb.rpc('gymplified_merge_user_app_state',{p_state:snapshot});
+  if(result.error)throw result.error;
+  if(!result.data||typeof result.data!=='object')throw new Error('Cloud sync returned an invalid progress snapshot.');
+  if(currentUser&&currentUser.id===id&&revision===stateRevision){migrateAccountSnapshot(result.data);applySettings();renderAll();initPicker();}
+  cloudSyncErrorShown=false;
+ }catch(error){
+  cloudSyncUserId=null;console.warn('Gymplified cloud progress could not be loaded:',error.message||error);
+  if(!cloudSyncErrorShown){showToast('Could not sync your account yet. Your device data is preserved; try again when online.');cloudSyncErrorShown=true;}
+ }
 }
+
 
 
 function applySettings() {
@@ -1248,7 +1274,7 @@ function renderDashboard() {
     container.innerHTML = `
       <div class="empty-box">
         <p>No workouts logged today. Add exercises using the direct log or Training tab.</p>
-        <button class="btn btn-primary" onclick="showScreen('training', document.querySelectorAll('nav button')[2])">Open Training Log</button>
+        <button class="btn btn-primary" onclick="showScreen('training', document.querySelector('nav button[data-screen="training"]'))">Open Training Log</button>
       </div>`;
   } else {
     container.innerHTML = state.workouts.map((w, i) => `
@@ -1280,8 +1306,8 @@ function renderPRs() {
       <div class="pr-card">
         <div class="pr-card-badge">🏆 EST. 1RM: ${est1RM} KG</div>
         <div class="pr-title">${esc(pr.name)}</div>
-        <div class="pr-metric">${pr.weight} <span style="font-size:14px; color:var(--muted);">KG</span> × ${pr.reps} <span style="font-size:14px; color:var(--muted);">REPS</span></div>
-        <div class="pr-subtext">Achieved: ${pr.date || 'Today'}</div>
+        <div class="pr-metric">${Number(pr.weight)||0} <span style="font-size:14px; color:var(--muted);">KG</span> × ${Number(pr.reps)||1} <span style="font-size:14px; color:var(--muted);">REPS</span></div>
+        <div class="pr-subtext">Achieved: ${esc(pr.date || 'Today')}</div>
         <button class="btn btn-icon-only" style="position:absolute; bottom:12px; right:12px; color:var(--danger); height:28px; width:28px; font-size:11px;" onclick="deletePR(${i})" title="Delete PR">✕</button>
       </div>
     `;
@@ -1308,7 +1334,7 @@ function renderNutrition() {
     const items=foods.map((f,i)=>({f,i})).filter(x=>(x.f.meal||'Snacks')===meal);
     if(!items.length)return '';
     const total=items.reduce((a,x)=>{a.cal+=Number(x.f.cal)||0;a.p+=Number(x.f.protein)||0;a.c+=Number(x.f.carbs)||0;a.f+=Number(x.f.fat)||0;return a;},{cal:0,p:0,c:0,f:0});
-    return '<div class="meal-group"><div class="meal-group-head"><strong>'+meal+'</strong><small>'+Math.round(total.cal)+' kcal · P '+total.p.toFixed(1)+'g · C '+total.c.toFixed(1)+'g · F '+total.f.toFixed(1)+'g</small></div>'+
+    return '<div class="meal-group"><div class="meal-group-head"><strong>'+esc(meal)+'</strong><small>'+Math.round(total.cal)+' kcal · P '+total.p.toFixed(1)+'g · C '+total.c.toFixed(1)+'g · F '+total.f.toFixed(1)+'g</small></div>'+
       items.map(({f,i})=>'<div class="food-entry"><div><div class="food-entry-name">'+esc(f.name)+'</div><div class="food-entry-meta">'+(f.grams?f.grams+'g portion · ':'')+Math.round(f.cal)+' kcal</div><div class="food-entry-macros"><span><b>'+Number(f.protein||0).toFixed(1)+'g</b> protein</span><span><b>'+Number(f.carbs||0).toFixed(1)+'g</b> carbs</span><span><b>'+Number(f.fat||0).toFixed(1)+'g</b> fat</span></div></div><div class="food-entry-actions"><button class="btn" onclick="deleteFood('+i+')" style="color:var(--danger)">Delete</button></div></div>').join('')+'</div>';
   }).join('');
 }
@@ -1316,14 +1342,14 @@ function renderNutrition() {
 function renderMachines() {
   const list = document.getElementById('machineList');
   list.innerHTML = GYM_MACHINES.map(m => `
-    <div class="machine-card ${selectedMachine && selectedMachine.id === m.id ? 'active' : ''}" onclick="selectMachine('${m.id}')">
+    <button type="button" class="machine-card ${selectedMachine && selectedMachine.id === m.id ? 'active' : ''}" aria-pressed="${!!(selectedMachine && selectedMachine.id === m.id)}" onclick="selectMachine(${jsArg(m.id)})">
       <h3>${esc(m.name)}</h3>
-      <p>${m.desc}</p>
+      <p>${esc(m.desc)}</p>
       <div class="tag-list">
         ${m.primary.map(p => `<span class="tag primary">${p}</span>`).join('')}
         ${m.secondary.map(s => `<span class="tag">${s}</span>`).join('')}
       </div>
-    </div>
+    </button>
   `).join('');
 }
 
@@ -1397,21 +1423,21 @@ function savePRRecord() {
     return;
   }
 
-  state.prs.push({ name, weight, reps, date });
+  state.prs.push({ id:newRecordId('pr'),name,weight,reps,date:safeStateDay(date,dayKey()) });
   document.getElementById('inputPRName').value = '';
   saveState();
   showToast(`PR saved: ${name} (${weight}kg)`);
 }
 
 function deletePR(index) {
-  state.prs.splice(index, 1);
+  markRecordDeleted('prs',state.prs[index]);state.prs.splice(index, 1);
   saveState();
   showToast('Personal Record removed');
 }
 
 function clearAllPRs() {
   if (confirm('Are you sure you want to clear all Personal Records?')) {
-    state.prs = [];
+    (state.prs||[]).forEach(x=>markRecordDeleted('prs',x));state.prs = [];
     saveState();
     showToast('All PRs cleared');
   }
@@ -1429,22 +1455,21 @@ function saveDirectExercise() {
   if(!Array.isArray(state.workouts))state.workouts=[];
   state.workouts.push(workout);
   $('inputExName').value='';
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(e){console.error('Workout save failed',e);}
-  try{queueCloudStateSave();}catch(e){console.warn(e);}
+  persistLocalState();queueCloudStateSave();
   try{renderTrainingLog();}catch(e){console.error('Training log render failed',e);showToast('Exercise saved, but the workout list could not refresh. Please reload.');}
   try{renderDashboard();}catch(e){console.warn(e);}
   showToast('Added '+name+' · '+sets+' editable sets');
 }
 
 function deleteWorkout(index) {
-  state.workouts.splice(index, 1);
+  markRecordDeleted('workouts',state.workouts[index]);state.workouts.splice(index, 1);
   saveState();
   showToast('Exercise removed');
 }
 
 function clearAllWorkouts() {
   if (confirm('Clear all logged exercises for today?')) {
-    state.workouts = [];
+    (state.workouts||[]).forEach(x=>markRecordDeleted('workouts',x));state.workouts = [];
     saveState();
     showToast('Workout log cleared');
   }
@@ -1463,7 +1488,7 @@ function findFood(id){return foodLibrary().find(f=>f.id===id);}
 function renderFoodSearch(){
   const q=($('foodSearch').value||'').trim().toLowerCase(),box=$('foodSuggestions');
   const list=foodLibrary().filter(f=>!q||(f.name+' '+f.category).toLowerCase().includes(q)).slice(0,12);
-  box.innerHTML=list.length?list.map(f=>'<button type="button" class="food-suggestion" role="option" onclick="chooseFood(\''+esc(f.id)+'\')"><span>'+esc(f.name)+(f.custom?' <small>· custom</small>':'')+'</span><small>'+Math.round(f.cal)+' kcal / 100g</small></button>').join(''):'<div class="nutrition-empty">No foods found. Add it as a custom food below.</div>';
+  box.innerHTML=list.length?list.map(f=>'<button type="button" class="food-suggestion" role="option" onclick="chooseFood('+jsArg(f.id)+')"><span>'+esc(f.name)+(f.custom?' <small>· custom</small>':'')+'</span><small>'+Math.round(f.cal)+' kcal / 100g</small></button>').join(''):'<div class="nutrition-empty">No foods found. Add it as a custom food below.</div>';
   box.classList.add('open');
 }
 function chooseFood(id){
@@ -1480,7 +1505,7 @@ function clearFoodPicker(){selectedFoodId=null;$('foodSearch').value='';$('foodS
 function addSelectedFood(){
   const f=selectedFoodId&&findFood(selectedFoodId),grams=Number($('foodGrams').value);
   if(!f)return showToast('Choose a food first');if(!(grams>0&&grams<=3000))return showToast('Enter a portion between 1g and 3000g');
-  const scale=grams/100,entry={name:f.name,grams,meal:$('foodMeal').value,cal:Math.round(f.cal*scale),protein:+(f.protein*scale).toFixed(1),carbs:+(f.carbs*scale).toFixed(1),fat:+(f.fat*scale).toFixed(1),createdAt:Date.now()};
+  const scale=grams/100,entry={id:newRecordId('food'),name:f.name,grams,meal:$('foodMeal').value,day:dayKey(),cal:Math.round(f.cal*scale),protein:+(f.protein*scale).toFixed(1),carbs:+(f.carbs*scale).toFixed(1),fat:+(f.fat*scale).toFixed(1),createdAt:Date.now()};
   state.foods.push(entry);state.cal+=entry.cal;state.protein+=entry.protein;state.carbs+=entry.carbs;state.fat+=entry.fat;
   state.recent=[{name:f.name,cal:entry.cal,protein:entry.protein,carbs:entry.carbs,fat:entry.fat}].concat((state.recent||[]).filter(x=>x.name!==f.name)).slice(0,12);
   saveState();renderAll();showToast('Added '+f.name+' · '+grams+'g');clearFoodPicker();
@@ -1491,7 +1516,7 @@ function saveCustomFood(){
   if(['customFoodCal','customFoodProtein','customFoodCarbs','customFoodFat'].some(k=>$(k).value.trim()===''))return showToast('Fill in all nutrition values per 100g');
   if(![cal,protein,carbs,fat].every(Number.isFinite)||cal<0||cal>1000||protein<0||protein>100||carbs<0||carbs>100||fat<0||fat>100)return showToast('Check the nutrition values per 100g');
   const id='custom-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,6);
-  state.customFoods.push({id,name,cal,protein,carbs,fat});saveState();
+  state.customFoods.push({id:safeRecordId(id,newRecordId('custom-food')),name,cal,protein,carbs,fat});saveState();
   $('customFoodName').value='';['customFoodCal','customFoodProtein','customFoodCarbs','customFoodFat'].forEach(k=>$(k).value='');chooseFood(id);showToast('Custom food saved');
 }
 function saveNutritionTargets(){
@@ -1501,30 +1526,31 @@ function saveNutritionTargets(){
 }
 function saveFoodEntry(){showToast('Choose a food from the new food search');}
 function deleteFood(index){
-  const f=state.foods[index];if(!f)return;
+  const f=state.foods[index];if(!f)return;markRecordDeleted('foods',f);
   state.cal=Math.max(0,state.cal-(Number(f.cal)||0));state.protein=Math.max(0,state.protein-(Number(f.protein)||0));state.carbs=Math.max(0,state.carbs-(Number(f.carbs)||0));state.fat=Math.max(0,state.fat-(Number(f.fat)||0));
   state.foods.splice(index,1);saveState();renderAll();showToast('Food removed from diary');
 }
 function clearFoodLogs(){
   if(!confirm('Clear every food entry logged today?'))return;
-  state.foods=[];state.cal=state.protein=state.carbs=state.fat=0;saveState();renderAll();showToast('Today’s food diary cleared');
+  (state.foods||[]).forEach(x=>markRecordDeleted('foods',x));state.foods=[];state.cal=state.protein=state.carbs=state.fat=0;saveState();renderAll();showToast('Today’s food diary cleared');
 }
 
 
 function resetWater() {
-  state.water = 0; state.waterLog = [];
+  (state.waterEntries||[]).forEach(x=>markRecordDeleted('waterEntries',x));
+  state.water = 0; state.waterLog = []; state.waterEntries=[];
   saveState();
   showToast('Water tracker reset');
 }
 
 function openLogModal() {
-  showScreen('training', document.querySelectorAll('nav button')[2]);
+  showScreen('training', document.querySelector('nav button[data-screen="training"]'));
   const search=$('exSearch');
   if(search){search.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>search.focus({preventScroll:true}),180);}
 }
 
 function openCalorieModal() {
-  showScreen('nutrition', document.querySelectorAll('nav button')[3]);
+  showScreen('nutrition', document.querySelector('nav button[data-screen="nutrition"]'));
   setTimeout(()=>document.getElementById('foodSearch')?.focus(),50);
 }
 
@@ -1662,8 +1688,9 @@ function importGymplifiedCSV(input){
         if(!confirm('Import '+fresh.length+' workout(s) containing '+fresh.reduce((n,w)=>n+w.sets,0)+' sets from '+file.name+'? Existing Gymplified data will be kept.')){input.value='';return;}
         const prMap=new Map((state.prs||[]).map(p=>[String(p.name||'').toLowerCase(),p]));
         fresh.forEach(w=>{
+          w.id=safeRecordId(w.id,newRecordId('session'));w.exercises=(w.exercises||[]).map((ex,i)=>Object.assign({},ex,{id:safeRecordId(ex.id,newRecordId('session-ex')),sets:(ex.sets||[]).map((set,j)=>Object.assign({},set,{id:safeRecordId(set.id,newRecordId('session-set'))}))}));
           state.sessions.unshift(w);
-          w.exercises.forEach(ex=>{const best=ex.sets.reduce((a,b)=>b.kg>a.kg?b:a,{kg:0,reps:0});if(best.kg>0){const key=ex.name.toLowerCase(),old=prMap.get(key);if(!old||best.kg>old.weight){const pr={name:ex.name,weight:best.kg,reps:best.reps||1,date:w.date};if(old){const ix=state.prs.indexOf(old);if(ix>=0)state.prs[ix]=pr;}else state.prs.push(pr);prMap.set(key,pr);}}});
+          w.exercises.forEach(ex=>{const best=ex.sets.reduce((a,b)=>b.kg>a.kg?b:a,{kg:0,reps:0});if(best.kg>0){const key=ex.name.toLowerCase(),old=prMap.get(key);if(!old||best.kg>old.weight){const pr={id:old&&old.id?old.id:newRecordId('pr'),name:ex.name,weight:best.kg,reps:best.reps||1,date:safeStateDay(w.date,dayKey())};if(old){const ix=state.prs.indexOf(old);if(ix>=0)state.prs[ix]=pr;}else state.prs.push(pr);prMap.set(key,pr);}}});
         });
         state.sessions=state.sessions.slice(0,500);
         saveState();status.textContent='Imported '+fresh.length+' workout(s) and '+result.rows+' set rows from '+file.name+'.';showToast('Workout history imported');
@@ -1675,35 +1702,100 @@ function importGymplifiedCSV(input){
   reader.readAsText(file);
 }
 
-async function deleteGymplifiedAccount(){
+function closeAccountDialogs(){['deleteAccountDialog','resetProgressDialog'].forEach(id=>{const dialog=$(id);if(dialog&&dialog.open)dialog.close();});}
+function updateDeleteAccountConfirm(){const input=$('deleteAccountConfirm'),button=$('confirmDeleteAccountButton');if(button)button.disabled=!input||input.value.trim()!=='DELETE';}
+function deleteGymplifiedAccount(){
  if(!currentUser||!sb)return showToast('Sign in to manage your account');
- const typed=prompt('This permanently deletes your Gymplified account, profile, synced progress, support requests and profile picture. Type DELETE to continue.');
- if(typed!=='DELETE')return;
- if(!confirm('Final confirmation: permanently delete this Gymplified account? This cannot be undone.'))return;
+ const input=$('deleteAccountConfirm');if(input)input.value='';updateDeleteAccountConfirm();
+ const dialog=$('deleteAccountDialog');if(dialog)dialog.showModal();
+}
+async function confirmDeleteGymplifiedAccount(){
+ if(!currentUser||!sb)return showToast('Sign in to manage your account');
+ if(!$('deleteAccountConfirm')||$('deleteAccountConfirm').value.trim()!=='DELETE')return;
+ const button=$('confirmDeleteAccountButton');button.disabled=true;button.textContent='Deleting…';
  try{
   const result=await sb.functions.invoke('gymplified-delete-account',{body:{confirmation:'DELETE'}});
   if(result.error)throw result.error;
   await sb.auth.signOut().catch(()=>{});
-  localStorage.removeItem(STORAGE_KEY);currentUser=null;currentProfile=null;cloudSyncUserId=null;state=bootState();saveState();renderFriends();
+  localStorage.removeItem(STORAGE_KEY);currentUser=null;currentProfile=null;cloudSyncUserId=null;state=bootState();closeAccountDialogs();renderFriends();
   showToast('Your Gymplified account has been deleted');
- }catch(e){showToast(e&&e.message?e.message:'Could not delete your account. Please contact support.');}
+ }catch(error){showToast(error&&error.message?error.message:'Could not delete your account. Please contact support.');}
+ finally{button.disabled=false;button.textContent='Delete permanently';}
 }
-function resetAllData() {
-  if (confirm('This will reset all your Gymplified progress on this device and in your synced account, including workouts, nutrition, goals and personal records. This cannot be undone. Continue?')) {
-    localStorage.removeItem(STORAGE_KEY);
-    state = bootState();
-    saveState();
-    showToast('Your Gymplified progress was reset');
-  }
+function resetAllData(){const dialog=$('resetProgressDialog');if(dialog)dialog.showModal();}
+function confirmResetAllData(){
+ const tombstones=Array.isArray(state.deletedRecordIds)?state.deletedRecordIds.slice():[];
+ [['workouts',state.workouts],['foods',state.foods],['prs',state.prs],['sessions',state.sessions],['routines',state.routines],['customEx',state.customEx],['customFoods',state.customFoods]].forEach(([kind,items])=>(items||[]).forEach(item=>{if(item&&item.id){const value=kind+':'+item.id;if(!tombstones.includes(value))tombstones.push(value);}}));
+ state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{deletedRecordIds:tombstones,resetAt:Date.now(),dailyHistory:{},game:{xp:0,total:0,waterWon:'',claimed:{},badges:[],day:dayKey()}});
+ closeAccountDialogs();saveState();showToast('Your Gymplified progress was reset');
 }
+
 
 
 // ===== v3: gamification, goals, accessibility =====
 const $ = id => document.getElementById(id);
 function esc(x){return String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function jsArg(value){return esc(JSON.stringify(String(value==null?'':value)));}
+
+function safeRecordId(value,fallback){const id=String(value==null?'':value).trim();return /^[A-Za-z0-9_-]{1,120}$/.test(id)?id:fallback;}
+function newRecordId(prefix){try{if(window.crypto&&crypto.randomUUID)return prefix+'-'+crypto.randomUUID();}catch(e){}return prefix+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,10);}
+function safeStateText(value,fallback,max){return String(value==null?fallback:value).replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,max)||fallback;}
+function safeStateNumber(value,min,max,fallback=0){const n=Number(value);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;}
+function safeStateDay(value,fallback){const s=String(value||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return fallback;const d=new Date(s+'T12:00:00');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s?s:fallback;}
+function sanitizeStateSnapshot(raw){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error('Backup must contain a JSON object.');
+ const today=dayKey(),rawGame=raw.game&&typeof raw.game==='object'?raw.game:{},gameDay=safeStateDay(rawGame.day,today);
+ const list=(v,max)=>Array.isArray(v)?v.slice(0,max):[];
+ const cleanSets=(source,count,weight,reps)=>{
+  const a=list(source,50);
+  if(!a.length){const n=Math.max(1,Math.min(20,Math.round(Number(count)||3)));return Array.from({length:n},(_,i)=>({id:'legacy-set-'+i,kg:safeStateNumber(weight,0,1000,0),reps:safeStateNumber(reps,1,1000,10),done:false}));}
+  return a.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-set-'+i),kg:safeStateNumber(x.kg,0,1000,0),reps:safeStateNumber(x.reps,1,1000,10),done:!!x.done}));
+ };
+ const cleanWorkout=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const name=safeStateText(x.name||x.exercise,'Exercise',80);return{id:safeRecordId(x.id,'legacy-workout-'+i+'-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24)),name,muscle:safeStateText(x.muscle,'',40),day:safeStateDay(x.day,day),setList:cleanSets(x.setList,x.sets,x.weight,x.reps),xp:safeStateNumber(x.xp,0,1,0)};};
+ const cleanFood=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const meals=['Breakfast','Lunch','Dinner','Snacks'];return{id:safeRecordId(x.id,'legacy-food-'+i),name:safeStateText(x.name,'Food',100),meal:meals.includes(x.meal)?x.meal:'Snacks',day:safeStateDay(x.day,day),grams:safeStateNumber(x.grams,0,10000,0),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),createdAt:safeStateNumber(x.createdAt,0,Number.MAX_SAFE_INTEGER,Date.now()),xp:safeStateNumber(x.xp,0,1,0)};};
+ const cleanWater=(x,i,day)=>{if(typeof x==='number')return{id:'legacy-water-'+i,amount:safeStateNumber(x,0,10,0),day,createdAt:0};if(!x||typeof x!=='object'||Array.isArray(x))return null;return{id:safeRecordId(x.id,'legacy-water-'+i),amount:safeStateNumber(x.amount,0,10,0),day:safeStateDay(x.day,day),createdAt:safeStateNumber(x.createdAt,0,Number.MAX_SAFE_INTEGER,0)};};
+ const cleanSession=(x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const exercises=list(x.exercises,100).map((ex,j)=>{if(!ex||typeof ex!=='object'||Array.isArray(ex))return null;const sets=list(ex.sets,50).filter(s=>s&&typeof s==='object'&&!Array.isArray(s)).map((s,k)=>({id:safeRecordId(s.id,'legacy-sset-'+j+'-'+k),kg:safeStateNumber(s.kg,0,1000,0),reps:safeStateNumber(s.reps,0,1000,0)}));return{id:safeRecordId(ex.id,'legacy-sex-'+j),name:safeStateText(ex.name||ex.exercise,'Exercise',80),muscle:safeStateText(ex.muscle,'',40),sets};}).filter(Boolean);const date=safeStateDay(x.date,today);return{id:safeRecordId(x.id,'legacy-session-'+i+'-'+date),date,startedAt:safeStateText(x.startedAt,'',40),finishedAt:safeStateText(x.finishedAt,'',40),mins:safeStateNumber(x.mins,0,1440,0),vol:safeStateNumber(x.vol,0,100000000,0),sets:safeStateNumber(x.sets,0,10000,0),reps:safeStateNumber(x.reps,0,100000,0),ex:safeStateNumber(x.ex,0,100,exercises.length),names:list(x.names,100).map(n=>safeStateText(n,'Exercise',80)),exercises};};
+ const workouts=list(raw.workouts,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean);
+ const foods=list(raw.foods,5000).map((x,i)=>cleanFood(x,i,gameDay)).filter(Boolean);
+ const prs=list(raw.prs,2000).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-pr-'+i),name:safeStateText(x.name,'Exercise',80),weight:safeStateNumber(x.weight,0,2000,0),reps:safeStateNumber(x.reps,1,1000,1),date:safeStateDay(x.date,today),xp:safeStateNumber(x.xp,0,1,0)}));
+ const customEx=list(raw.customEx,500).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'custom-ex-'+i),name:safeStateText(x.name||x.title,'Custom exercise',80),eq:safeStateText(x.eq||x.equipment,'Other',40),pm:safeStateText(x.pm||x.muscle,'chest',40),sec:list(x.sec,12).map(v=>safeStateText(v,'',40)),custom:true}));
+ const customFoods=list(raw.customFoods,500).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'custom-food-'+i),name:safeStateText(x.name,'Custom food',80),cal:safeStateNumber(x.cal,0,1000,0),protein:safeStateNumber(x.protein,0,100,0),carbs:safeStateNumber(x.carbs,0,100,0),fat:safeStateNumber(x.fat,0,100,0)}));
+ const routines=list(raw.routines,100).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-routine-'+i),name:safeStateText(x.name,'Saved routine',80),createdAt:safeStateText(x.createdAt,'',40),exercises:list(x.exercises,100).filter(w=>w&&typeof w==='object'&&!Array.isArray(w)).map((w,j)=>({id:safeRecordId(w.id,'routine-ex-'+i+'-'+j),name:safeStateText(w.name||w.exercise,'Exercise',80),muscle:safeStateText(w.muscle,'',40),setList:cleanSets(w.setList,w.sets,w.weight,w.reps)}))}));
+ const rawWater=list(raw.waterEntries,10000),legacyWater=list(raw.waterLog,10000);
+ const waterEntries=(rawWater.length?rawWater:legacyWater).map((x,i)=>cleanWater(x,i,gameDay)).filter(Boolean);
+ if(!waterEntries.length&&safeStateNumber(raw.water,0,20,0)>0)waterEntries.push({id:'legacy-water-total-'+gameDay,amount:safeStateNumber(raw.water,0,20,0),day:gameDay,createdAt:0});
+ const history={},dailyHistory={};
+ if(raw.history&&typeof raw.history==='object'&&!Array.isArray(raw.history))Object.keys(raw.history).filter(k=>safeStateDay(k,'')===k).sort().slice(-365).forEach(k=>{const x=raw.history[k]||{};history[k]={cal:safeStateNumber(x.cal,0,100000,0),water:safeStateNumber(x.water,0,20,0),done:safeStateNumber(x.done,0,1000,0)};});
+ if(raw.dailyHistory&&typeof raw.dailyHistory==='object'&&!Array.isArray(raw.dailyHistory))Object.keys(raw.dailyHistory).filter(k=>safeStateDay(k,'')===k).sort().slice(-365).forEach(k=>{const x=raw.dailyHistory[k]||{};dailyHistory[k]={cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),water:safeStateNumber(x.water,0,20,0),workouts:list(x.workouts,1000).map((w,i)=>cleanWorkout(w,i,k)).filter(Boolean),foods:list(x.foods,5000).map((f,i)=>cleanFood(f,i,k)).filter(Boolean),waterEntries:list(x.waterEntries,10000).map((w,i)=>cleanWater(w,i,k)).filter(Boolean)};});
+ const settings=raw.settings&&typeof raw.settings==='object'?raw.settings:{};
+ const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:list(rawGame.badges,100).map(x=>safeStateText(x,'',40)).filter(Boolean),day:gameDay};
+ if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
+ const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,1000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:list(raw.presets,10).map(x=>safeStateNumber(x,1,5000,250)).filter(x=>x>0),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,.5,10,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now())}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
+ if(settings.theme==='light'||settings.theme==='dark')state.settings.theme=settings.theme;
+ if(['gold','blue','emerald','slate','crimson','amber','violet'].includes(settings.color))state.settings.color=settings.color;
+ if(['sm','md','lg','xl'].includes(settings.scale))state.settings.scale=settings.scale;
+ if(['default','accessible'].includes(settings.font))state.settings.font=settings.font;
+ if(['normal','high'].includes(settings.contrast))state.settings.contrast=settings.contrast;
+ if(['normal','reduced'].includes(settings.motion))state.settings.motion=settings.motion;
+ if(['normal','wide'].includes(settings.spacing))state.settings.spacing=settings.spacing;
+ if(foods.some(x=>x.day===today)){const a=foods.filter(x=>x.day===today);state.cal=a.reduce((n,x)=>n+x.cal,0);state.protein=a.reduce((n,x)=>n+x.protein,0);state.carbs=a.reduce((n,x)=>n+x.carbs,0);state.fat=a.reduce((n,x)=>n+x.fat,0);}
+ if(waterEntries.some(x=>x.day===today))state.water=waterEntries.filter(x=>x.day===today).reduce((n,x)=>n+x.amount,0);
+ return state;
+}
+function validateBackupData(raw){
+ if(!raw||typeof raw!=='object'||Array.isArray(raw)||!Array.isArray(raw.workouts))throw new Error('This is not a Gymplified backup.');
+ const fields=['workouts','foods','prs','sessions','routines','customEx','customFoods','lastSession','waterLog','waterEntries'];
+ fields.forEach(k=>{if(raw[k]!=null&&!Array.isArray(raw[k]))throw new Error('Invalid backup field: '+k);});
+ if(JSON.stringify(raw).length>10*1024*1024)throw new Error('Backup is larger than 10 MB.');
+ const check=(items,key,label)=>{(items||[]).forEach((x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))throw new Error('Invalid '+label+' record '+(i+1)+'.');if(key&&x[key]!=null&&!Array.isArray(x[key]))throw new Error('Invalid '+label+' '+key+' list.');});};
+ check(raw.workouts,'setList','workout');check(raw.sessions,'exercises','session');check(raw.routines,'exercises','routine');
+ (raw.workouts||[]).forEach((w,i)=>(w.setList||[]).forEach((s,j)=>{if(!s||typeof s!=='object'||!Number.isFinite(Number(s.kg))||!Number.isFinite(Number(s.reps)))throw new Error('Invalid set '+(j+1)+' in workout '+(i+1)+'.');}));
+ return sanitizeStateSnapshot(raw);
+}
+
 function dayKey(d=new Date()){return new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);}
 function bootState(){
-  let o=null; try{o=JSON.parse(localStorage.getItem(STORAGE_KEY));}catch(e){}
+  let o=null; try{const stored=localStorage.getItem(STORAGE_KEY);if(stored)o=sanitizeStateSnapshot(JSON.parse(stored));}catch(e){console.warn('Gymplified found invalid local data and loaded a safe empty state:',e);}
   const b=JSON.parse(JSON.stringify(cleanState));
   const t=Object.assign(b,o&&typeof o==='object'?o:{});
   t.settings=Object.assign(b.settings,(o&&o.settings)||{});
@@ -1713,14 +1805,18 @@ function bootState(){
   t.nutritionTargets=Object.assign({protein:0,carbs:0,fat:0},t.nutritionTargets||{});
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
   t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:[150,250,500,750];
-  t.history=t.history||{};
+  t.history=t.history||{};t.dailyHistory=t.dailyHistory||{};
   t.game=Object.assign({xp:0,total:0,waterWon:'',claimed:{},badges:[],day:''},t.game||{}); delete t.game.streak;delete t.game.best;delete t.game.lastDay;delete t.game.freezes;
   const d=dayKey();
   if(t.game.day&&t.game.day!==d){
-    t.history[t.game.day]={cal:t.cal,water:t.water,done:t.workouts.filter(w=>w.done).length};
-    Object.keys(t.history).sort().slice(0,-60).forEach(k=>delete t.history[k]);
+    const oldDay=t.game.day,previous=t.dailyHistory[oldDay]||{workouts:[],foods:[],waterEntries:[]};
+    const mergeArchive=(a,b)=>{const map=new Map();(a||[]).concat(b||[]).forEach((x,i)=>{const id=x&&x.id?x.id:'legacy-'+i;map.set(id,Object.assign({},map.get(id)||{},x));});return Array.from(map.values());};
+    t.dailyHistory[oldDay]={cal:t.cal,protein:t.protein,carbs:t.carbs,fat:t.fat,water:t.water,workouts:mergeArchive(previous.workouts,t.workouts),foods:mergeArchive(previous.foods,t.foods),waterEntries:mergeArchive(previous.waterEntries,t.waterEntries)};
+    t.history[oldDay]={cal:t.cal,water:t.water,done:t.workouts.filter(w=>w.done).length};
+    Object.keys(t.history).sort().slice(0,-365).forEach(k=>delete t.history[k]);
+    Object.keys(t.dailyHistory).sort().slice(0,-365).forEach(k=>delete t.dailyHistory[k]);
     if(t.workouts.length)t.lastSession=t.workouts.map(w=>Object.assign({},w,{done:false,xp:0}));
-    t.cal=t.protein=t.carbs=t.fat=0;t.water=0;t.workouts=[];t.foods=[];t.waterLog=[];t.game.claimed={};
+    t.cal=t.protein=t.carbs=t.fat=0;t.water=0;t.workouts=[];t.foods=[];t.waterLog=[];t.waterEntries=[];t.game.claimed={};t._rolloverPending=true;
   }
   t.game.day=d;t.workouts.forEach(ensureSets);t.lastSession.forEach(ensureSets);["sessions","customEx"].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});t.weeklyGoal=t.weeklyGoal>0?t.weeklyGoal:3;t.lastKg=t.lastKg||{};t.session=t.session||null;t.lastSummary=t.lastSummary||null;t.friends=Array.isArray(t.friends)?t.friends.filter(x=>typeof x==="string").slice(0,100):[];t.lbOn=!!t.lbOn;return t;
 }
@@ -1746,9 +1842,9 @@ function rewards(){
 }
 function confetti(){if(state.settings.motion==='reduced'||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
   for(let i=0;i<36;i++){const e=document.createElement('i');e.className='cf';e.textContent=['🎉','✨','💪','🔥'][i%4];e.setAttribute('aria-hidden','true');e.style.cssText='left:'+Math.random()*100+'vw;animation-delay:'+Math.random()*.4+'s';document.body.appendChild(e);setTimeout(()=>e.remove(),2500);}}
-function addWater(l){l=+l;if(!(l>0))return;state.water=+(state.water+l).toFixed(3);state.waterLog.push(l);saveState();showToast('Added '+Math.round(l*1000)+' ml');}
+function addWater(l){l=+l;if(!(l>0))return;const entry={id:newRecordId('water'),amount:+l.toFixed(3),day:dayKey(),createdAt:Date.now()};state.waterEntries=Array.isArray(state.waterEntries)?state.waterEntries:[];state.waterEntries.push(entry);state.water=+(state.water+l).toFixed(3);state.waterLog=state.waterEntries.filter(x=>x.day===dayKey()).map(x=>x.amount);saveState();showToast('Added '+Math.round(l*1000)+' ml');}
 function addCustomWater(){const v=parseFloat($('customWater').value);if(!(v>0&&v<=5000))return showToast('Enter 1–6000 ml');addWater(v/1000);$('customWater').value='';}
-function undoWater(){const l=state.waterLog.pop();if(!l)return showToast('Nothing to undo');state.water=Math.max(0,+(state.water-l).toFixed(3));saveState();showToast('Undid '+Math.round(l*1000)+' ml');}
+function undoWater(){const entry=(state.waterEntries||[]).filter(x=>x.day===dayKey()).pop();if(!entry)return showToast('Nothing to undo');markRecordDeleted('waterEntries',entry);state.waterEntries=state.waterEntries.filter(x=>x.id!==entry.id);state.water=state.waterEntries.filter(x=>x.day===dayKey()).reduce((n,x)=>n+x.amount,0);state.waterLog=state.waterEntries.filter(x=>x.day===dayKey()).map(x=>x.amount);saveState();showToast('Undid '+Math.round(entry.amount*1000)+' ml');}
 let tI=null;
 function rest(n){clearInterval(tI);const o=$('timerOut');o.textContent=n+'s';tI=setInterval(()=>{n--;o.textContent=n>0?n+'s':'Go! 💪';if(n<=0){clearInterval(tI);navigator.vibrate&&navigator.vibrate(200);showToast('Rest over — next set!');}},1000);}
 function markNav(){document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.classList.contains('active')?'page':'false'));}
@@ -1782,15 +1878,16 @@ function saveCurrentRoutine(){
  const suggested='Routine '+((state.routines||[]).length+1),name=(prompt('Name this workout routine',suggested)||'').trim().slice(0,40);if(!name)return;
  state.routines=Array.isArray(state.routines)?state.routines:[];
  const exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,done:false}))}));
- state.routines.unshift({id:'routine-'+Date.now(),name,exercises,createdAt:new Date().toISOString()});state.routines=state.routines.slice(0,30);saveState();showToast('Routine saved');
+ state.routines.unshift({id:newRecordId('routine'),name,exercises:exercises.map(ex=>Object.assign({},ex,{id:newRecordId('routine-ex'),setList:ex.setList.map(set=>Object.assign({id:newRecordId('routine-set')},set))})),createdAt:new Date().toISOString()});state.routines=state.routines.slice(0,30);saveState();showToast('Routine saved');
 }
 function loadSavedRoutine(index){
  const routine=(state.routines||[])[index];if(!routine)return;
  if(state.workouts.length&&!confirm('Replace your current workout with "'+routine.name+'"?'))return;
+ (state.workouts||[]).forEach(x=>markRecordDeleted('workouts',x));
  state.workouts=routine.exercises.map(w=>syncW({name:w.name,muscle:w.muscle,setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,done:false}))}));
  saveState();showToast(routine.name+' loaded');
 }
-function deleteSavedRoutine(index){const routine=(state.routines||[])[index];if(!routine||!confirm('Delete saved routine "'+routine.name+'"?'))return;state.routines.splice(index,1);saveState();showToast('Routine deleted');}
+function deleteSavedRoutine(index){const routine=(state.routines||[])[index];if(!routine||!confirm('Delete saved routine "'+routine.name+'"?'))return;markRecordDeleted('routines',routine);state.routines.splice(index,1);saveState();showToast('Routine deleted');}
 function renderExtras(){
   const g=state.game,L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),wi=weekInfo();
   const wp=Math.min(100,Math.round(state.water/state.waterGoal*100));
@@ -1821,7 +1918,7 @@ function initGoals(){
   '<div class="field"><label for="gSpacing">Text spacing</label><select id="gSpacing"><option value="normal">Normal</option><option value="wide">Wide (easier reading)</option></select></div></div>'+
   '<div class="row-wrap"><button class="btn btn-primary" onclick="saveGoals()">Save goals</button><button class="btn" onclick="exportData()">⬇ Export backup</button>'+
   '<label class="btn" for="importFile" tabindex="0" onkeydown="if(event.key===\'Enter\')this.click()">⬆ Import backup</label><input type="file" id="importFile" accept="application/json" hidden onchange="importData(this.files[0])"></div>'+
-  '<p class="subtitle" style="margin-top:10px">Shortcuts: press 1–5 to switch screens, W to add water. Data is stored only in this browser — export a backup to move devices.</p>';
+  '<p class="subtitle" style="margin-top:10px">Shortcuts: press 1–6 to switch screens, W to add water. Data is stored only in this browser — export a backup to move devices.</p>';
   $('gSpacing').value=state.settings.spacing||'normal';
 }
 function saveGoals(){
@@ -1833,10 +1930,24 @@ function saveGoals(){
   state.calTarget=c;state.waterGoal=w;state.presets=p;state.settings.spacing=$('gSpacing').value;saveState();initGoals();showToast('Goals saved');
 }
 function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='gymplified-backup-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
-function importData(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!o||!Array.isArray(o.workouts))throw 0;if(!confirm('Replace current data with this backup?'))return;localStorage.setItem(STORAGE_KEY,JSON.stringify(o));state=bootState();saveState();initGoals();showToast('Backup restored');}catch(e){showToast('That file is not a valid backup');}};r.readAsText(f);}
+function importData(file){
+ if(!file)return;if(file.size>10*1024*1024)return showToast('Backup is larger than 10 MB.');
+ const reader=new FileReader();
+ reader.onload=()=>{
+  try{
+   const imported=validateBackupData(JSON.parse(reader.result));
+   if(!confirm('Replace current Gymplified data with this validated backup?'))return;
+   imported.resetAt=Date.now();imported.deletedRecordIds=[];state=imported;persistLocalState();queueCloudStateSave();applySettings();renderAll();initPicker();initGoals();
+   showToast('Backup validated and restored');
+  }catch(error){console.error('Gymplified backup validation failed:',error);showToast(error.message||'That file is not a valid Gymplified backup.');}
+ };
+ reader.onerror=()=>showToast('Could not read this backup file.');
+ reader.readAsText(file);
+}
 addEventListener('keydown',e=>{if(e.target.closest&&e.target.closest('input,select,textarea')||e.ctrlKey||e.metaKey||e.altKey)return;
-  const n=+e.key,nav=document.querySelectorAll('nav button');if(n>=1&&n<=nav.length)nav[n-1].click();else if(e.key==='w'||e.key==='W')addWater((state.presets[1]||state.presets[0])/1000);});
-document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.game.day!==dayKey()){state=bootState();saveState();}});
+  const map={1:'dashboard',2:'prs',3:'training',4:'nutrition',5:'friends',6:'settings'};const target=map[e.key]&&document.querySelector('nav button[data-screen="'+map[e.key]+'"]');if(target)target.click();else if(e.key==='w'||e.key==='W')addWater((state.presets[1]||state.presets[0])/1000);});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&state.game.day!==dayKey()){state=bootState();saveState();}else if(!document.hidden&&currentUser)queueCloudStateSave();});
+window.addEventListener('online',()=>{if(currentUser)queueCloudStateSave();});
 document.addEventListener('click',e=>{if(!e.target.closest('.nutrition-search-field'))$('foodSuggestions')?.classList.remove('open');});
 
 // ===== v4: sessions + exercise library =====
@@ -1860,21 +1971,22 @@ function normalizeCustomExercise(x,i){
  const pm=validMuscles.includes(x.pm)?x.pm:(validMuscles.includes(x.muscle)?x.muscle:'chest');
  const sec=(Array.isArray(x.sec)?x.sec:[]).filter(m=>validMuscles.includes(m)&&m!==pm);
  const name=String(x.name||x.title||'Custom exercise').trim().slice(0,80)||'Custom exercise';
- return {id:String(x.id||('c-'+slug(name)+'-'+i)),name,eq:String(x.eq||x.equipment||'Other'),pm,sec,custom:true};
+ return {id:safeRecordId(x.id,'c-'+slug(name)+'-'+i),name,eq:safeStateText(x.eq||x.equipment,'Other',40),pm,sec,custom:true};
 }
 const allEx=()=>EX.concat((Array.isArray(state.customEx)?state.customEx:[]).map((x,i)=>normalizeCustomExercise(x,i)).filter(Boolean));
-function syncW(w){w.sets=w.setList.length;w.weight=Math.max(0,...w.setList.map(x=>x.kg));w.reps=w.setList.length?w.setList[0].reps:0;w.done=w.setList.length>0&&w.setList.every(x=>x.done);return w;}
+function syncW(w){w.id=safeRecordId(w.id,newRecordId('workout'));w.setList.forEach(x=>{x.id=safeRecordId(x.id,newRecordId('set'));});w.sets=w.setList.length;w.weight=Math.max(0,...w.setList.map(x=>x.kg));w.reps=w.setList.length?w.setList[0].reps:0;w.done=w.setList.length>0&&w.setList.every(x=>x.done);return w;}
 function ensureSets(w){
  if(!w||typeof w!=='object')w={};
- w.name=String(w.name||w.exercise||'Exercise');
+ w.id=safeRecordId(w.id,newRecordId('workout'));w.name=safeStateText(w.name||w.exercise,'Exercise',80);
  w.muscle=String(w.muscle||'');
  if(!Array.isArray(w.setList)||!w.setList.length){
   const count=Math.max(1,Math.min(20,Number(w.sets)||3));
   w.setList=Array.from({length:count},()=>({kg:Number(w.weight)||0,reps:Number(w.reps)||10,done:!!w.done}));
  }else{
   w.setList=w.setList.filter(x=>x&&typeof x==='object').map(x=>({
-   kg:Number.isFinite(Number(x.kg))?Math.max(0,Number(x.kg)):0,
-   reps:Number.isFinite(Number(x.reps))?Math.max(1,Math.round(Number(x.reps))):10,
+   id:safeRecordId(x.id,newRecordId('set')),
+   kg:Number.isFinite(Number(x.kg))?Math.max(0,Math.min(1000,Number(x.kg))):0,
+   reps:Number.isFinite(Number(x.reps))?Math.max(1,Math.min(1000,Math.round(Number(x.reps)))):10,
    done:!!x.done
   }));
   if(!w.setList.length)w.setList=[{kg:0,reps:10,done:false}];
@@ -1896,7 +2008,7 @@ function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names
   if(!st){if(confirm('No sets are ticked off yet. End without saving?')){state.session=null;saveState();}return;}
   const finishedAt=Date.now(),startedAt=Number(state.session.start)||finishedAt;
   const sum={date:dayKey(new Date(startedAt)),startedAt:new Date(startedAt).toISOString(),finishedAt:new Date(finishedAt).toISOString(),mins:Math.max(1,Math.round((finishedAt-startedAt)/6e4)),vol:Math.round(v),sets:st,reps:r,ex,names};
-  sum.exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,sets:w.setList.filter(x=>x.done).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||0}))})).filter(x=>x.sets.length);
+  sum.id=newRecordId('session');sum.exercises=state.workouts.map(w=>({id:newRecordId('session-ex'),name:w.name,muscle:w.muscle,sets:w.setList.filter(x=>x.done).map(x=>({id:newRecordId('session-set'),kg:Number(x.kg)||0,reps:Number(x.reps)||0}))})).filter(x=>x.sets.length);
   state.sessions.unshift(sum);state.sessions=state.sessions.slice(0,200);state.lastSummary=sum;state.session=null;
   gainXP(40,'Workout complete');if(weekInfo().n===state.weeklyGoal)gainXP(50,'Weekly goal hit! 🗓');confetti();saveState();}
 function editHistoryTime(index,value){const session=state.sessions[index];if(!session||!value)return;const timestamp=new Date(value).getTime();if(!Number.isFinite(timestamp)){showToast('Enter a valid workout date and time');return;}session.startedAt=new Date(timestamp).toISOString();session.date=dayKey(new Date(timestamp));if(session.finishedAt){const elapsed=Math.max(1,Math.round((new Date(session.finishedAt).getTime()-timestamp)/60000));session.mins=elapsed;}saveState();showToast('Workout date and time updated');}
@@ -1952,8 +2064,7 @@ function addEx(id){
  state.workouts.push(workout);
  // Persist this workout directly. The general saveState() also runs rewards and
  // every app renderer; an unrelated dashboard/rewards error must not block logging.
- try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));}catch(error){console.warn('Local workout save failed:',error);}
- try{queueCloudStateSave();}catch(error){console.warn('Cloud workout save could not be queued:',error);}
+ persistLocalState();queueCloudStateSave();
  try{renderTrainingLog();}catch(error){console.error('Workout list refresh failed:',error);}
  try{renderDashboard();}catch(error){console.warn('Dashboard refresh failed:',error);}
  showToast(x.name+' added · 3 editable sets');
@@ -2019,11 +2130,11 @@ function previewEx(id){const x=id&&allEx().find(e=>e.id===id),b=$('exPreview');
   renderMuscleMap(x);
   if(!x){b.innerHTML='<p class="sub">Select an exercise to highlight its primary and supporting muscles.</p>';return;}
   const prev=previousExercisePerformance(x.name),last=prev&&prev.sets.length?prev.sets[prev.sets.length-1]:null;
-  b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+x.eq+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="sub" style="margin-top:10px">Last time · '+esc(prev.date)+' · '+esc(last.kg)+' kg × '+esc(last.reps)+' reps</p>':'<p class="sub" style="margin-top:10px">No previous performance logged yet.</p>')+'<button class="btn" style="margin-top:10px" onclick="viewExerciseHistoryById(\''+x.id+'\')">View exercise history</button>';}
+  b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+esc(x.eq)+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="sub" style="margin-top:10px">Last time · '+esc(prev.date)+' · '+esc(last.kg)+' kg × '+esc(last.reps)+' reps</p>':'<p class="sub" style="margin-top:10px">No previous performance logged yet.</p>')+'<button class="btn" style="margin-top:10px" onclick="viewExerciseHistoryById('+jsArg(x.id)+')">View exercise history</button>';}
 function renderPicker(){const q=$('exSearch').value.toLowerCase().trim(),m=$('exMuscle').value,e=$('exEquip').value;
   const r=allEx().filter(x=>(!m||x.pm===m||(Array.isArray(x.sec)&&x.sec.includes(m)))&&(!e||x.eq===e)&&(!q||(x.name+' '+x.eq+' '+x.pm+' '+(Array.isArray(x.sec)?x.sec:[]).join(' ')).toLowerCase().includes(q)));
   r.sort((a,b)=>(b.name.toLowerCase().startsWith(q)-a.name.toLowerCase().startsWith(q))||a.name.localeCompare(b.name));
-  $('exResults').innerHTML=r.length?r.slice(0,80).map(x=>'<div class="ex-row" role="listitem" onmouseenter="previewEx(\''+x.id+'\')" onclick="previewEx(\''+x.id+'\')"><div><strong>'+esc(x.name)+'</strong><br><span class="sub">'+x.eq+' · '+x.pm+(x.sec.length?' + '+x.sec.join(', '):'')+'</span></div><button type="button" class="btn btn-primary" aria-label="Add '+esc(x.name)+'" onclick="addEx(\''+x.id+'\')">+ Add</button></div>').join(''):'<div class="empty-box"><p>No match for “'+esc(q)+'”. Add it as a custom exercise below.</p></div>';
+  $('exResults').innerHTML=r.length?r.slice(0,80).map(x=>'<div class="ex-row" role="listitem"><button type="button" class="ex-preview-button" aria-label="Preview '+esc(x.name)+'" onfocus="previewEx('+jsArg(x.id)+')" onmouseenter="previewEx('+jsArg(x.id)+')" onclick="previewEx('+jsArg(x.id)+')"><strong>'+esc(x.name)+'</strong><br><span class="sub">'+esc(x.eq)+' · '+esc(x.pm)+(x.sec.length?' + '+x.sec.map(esc).join(', '):'')+'</span></button><button type="button" class="btn btn-primary" aria-label="Add '+esc(x.name)+'" onclick="addEx('+jsArg(x.id)+')">+ Add</button></div>').join(''):'<div class="empty-box"><p>No match for “'+esc(q)+'”. Add it as a custom exercise below.</p></div>';
   $('customBox').open=!r.length;if(!r.length&&!$('cName').value)$('cName').value=$('exSearch').value.slice(0,60);}
 function initPicker(){const mo=Object.values(MC).map(m=>'<option value="'+m+'">'+cap(m)+'</option>').join(''),eo=Object.keys(LIB).map(e=>'<option>'+e+'</option>').join('');
   $('exMuscle').innerHTML='<option value="">All muscles</option>'+mo;$('exEquip').innerHTML='<option value="">All equipment</option>'+eo;$('cMuscle').innerHTML=mo;$('cEquip').innerHTML=eo+'<option>Other</option>';renderPicker();previewEx(null);}
@@ -2047,7 +2158,17 @@ function renderTrainingLog(){
 const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3iqgTv1xyZgxhnD8iV1uMQ_DcrlHxPj';
 let sb=null,currentUser=null,currentProfile=null,authMode='signup',friendRequests=[],friendProfiles={},searchTimer=null,socialBusy=false,pendingVerificationEmail='';
-function avatarMarkup(p,small){const c='account-avatar'+(small?' small':'');if(p&&p.avatar_url)return '<img class="'+c+'" src="'+esc(p.avatar_url)+'" alt="'+esc(p.display_name||p.username||'Profile picture')+'">';return '<div class="'+c+'">'+esc(String(p?(p.display_name||p.username||'?'):'?').trim().charAt(0).toUpperCase()||'?')+'</div>';}
+window.getGymplifiedSupabaseClient=function(){return sb;};
+function avatarMarkup(p,small){
+ const c='account-avatar'+(small?' small':'');
+ let safeUrl='';
+ try{
+  const url=new URL(p&&p.avatar_url||'');
+  if(url.origin==='https://ouwvujtsrnotnwtbvqhc.supabase.co'&&url.pathname.startsWith('/storage/v1/object/public/avatars/')&&/\.(?:jpe?g|png|webp)$/i.test(url.pathname))safeUrl=url.href;
+ }catch(_){}
+ if(safeUrl)return '<img class="'+c+'" src="'+esc(safeUrl)+'" alt="'+esc(p.display_name||p.username||'Profile picture')+'">';
+ return '<div class="'+c+'">'+esc(String(p?(p.display_name||p.username||'?'):'?').trim().charAt(0).toUpperCase()||'?')+'</div>';
+}
 function socialError(e){const m=e&&(e.message||e.error_description)?(e.message||e.error_description):'Something went wrong. Please try again.';showToast(m.length>110?m.slice(0,107)+'…':m);return m;}
 async function initSocial(){
  const host=$('friendStatus');if(!window.supabase||!window.supabase.createClient){host.textContent='Account services could not load. Refresh and try again.';return;}
@@ -2066,7 +2187,7 @@ async function loadSupportTickets(){
  host.innerHTML='<p class="sub">Loading your requests…</p>';
  try{const r=await sb.from('support_tickets').select('id,subject,category,status,created_at,updated_at').eq('user_id',currentUser.id).order('updated_at',{ascending:false}).limit(20);if(r.error)throw r.error;
  if(!r.data.length){host.innerHTML='<p class="sub">No support requests yet. If something is wrong, send us a message above.</p>';return;}
- host.innerHTML=r.data.map(t=>'<div class="item-row" style="align-items:center;gap:12px"><div style="flex:1;min-width:0"><strong>'+esc(t.subject)+'</strong><div class="sub">'+esc(supportStatusLabel(t.status))+' · '+new Date(t.updated_at).toLocaleDateString()+'</div></div><button class="btn" type="button" onclick="openSupportTicket(\''+esc(t.id)+'\')">View</button></div>').join('');
+ host.innerHTML=r.data.map(t=>'<div class="item-row" style="align-items:center;gap:12px"><div style="flex:1;min-width:0"><strong>'+esc(t.subject)+'</strong><div class="sub">'+esc(supportStatusLabel(t.status))+' · '+new Date(t.updated_at).toLocaleDateString()+'</div></div><button class="btn" type="button" onclick="openSupportTicket('+jsArg(t.id)+')">View</button></div>').join('');
  }catch(e){host.innerHTML='<p class="sub">Could not load your requests. Please try again.</p>';console.warn('Support tickets:',e);}
 }
 async function submitSupportTicket(event){
@@ -2138,9 +2259,9 @@ function renderAccountPanel(){
  $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+
  '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong><div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
  '<div class="account-actions"><button class="btn" onclick="$(\'avatarFile\').click()">Change picture</button><button class="btn" onclick="signOutAccount()">Sign out</button></div></div>'+
- '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden onchange="uploadAvatar(this.files[0])">'+
+ '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp" hidden onchange="uploadAvatar(this.files[0])">'+
  '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" onclick="saveProfile()">Save profile</button></div>'+
- '<div class="account-card"><strong>Profile picture</strong><p class="account-hint" style="margin:8px 0">Upload a JPG, PNG, WebP or GIF. Maximum file size: 3 MB.</p><p class="account-hint">Your username is how other people can find you. Your email address is never shown in search results.</p></div></div>';
+ '<div class="account-card"><strong>Profile picture</strong><p class="account-hint" style="margin:8px 0">Upload a JPG, PNG or WebP image. Maximum file size: 3 MB.</p><p class="account-hint">Your username is how other people can find you. Your email address is never shown in search results.</p></div></div>';
 }
 async function saveProfile(){
  if(!currentUser||socialBusy)return;const username=$('profileUsername').value.trim().toLowerCase(),displayName=$('profileDisplayName').value.trim();
@@ -2151,12 +2272,30 @@ async function saveProfile(){
  }catch(e){socialError(e);}finally{socialBusy=false;}
 }
 async function uploadAvatar(file){
- if(!file||!currentUser)return;if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type))return showToast('Choose a JPG, PNG, WebP or GIF image.');if(file.size>3*1024*1024)return showToast('Image must be smaller than 3 MB.');
- const ext={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'}[file.type];
- try{const path=currentUser.id+'/avatar.'+ext;const u=await sb.storage.from('avatars').upload(path,file,{upsert:true,contentType:file.type,cacheControl:'3600'});if(u.error)throw u.error;
- const url=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;const r=await sb.from('profiles').update({avatar_url:url,updated_at:new Date().toISOString()}).eq('id',currentUser.id);if(r.error)throw r.error;
- await loadMyProfile();renderFriends();showToast('Profile picture updated');
- }catch(e){socialError(e);}
+ if(!file||!currentUser)return;
+ const types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp'};
+ if(!types[file.type])return showToast('Choose a JPG, PNG or WebP image.');
+ if(file.size<=0||file.size>3*1024*1024)return showToast('Image must be smaller than 3 MB.');
+ try{
+  const bytes=new Uint8Array(await file.slice(0,12).arrayBuffer());
+  const jpeg=bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff;
+  const png=bytes[0]===0x89&&bytes[1]===0x50&&bytes[2]===0x4e&&bytes[3]===0x47&&bytes[4]===0x0d&&bytes[5]===0x0a&&bytes[6]===0x1a&&bytes[7]===0x0a;
+  const webp=String.fromCharCode(...bytes.slice(0,4))==='RIFF'&&String.fromCharCode(...bytes.slice(8,12))==='WEBP';
+  if(!((file.type==='image/jpeg'&&jpeg)||(file.type==='image/png'&&png)||(file.type==='image/webp'&&webp)))return showToast('The selected file does not match its image type.');
+  const storage=sb.storage.from('avatars'),path=currentUser.id+'/avatar-'+newRecordId('v')+'.'+types[file.type];
+  const uploaded=await storage.upload(path,file,{upsert:false,contentType:file.type,cacheControl:'60'});
+  if(uploaded.error)throw uploaded.error;
+  const url=storage.getPublicUrl(path).data.publicUrl+'?v='+Date.now();
+  const update=await sb.from('profiles').update({avatar_url:url,updated_at:new Date().toISOString()}).eq('id',currentUser.id);
+  if(update.error){await storage.remove([path]).catch(()=>{});throw update.error;}
+  await loadMyProfile();renderFriends();
+  const old=await storage.list(currentUser.id,{limit:100,search:'avatar'});
+  if(!old.error&&Array.isArray(old.data)){
+   const obsolete=old.data.map(x=>x.name).filter(name=>/^avatar(?:-|\.)[^/]*\.(?:jpe?g|png|webp)$/i.test(name)&&name!==path.split('/').pop()).map(name=>currentUser.id+'/'+name);
+   if(obsolete.length){const removed=await storage.remove(obsolete);if(removed.error)console.warn('Old avatar cleanup failed:',removed.error.message);}
+  }
+  showToast('Profile picture updated');
+ }catch(error){socialError(error);}
 }
 async function signOutAccount(){const r=await sb.auth.signOut();if(r.error)socialError(r.error);else showToast('Signed out');}
 async function fetchSocialData(){
@@ -2173,11 +2312,11 @@ function renderFriends(){
   const accepted=friendRequests.filter(function(x){return x.status==='accepted';});
   const row=function(p,actions,note){if(!p)return '';return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name||p.username)+'</strong><small>@'+esc(p.username)+(note?' · '+esc(note):'')+'</small></div>'+(actions||'')+'</div>';};
   let html='<div class="section-title">Your connections</div><div class="account-section-title">Friends ('+accepted.length+')</div>';
-  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" onclick="removeFriend(\''+x.id+'\')">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
+  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" onclick="removeFriend('+jsArg(x.id)+')">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
   html+='<div class="account-section-title">Incoming requests ('+incoming.length+')</div>';
-  html+=incoming.length?incoming.map(function(x){return row(friendProfiles[x.requester_id],'<button class="btn btn-primary" onclick="respondFriendRequest(\''+x.id+'\',true)">Accept</button><button class="btn" onclick="respondFriendRequest(\''+x.id+'\',false)">Decline</button>');}).join(''):'<p class="account-hint">No new friend requests.</p>';
+  html+=incoming.length?incoming.map(function(x){return row(friendProfiles[x.requester_id],'<button class="btn btn-primary" onclick="respondFriendRequest('+jsArg(x.id)+',true)">Accept</button><button class="btn" onclick="respondFriendRequest('+jsArg(x.id)+',false)">Decline</button>');}).join(''):'<p class="account-hint">No new friend requests.</p>';
   html+='<div class="account-section-title">Sent requests ('+outgoing.length+')</div>';
-  html+=outgoing.length?outgoing.map(function(x){return row(friendProfiles[x.receiver_id],'<button class="btn" onclick="removeFriend(\''+x.id+'\')">Cancel</button>','Pending');}).join(''):'<p class="account-hint">You have no pending sent requests.</p>';
+  html+=outgoing.length?outgoing.map(function(x){return row(friendProfiles[x.receiver_id],'<button class="btn" onclick="removeFriend('+jsArg(x.id)+')">Cancel</button>','Pending');}).join(''):'<p class="account-hint">You have no pending sent requests.</p>';
   $('friendConnections').innerHTML=html;
  }).catch(function(e){$('friendConnections').innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>';});
 }
@@ -2186,7 +2325,7 @@ async function searchFriends(query){
  searchTimer=setTimeout(async function(){out.innerHTML='<p class="account-hint">Searching…</p>';try{
   const term=q.replace(/[^a-zA-Z0-9 _-]/g,'').trim();if(!term){out.innerHTML='<p class="account-hint">Search using letters or numbers.</p>';return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url').or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%').neq('id',currentUser.id).limit(12);if(r.error)throw r.error;
   const known=new Set(friendRequests.map(function(x){return x.requester_id===currentUser.id?x.receiver_id:x.requester_id;}));const matches=(r.data||[]).filter(function(x){return !known.has(x.id);});
-  out.innerHTML=matches.length?matches.map(function(p){return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name)+'</strong><small>@'+esc(p.username)+'</small></div><button class="btn btn-primary" onclick="sendFriendRequest(\''+p.id+'\')">Add friend</button></div>';}).join(''):'<p class="account-hint">No matching usernames found.</p>';
+  out.innerHTML=matches.length?matches.map(function(p){return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name)+'</strong><small>@'+esc(p.username)+'</small></div><button class="btn btn-primary" onclick="sendFriendRequest('+jsArg(p.id)+')">Add friend</button></div>';}).join(''):'<p class="account-hint">No matching usernames found.</p>';
  }catch(e){out.innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>'; }},250);
 }
 async function sendFriendRequest(id){
@@ -2250,6 +2389,7 @@ window.addEventListener('pageshow',updateInstallUI);
 initPicker();
 initSocial();
 initGoals();
+if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();
 </script>
 

@@ -1,6 +1,6 @@
 # Gymplified launch readiness
 
-Last updated: 4 November 2026
+Last updated: 8 November 2026
 
 This is the working release plan. A checklist item is only marked complete when it has been implemented and tested; store approval is not implied.
 
@@ -68,3 +68,31 @@ This is the working release plan. A checklist item is only marked complete when 
 - The current product is a PWA. A store submission requires a deliberate native packaging/client strategy and platform-specific review/testing.
 - Account deletion is deployed as `gymplified-delete-account` with JWT verification. It has not yet been exercised against a real disposable test account.
 - The privacy and terms pages are starter drafts, not legal advice or a claim of regulatory compliance.
+
+ 
+## Security hardening pass — 8 November 2026
+
+Implemented in the app and database:
+- [x] Keep privacy/terms navigation caches separate from the offline Gymplified app shell
+- [x] Validate/normalize local state, cloud snapshots and JSON backup imports before rendering
+- [x] Show visible local-save and cloud-sync failure messages
+- [x] Merge independent records across devices using stable IDs, deletion tombstones and reset generations
+- [x] Archive full daily workout, food and water records at rollover
+- [x] Enforce avatar file size/type in Supabase Storage and use versioned avatar paths
+- [x] Make analytics opt-in and anonymous; reuse the app's single Supabase client
+- [x] Remove third-party Google Fonts requests
+- [x] Add admin noindex directives, targeted accessibility improvements and stable navigation selectors
+- [x] Add initial Node static tests and a GitHub Actions validation workflow
+- [x] Add the applied Supabase migrations to source control
+
+Still required before launch:
+- [ ] Replace the transitional CSP with a strict policy after removing inline event handlers and inline scripts/styles
+- [ ] Add verified Subresource Integrity for the pinned Supabase SDK
+- [ ] Produce the approved 192px/512px PNG and maskable PWA icon variants
+- [ ] Confirm Email Confirm and production SMTP in Supabase Auth; enable leaked-password protection
+- [ ] Run account deletion on a disposable real account and verify all related records and storage objects are removed
+- [ ] Run browser-level offline, storage-quota and two-device conflict/deletion tests
+- [ ] Complete the privacy policy and terms with the operator's legal details and EU/UK legal review
+- [ ] Plan the separate single-file app/module and targeted-render refactor
+
+See [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for implementation notes and limits. Static checks do not count as a substitute for real-device or account-level tests.

@@ -1,52 +1,85 @@
-const CACHE_NAME = 'gymplified-shell-v9';
-const APP_SHELL = ['./index.html', './manifest.webmanifest', './gymplified-app-icon.jpg', './gymplified-brand.jpg', './apple-touch-icon.png', './privacy.html', './terms.html'];
+const CACHE_NAME = 'gymplified-shell-v10';
+const SUPABASE_SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';
+const APP_SHELL = [
+  './',
+  './index.html',
+  './analytics.js',
+  './manifest.webmanifest',
+  './gymplified-app-icon.jpg',
+  './gymplified-brand.jpg',
+  './apple-touch-icon.png',
+  './privacy.html',
+  './terms.html',
+  './assets/muscle-map-template.svg'
+];
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
-      .then(() => self.skipWaiting())
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(APP_SHELL);
+    try { await cache.add(SUPABASE_SDK); } catch (_) {}
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => key.startsWith('gymplified-shell-') && key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', event => {
   const request = event.request;
+  if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+
+  if (url.href === SUPABASE_SDK) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      const response = await fetch(request);
+      if (response && response.ok && response.type !== 'opaque') await cache.put(request, response.clone());
+      return response;
+    })());
+    return;
+  }
+
+  if (url.origin !== self.location.origin) return;
 
   if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then(response => {
-          if (response && response.ok) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then(cache => cache.put('./index.html', copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match('./index.html'))
-    );
+    const path = url.pathname.replace(/\/+$/, '');
+    const appEntry = path === '' || path.endsWith('/index.html');
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const response = await fetch(request);
+        if (response && response.ok && response.type !== 'opaque') {
+          await cache.put(request, response.clone());
+          if (appEntry) await cache.put('./index.html', response.clone());
+        }
+        return response;
+      } catch (_) {
+        const exact = await cache.match(request, {ignoreSearch:true});
+        if (exact) return exact;
+        if (appEntry) return (await cache.match('./index.html')) || (await cache.match('./'));
+        if (path.endsWith('/privacy.html')) return (await cache.match('./privacy.html')) || Response.error();
+        if (path.endsWith('/terms.html')) return (await cache.match('./terms.html')) || Response.error();
+        return Response.error();
+      }
+    })());
     return;
   }
 
   event.respondWith(
-    caches.match(request).then(cached => {
-      if (cached) return cached;
-      return fetch(request).then(response => {
-        if (response && response.ok && response.type === 'basic') {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
-        }
-        return response;
-      });
-    })
+    caches.match(request).then(cached => cached || fetch(request).then(response => {
+      if (response && response.ok && response.type === 'basic') {
+        const copy = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
+      }
+      return response;
+    }))
   );
 });

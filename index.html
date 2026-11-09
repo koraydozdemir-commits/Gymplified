@@ -2416,9 +2416,8 @@ async function submitSupportTicket(event){
  const subject=$('supportSubject').value.trim(),category=$('supportCategory').value,message=$('supportMessage').value.trim(),button=$('supportSubmit');
  if(subject.length<4||message.length<10){$('supportFormStatus').textContent='Please add a subject and a little more detail.';return;}
  button.disabled=true;$('supportFormStatus').textContent='Sending…';
- try{const r=await sb.from('support_tickets').insert({user_id:currentUser.id,subject,category}).select('id').single();if(r.error)throw r.error;
- const m=await sb.from('support_ticket_messages').insert({ticket_id:r.data.id,user_id:currentUser.id,message});if(m.error)throw m.error;
- $('supportForm').reset();$('supportFormStatus').textContent='Your request has been sent. You can follow replies below.';await loadSupportTickets();await openSupportTicket(r.data.id);showToast('Support request sent');
+ try{const r=await sb.rpc('gymplified_create_support_ticket',{p_subject:subject,p_category:category,p_message:message});if(r.error)throw r.error;const ticketId=r.data;
+ $('supportForm').reset();$('supportFormStatus').textContent='Your request has been sent. You can follow replies below.';await loadSupportTickets();await openSupportTicket(ticketId);showToast('Support request sent');
  }catch(e){$('supportFormStatus').textContent=e.message||'Could not send your request. Please try again.';}
  finally{button.disabled=false;}
 }

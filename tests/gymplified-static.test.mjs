@@ -165,3 +165,13 @@ test('CSV importer requires explicit units for ambiguous weights and converts su
   assert.match(html, /distance\*=1\.609344/);
   assert.match(html, /duration\*=60/);
 });
+
+test('unowned legacy local data requires an explicit account migration choice', async () => {
+  const html = await read('index.html');
+  assert.match(html, /function hasLocalProgress/);
+  assert.match(html, /id="legacyLocalDataDialog"/);
+  assert.match(html, /resolveLegacyLocalData\(true\)/);
+  assert.match(html, /resolveLegacyLocalData\(false\)/);
+  assert.match(html, /downloadLegacyLocalBackup/);
+  assert.match(html, /ACCOUNT_STATE_PREFIX\+'unassigned'/);
+});

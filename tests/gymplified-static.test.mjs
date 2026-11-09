@@ -200,3 +200,10 @@ test('switching to an account without a local cache reads cloud state instead of
   assert.match(html, /syncUserAppState\(syncMode==='cloud'\)/);
   assert.match(html, /sb\.rpc\('gymplified_get_user_app_state'\)/);
 });
+
+test('unassigned recovery data remains available after switching accounts', async () => {
+  const html = await read('index.html');
+  assert.match(html, /ACCOUNT_STATE_PREFIX\+'unassigned'/);
+  assert.match(html, /else if\(unassigned\)/);
+  assert.match(html, /pendingLegacyAccountId=userId;return true/);
+});

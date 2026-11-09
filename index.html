@@ -892,6 +892,11 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
           .deluxe-modal-card p{color:var(--muted);font-size:13px;line-height:1.55}
           .deluxe-demo-note{border:1px dashed #b99342;background:rgba(201,162,78,.08);padding:12px;border-radius:8px;font-size:12px;color:var(--muted);margin-top:14px}
           .deluxe-chart{display:flex;align-items:end;gap:8px;height:120px;padding:12px 4px 0;border-bottom:1px solid var(--line)}
+          .deluxe-bar{flex:1;min-width:8px;background:linear-gradient(180deg,#d6b15e,#8c6825);border-radius:4px 4px 0 0;position:relative}
+          .deluxe-insight{padding:10px 0;border-bottom:1px solid var(--line);font-size:12px;line-height:1.5}
+          .deluxe-insight:last-child{border:0}.deluxe-plan-row{padding:10px;border:1px solid var(--line);border-radius:8px;margin:7px 0;font-size:12px}
+          .deluxe-table{width:100%;border-collapse:collapse;font-size:12px}.deluxe-table th,.deluxe-table td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
+          .deluxe-table th{color:var(--muted);font-size:10px;text-transform:uppercase}
           .deluxe-chart span{flex:1;background:linear-gradient(180deg,#d6b15e,#8c6825);border-radius:4px 4px 0 0;min-width:8px}
         </style>
         <div class="eyebrow">The premium experience</div>
@@ -917,17 +922,62 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
           <article class="deluxe-feature"><div class="lock">📦</div><h3>Complete data tools</h3><p>Advanced exports, full backup options and detailed training reports for keeping your data portable.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Complete data tools')">Preview feature</button></article>
           <article class="deluxe-feature"><div class="lock">🎨</div><h3>Deluxe customisation</h3><p>Exclusive profile accents, premium themes, profile presentation options and Deluxe account flair.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Deluxe customisation')">Preview feature</button></article>
         </div>
-        <div class="panel" id="deluxeAnalyticsPreview">
-          <div class="section-title">Analytics preview <span class="deluxe-pill">SAMPLE DATA</span></div>
-          <p class="sub">A glimpse of the deeper progress reports included with Deluxe. Sample figures are illustrative, not your workout data.</p>
-          <div class="grid-2" style="margin-top:14px">
-            <div><div class="eyebrow">Training volume</div><div class="metric-num">+18.4%</div><p class="sub">Example change over 8 weeks</p><div class="deluxe-chart"><span style="height:32%"></span><span style="height:39%"></span><span style="height:35%"></span><span style="height:52%"></span><span style="height:58%"></span><span style="height:68%"></span><span style="height:74%"></span><span style="height:88%"></span></div></div>
-            <div><div class="eyebrow">Training balance</div><div style="font-size:28px;font-weight:800;margin:8px 0">4 <span class="metric-unit">muscle groups</span></div><p class="sub">Example workload distribution and recovery indicators would appear here.</p><div class="progress-bar"><i style="width:78%"></i></div><div class="meta-row"><span>Example weekly target</span><span>78%</span></div></div>
+        <div id="deluxeLockedNotice" class="panel" style="margin-bottom:16px">
+          <strong>Deluxe tools are locked in preview mode.</strong>
+          <p class="sub" style="margin:6px 0 10px">Turn on the local demo unlock above to use the working tools. No payment is taken and this is not a real purchase.</p>
+          <button class="btn btn-primary" onclick="toggleDeluxeDemo()">Enable demo unlock</button>
+        </div>
+        <div id="deluxeTools" hidden>
+          <div class="section-title">Your training intelligence <span class="deluxe-pill">LIVE ACCOUNT DATA</span></div>
+          <div class="deluxe-grid">
+            <article class="deluxe-feature"><div class="eyebrow">Training volume</div><div class="metric-num" id="deluxeVolumeMetric">—</div><p class="sub" id="deluxeVolumeCompare">Last 4 weeks vs previous 4 weeks</p></article>
+            <article class="deluxe-feature"><div class="eyebrow">Workouts · 28 days</div><div class="metric-num" id="deluxeWorkoutMetric">0</div><p class="sub" id="deluxeWorkoutCompare">Completed sessions</p></article>
+            <article class="deluxe-feature"><div class="eyebrow">Estimated strength</div><div class="metric-num" id="deluxeStrengthMetric">—</div><p class="sub" id="deluxeStrengthCompare">Best estimated 1RM across saved lifts</p></article>
+          </div>
+          <div class="panel" style="margin-bottom:16px">
+            <div class="section-title">Volume progression <span class="sub">KG · COMPLETED SETS</span></div>
+            <div id="deluxeVolumeChart" class="deluxe-chart" aria-label="Weekly training volume chart"></div>
+            <div id="deluxeVolumeLabels" class="meta-row"></div>
+          </div>
+          <div class="grid-2">
+            <div class="panel"><div class="section-title">Muscle-group workload</div><div id="deluxeMuscleBreakdown"></div></div>
+            <div class="panel"><div class="section-title">Smart training insights</div><div id="deluxeInsights"></div></div>
+          </div>
+          <div class="panel" style="margin:16px 0">
+            <div class="section-title">Performance lab</div>
+            <div class="form-grid"><div class="field"><label for="deluxeExerciseSelect">Exercise</label><select id="deluxeExerciseSelect" onchange="renderDeluxePerformance()"></select></div><div class="field"><label>Best estimated 1RM</label><div class="metric-num" id="deluxeExerciseBest">—</div></div><div class="field"><label>Change since first logged</label><div class="metric-num" id="deluxeExerciseChange">—</div></div></div>
+            <div id="deluxePerformanceRows"></div>
+          </div>
+          <div class="panel" style="margin:16px 0">
+            <div class="section-title">Workout planner <span class="sub">CREATE AND SAVE YOUR OWN PLANS</span></div>
+            <div class="form-grid">
+              <div class="field"><label for="deluxePlanName">Plan name</label><input id="deluxePlanName" maxlength="50" placeholder="e.g. 4-day strength split"></div>
+              <div class="field"><label for="deluxePlanDay">Training day</label><select id="deluxePlanDay"><option>Day 1 · Monday</option><option>Day 2 · Tuesday</option><option>Day 3 · Wednesday</option><option>Day 4 · Thursday</option><option>Day 5 · Friday</option><option>Day 6 · Saturday</option><option>Day 7 · Sunday</option></select></div>
+              <div class="field"><label for="deluxePlanExercise">Exercise name</label><input id="deluxePlanExercise" maxlength="80" placeholder="e.g. Bench Press"></div>
+              <div class="field"><label for="deluxePlanSets">Sets</label><input id="deluxePlanSets" type="number" min="1" max="20" value="3"></div>
+              <div class="field"><label for="deluxePlanReps">Target reps</label><input id="deluxePlanReps" type="number" min="1" max="100" value="8"></div>
+              <div class="field"><label for="deluxePlanKg">Suggested weight (kg)</label><input id="deluxePlanKg" type="number" min="0" max="1000" step="0.5" value="0"></div>
+            </div>
+            <div class="row-wrap"><button class="btn btn-primary" onclick="addDeluxePlanExercise()">Add exercise to plan</button><button class="btn" onclick="saveDeluxePlan()">Save plan</button></div>
+            <div id="deluxePlanDraft" style="margin-top:12px"></div>
+            <div id="deluxePlanLibrary" style="margin-top:16px"></div>
+          </div>
+          <div class="panel" style="margin:16px 0">
+            <div class="section-title">Data tools</div>
+            <p class="sub" style="margin-bottom:12px">Export detailed training data, download a report, or use Gymplified's full JSON backup to move all your data.</p>
+            <div class="row-wrap"><button class="btn btn-primary" onclick="exportDeluxeCSV()">Export workout CSV</button><button class="btn" onclick="exportDeluxeReport()">Download progress report</button><button class="btn" onclick="exportData()">Full JSON backup</button></div>
+            <div class="sub" id="deluxeExportStatus" style="margin-top:10px" aria-live="polite"></div>
+          </div>
+          <div class="panel" style="margin:16px 0">
+            <div class="section-title">Deluxe customisation</div>
+            <div class="form-grid">
+              <div class="field"><label for="deluxeAccent">Premium accent colour</label><select id="deluxeAccent" onchange="saveDeluxeCustomisation()"><option value="gold">Gold</option><option value="violet">Violet</option><option value="blue">Blue</option><option value="emerald">Emerald</option><option value="crimson">Crimson</option><option value="amber">Amber</option></select></div>
+              <div class="field"><label for="deluxeTheme">App appearance</label><select id="deluxeTheme" onchange="saveDeluxeCustomisation()"><option value="dark">Dark</option><option value="light">Light</option></select></div>
+            </div>
+            <label style="display:flex;gap:9px;align-items:center;font-size:13px"><input id="deluxeProfileFlair" type="checkbox" onchange="saveDeluxeCustomisation()"> Show Deluxe flair on my profile</label>
+            <p class="sub" style="margin-top:8px">These preferences sync with your Gymplified account when signed in.</p>
           </div>
         </div>
-      </section>
-      <div class="deluxe-modal" id="deluxeModal" role="dialog" aria-modal="true" aria-labelledby="deluxeModalTitle" onclick="if(event.target===this)closeDeluxeModal()">
-        <div class="deluxe-modal-card"><div class="section-title"><span class="deluxe-pill">DELUXE PREVIEW</span><button class="btn btn-icon-only" onclick="closeDeluxeModal()" aria-label="Close">×</button></div><h2 id="deluxeModalTitle">Explore Gymplified Deluxe</h2><p id="deluxeModalText">A preview of the premium feature.</p><div class="deluxe-demo-note">This is a prototype preview. It does not charge you or activate a real paid entitlement.</div><div class="app-dialog-actions"><button class="btn btn-primary" onclick="closeDeluxeModal()">Got it</button></div></div>
       </div>
     </main>
   </div>
@@ -1069,6 +1119,7 @@ const cleanState = {
   workouts: [],
   foods: [],
   prs: [],
+  deluxe: { plans: [], profileFlair: true, accent: 'gold', theme: 'dark' },
   settings: {
     theme: 'dark',
     color: 'gold',
@@ -1832,6 +1883,23 @@ function sanitizeStateSnapshot(raw){
  const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:list(rawGame.badges,100).map(x=>safeStateText(x,'',40)).filter(Boolean),day:gameDay};
  if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
  const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,1000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:list(raw.presets,10).map(x=>safeStateNumber(x,1,5000,250)).filter(x=>x>0),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,.5,10,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now())}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
+ const rawDeluxe=raw.deluxe&&typeof raw.deluxe==='object'?raw.deluxe:{};
+ state.deluxe={
+  plans:list(rawDeluxe.plans,100).filter(p=>p&&typeof p==='object'&&!Array.isArray(p)).map((p,i)=>({
+   id:safeRecordId(p.id,'deluxe-plan-'+i),name:safeStateText(p.name,'Training plan',50),
+   createdAt:safeStateText(p.createdAt,'',40),
+   days:list(p.days,7).filter(d=>d&&typeof d==='object').map((d,j)=>({
+    day:safeStateText(d.day,'Day '+(j+1),30),
+    exercises:list(d.exercises,50).filter(e=>e&&typeof e==='object').map((e,k)=>({
+     name:safeStateText(e.name,'Exercise',80),sets:safeStateNumber(e.sets,1,20,3),
+     reps:safeStateNumber(e.reps,1,100,8),kg:safeStateNumber(e.kg,0,1000,0)
+    }))
+   }))
+  })),
+  profileFlair:rawDeluxe.profileFlair!==false,
+  accent:['gold','violet','blue','emerald','crimson','amber'].includes(rawDeluxe.accent)?rawDeluxe.accent:'gold',
+  theme:rawDeluxe.theme==='light'?'light':'dark'
+ };
  if(settings.theme==='light'||settings.theme==='dark')state.settings.theme=settings.theme;
  if(['gold','blue','emerald','slate','crimson','amber','violet'].includes(settings.color))state.settings.color=settings.color;
  if(['sm','md','lg','xl'].includes(settings.scale))state.settings.scale=settings.scale;
@@ -1863,6 +1931,8 @@ function bootState(){
   ['workouts','foods','prs','waterLog','recent','lastSession','customFoods','routines'].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});
   // Migrate the former default blue accent to the new Gymplified gold identity.
   if(!o||!o.settings||!o.settings.color||o.settings.color==="blue")t.settings.color="gold";
+  t.deluxe=Object.assign({plans:[],profileFlair:true,accent:'gold',theme:'dark'},t.deluxe||{});
+  t.deluxe.plans=Array.isArray(t.deluxe.plans)?t.deluxe.plans:[];
   t.nutritionTargets=Object.assign({protein:0,carbs:0,fat:0},t.nutritionTargets||{});
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
   t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:[150,250,500,750];

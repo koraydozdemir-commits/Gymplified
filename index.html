@@ -528,6 +528,10 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           Friends
         </button>
+        <button data-screen="deluxe" onclick="showScreen('deluxe', this)">
+          <svg viewBox="0 0 24 24"><path d="m12 2 2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5L12 2Z"/><path d="m19 14 1.2 3.1L23 18l-2.8 1-1.2 3-1.1-3-2.9-1 2.9-.9L19 14Z"/></svg>
+          Deluxe
+        </button>
         <button data-screen="settings" onclick="showScreen('settings', this)">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           Settings
@@ -868,6 +872,63 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
           </div>
         </div>
       </section>
+
+      <!-- GYMPLIFIED DELUXE -->
+      <section id="deluxe" class="screen">
+        <style>
+          .deluxe-hero{border:1px solid #b99342;background:linear-gradient(135deg,rgba(201,162,78,.17),var(--panel) 65%);padding:26px;border-radius:12px;margin-bottom:18px}
+          .deluxe-wordmark{color:#d6b15e;font-weight:900;letter-spacing:.16em;font-size:12px}
+          .deluxe-price{font-size:38px;font-weight:900;letter-spacing:-.06em;margin:8px 0}
+          .deluxe-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+          .deluxe-feature{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:16px;min-height:150px}
+          .deluxe-feature h3{font-size:14px;margin:10px 0 5px}
+          .deluxe-feature p{font-size:12px;color:var(--muted);line-height:1.5}
+          .deluxe-feature .lock{font-size:20px}
+          .deluxe-pill{display:inline-flex;border:1px solid #b99342;color:#d6b15e;padding:3px 8px;border-radius:99px;font-size:10px;font-weight:800;letter-spacing:.06em}
+          .deluxe-modal{position:fixed;inset:0;background:#000b;z-index:100;display:none;align-items:center;justify-content:center;padding:18px}
+          .deluxe-modal.open{display:flex}
+          .deluxe-modal-card{width:min(100%,520px);background:var(--panel);border:1px solid #b99342;border-radius:14px;padding:22px;max-height:85vh;overflow:auto}
+          .deluxe-modal-card h2{font-size:20px;margin-bottom:8px}
+          .deluxe-modal-card p{color:var(--muted);font-size:13px;line-height:1.55}
+          .deluxe-demo-note{border:1px dashed #b99342;background:rgba(201,162,78,.08);padding:12px;border-radius:8px;font-size:12px;color:var(--muted);margin-top:14px}
+          .deluxe-chart{display:flex;align-items:end;gap:8px;height:120px;padding:12px 4px 0;border-bottom:1px solid var(--line)}
+          .deluxe-chart span{flex:1;background:linear-gradient(180deg,#d6b15e,#8c6825);border-radius:4px 4px 0 0;min-width:8px}
+        </style>
+        <div class="eyebrow">The premium experience</div>
+        <h1>Gymplified Deluxe</h1>
+        <p class="subtitle">More insight. Smarter training. Your progress, without limits.</p>
+        <div class="deluxe-hero">
+          <div class="deluxe-wordmark">GYMPLIFIED DELUXE</div>
+          <div class="deluxe-price">€9.99 <span style="font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0">once. yours forever.</span></div>
+          <p style="font-size:13px;color:var(--muted);max-width:620px">Unlock the complete Gymplified training toolkit with one lifetime payment. No monthly fees and no subscription.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center">
+            <span class="deluxe-pill" id="deluxeStatus">PREVIEW MODE</span>
+            <button class="btn btn-primary" type="button" onclick="openDeluxeDemo()">Explore Deluxe</button>
+            <button class="btn" type="button" onclick="toggleDeluxeDemo()" id="deluxeDemoToggle">Enable demo unlock</button>
+          </div>
+          <div class="deluxe-demo-note">Prototype only: payment processing is not connected. Demo unlock is stored on this device and does not grant a real purchase or account entitlement.</div>
+        </div>
+        <div class="section-title">What's included <span class="sub">LIFETIME ACCESS · €9.99</span></div>
+        <div class="deluxe-grid">
+          <article class="deluxe-feature"><div class="lock">📈</div><h3>Advanced analytics</h3><p>Track strength trends, volume progression, estimated 1RM and training consistency with detailed charts.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Advanced analytics')">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🧠</div><h3>Smart training insights</h3><p>See muscle-group workload, identify neglected areas and get useful recovery guidance from your logged sessions.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Smart training insights')">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🗓️</div><h3>Workout planner</h3><p>Build multi-week training plans, organise training days and compare planned sessions with completed workouts.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Workout planner')">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🏆</div><h3>Performance lab</h3><p>Compare exercise history, personal records, estimated one-rep max and best-set performance over time.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Performance lab')">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">📦</div><h3>Complete data tools</h3><p>Advanced exports, full backup options and detailed training reports for keeping your data portable.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Complete data tools')">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🎨</div><h3>Deluxe customisation</h3><p>Exclusive profile accents, premium themes, profile presentation options and Deluxe account flair.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Deluxe customisation')">Preview feature</button></article>
+        </div>
+        <div class="panel" id="deluxeAnalyticsPreview">
+          <div class="section-title">Analytics preview <span class="deluxe-pill">SAMPLE DATA</span></div>
+          <p class="sub">A glimpse of the deeper progress reports included with Deluxe. Sample figures are illustrative, not your workout data.</p>
+          <div class="grid-2" style="margin-top:14px">
+            <div><div class="eyebrow">Training volume</div><div class="metric-num">+18.4%</div><p class="sub">Example change over 8 weeks</p><div class="deluxe-chart"><span style="height:32%"></span><span style="height:39%"></span><span style="height:35%"></span><span style="height:52%"></span><span style="height:58%"></span><span style="height:68%"></span><span style="height:74%"></span><span style="height:88%"></span></div></div>
+            <div><div class="eyebrow">Training balance</div><div style="font-size:28px;font-weight:800;margin:8px 0">4 <span class="metric-unit">muscle groups</span></div><p class="sub">Example workload distribution and recovery indicators would appear here.</p><div class="progress-bar"><i style="width:78%"></i></div><div class="meta-row"><span>Example weekly target</span><span>78%</span></div></div>
+          </div>
+        </div>
+      </section>
+      <div class="deluxe-modal" id="deluxeModal" role="dialog" aria-modal="true" aria-labelledby="deluxeModalTitle" onclick="if(event.target===this)closeDeluxeModal()">
+        <div class="deluxe-modal-card"><div class="section-title"><span class="deluxe-pill">DELUXE PREVIEW</span><button class="btn btn-icon-only" onclick="closeDeluxeModal()" aria-label="Close">×</button></div><h2 id="deluxeModalTitle">Explore Gymplified Deluxe</h2><p id="deluxeModalText">A preview of the premium feature.</p><div class="deluxe-demo-note">This is a prototype preview. It does not charge you or activate a real paid entitlement.</div><div class="app-dialog-actions"><button class="btn btn-primary" onclick="closeDeluxeModal()">Got it</button></div></div>
+      </div>
     </main>
   </div>
 </div>
@@ -2384,6 +2445,36 @@ if('serviceWorker' in navigator){
 }
 updateInstallUI();
 window.addEventListener('pageshow',updateInstallUI);
+
+
+function deluxeDemoEnabled(){try{return localStorage.getItem('gymplified_deluxe_demo')==='1';}catch(e){return false;}}
+function updateDeluxeUI(){
+ const enabled=deluxeDemoEnabled(),status=$('deluxeStatus'),toggle=$('deluxeDemoToggle');
+ if(status){status.textContent=enabled?'DEMO UNLOCKED':'PREVIEW MODE';status.style.background=enabled?'rgba(16,185,129,.12)':'';status.style.borderColor=enabled?'#10b981':'#b99342';status.style.color=enabled?'#10b981':'#d6b15e';}
+ if(toggle)toggle.textContent=enabled?'Turn off demo unlock':'Enable demo unlock';
+ document.querySelectorAll('.deluxe-feature .lock').forEach(function(el){el.textContent=enabled?'✨':'🔒';});
+}
+function toggleDeluxeDemo(){
+ try{localStorage.setItem('gymplified_deluxe_demo',deluxeDemoEnabled()?'0':'1');updateDeluxeUI();showToast(deluxeDemoEnabled()?'Deluxe demo unlocked on this device':'Deluxe demo lock restored');}
+ catch(e){showToast('Could not save demo setting on this device');}
+}
+function openDeluxeDemo(){previewDeluxeFeature('Gymplified Deluxe');}
+function previewDeluxeFeature(name){
+ const copy={
+ 'Advanced analytics':'Explore weekly volume trends, strength progression, estimated 1RM charts and exercise comparisons.',
+ 'Smart training insights':'Review muscle-group workload, training balance and recovery signals based on your workout history.',
+ 'Workout planner':'Create structured training blocks, organise weekly sessions and track plan completion.',
+ 'Performance lab':'Compare personal records, best sets and estimated one-rep max changes for each exercise.',
+ 'Complete data tools':'Generate detailed workout reports and manage comprehensive backups and exports.',
+ 'Deluxe customisation':'Unlock exclusive Deluxe profile flair, premium themes and additional appearance settings.',
+ 'Gymplified Deluxe':'Gymplified Deluxe is a €9.99 one-time lifetime upgrade. Payment will be added later.'
+ };
+ $('deluxeModalTitle').textContent=name;
+ $('deluxeModalText').textContent=copy[name]||'Explore this premium feature in the Deluxe prototype.';
+ $('deluxeModal').classList.add('open');
+}
+function closeDeluxeModal(){$('deluxeModal').classList.remove('open');}
+updateDeluxeUI();
 
 // Boot initial render
 initPicker();

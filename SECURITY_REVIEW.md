@@ -40,6 +40,7 @@ Records with IDs merge as independent entries. When both devices edit the same r
 Implemented in the app and live Supabase project:
 - [x] Bind cloud progress RPC writes to the authenticated user ID in the state payload; the database rejects a payload whose owner marker does not match `auth.uid()`.
 - [x] Keep separate local snapshots per signed-in account, restore the matching account snapshot on account switches, clear the active local state on sign-out, and block cloud saves until the account's initial sync completes.
+- [x] For pre-fix local data without an owner marker, require an explicit merge-vs-cloud choice, offer a recovery download, and read the selected account's cloud snapshot without merging defaults when no matching local cache exists.
 - [x] Clear completed-set flags after a workout is recorded, preventing the same checked sets from being counted in the next session.
 - [x] Remove the silent 200-session truncation. History is retained up to an explicit 5,000-session limit; the app warns and blocks a further completion rather than silently discarding older records.
 - [x] Preserve imported duration, distance, set order and notes through state sanitization and cloud synchronization.

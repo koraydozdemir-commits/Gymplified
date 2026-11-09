@@ -997,6 +997,11 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
   <div class="app-dialog-actions"><button class="btn" type="button" onclick="closeAccountDialogs()">Cancel</button><button class="btn" type="button" style="color:var(--danger)" onclick="confirmResetAllData()">Reset progress</button></div>
 </dialog>
 
+<dialog id="legacyLocalDataDialog" class="app-dialog" aria-labelledby="legacyLocalDataTitle" aria-describedby="legacyLocalDataDescription" oncancel="event.preventDefault()">
+  <h2 id="legacyLocalDataTitle">Local progress found</h2>
+  <p id="legacyLocalDataDescription">This device has workout data but no saved account owner. It could belong to a different account. Choose whether to merge it into the account you just signed into. A recovery copy will be kept on this device.</p>
+  <div class="app-dialog-actions" style="justify-content:space-between"><button class="btn" type="button" onclick="downloadLegacyLocalBackup()">Download recovery copy</button><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" onclick="resolveLegacyLocalData(false)">Use cloud data</button><button class="btn btn-primary" type="button" onclick="resolveLegacyLocalData(true)">Merge local data</button></span></div>
+</dialog>
 <dialog id="deluxePlanDayDialog" class="app-dialog" aria-labelledby="deluxePlanDayTitle" aria-describedby="deluxePlanDayDescription">
   <h2 id="deluxePlanDayTitle">Load a training day</h2>
   <p id="deluxePlanDayDescription">Choose which day to add to your Training Log.</p>
@@ -1240,9 +1245,11 @@ function showToast(message) {
 // --- PERSISTENCE & SETTINGS ---
 let cloudSyncUserId=null,cloudSyncLoadingUserId=null,cloudSaveTimer=null,cloudSaveBusy=false,cloudSavePending=false,stateRevision=0,cloudSyncErrorShown=false;
 const ACCOUNT_OWNER_KEY='gymplified_account_owner_v1',ACCOUNT_STATE_PREFIX='gymplified_account_state_v1:';
+let pendingLegacyAccountId=null,clearLegacyBackupAfterSync=false;
+function hasLocalProgress(snapshot){return !!(snapshot&&(['workouts','foods','prs','sessions','routines','customEx','customFoods','waterEntries'].some(k=>Array.isArray(snapshot[k])&&snapshot[k].length)||Number(snapshot.game&&snapshot.game.xp)>0||Object.keys(snapshot.dailyHistory||{}).length));}
 function saveAccountLocalSnapshot(userId){if(!userId)return;try{const raw=localStorage.getItem(STORAGE_KEY);if(raw)localStorage.setItem(ACCOUNT_STATE_PREFIX+userId,raw);}catch(error){console.warn('Could not cache this account locally:',error);}}
-function prepareLocalAccountState(userId){if(!userId)return;let owner='';try{owner=localStorage.getItem(ACCOUNT_OWNER_KEY)||'';}catch(_){}if(owner&&owner!==userId){saveAccountLocalSnapshot(owner);let cached=null;try{cached=localStorage.getItem(ACCOUNT_STATE_PREFIX+userId);}catch(_){}try{state=cached?sanitizeStateSnapshot(JSON.parse(cached)):JSON.parse(JSON.stringify(cleanState));}catch(error){console.warn('Saved account cache was invalid; using cloud copy:',error);state=JSON.parse(JSON.stringify(cleanState));}stateRevision++;persistLocalState(false);}state.accountOwnerId=userId;try{localStorage.setItem(ACCOUNT_OWNER_KEY,userId);}catch(_){}persistLocalState(false);}
-function releaseLocalAccountState(userId){if(userId)saveAccountLocalSnapshot(userId);state=JSON.parse(JSON.stringify(cleanState));stateRevision++;persistLocalState(false);try{localStorage.removeItem(ACCOUNT_OWNER_KEY);}catch(_){} }
+function prepareLocalAccountState(userId){if(!userId)return false;let owner='';try{owner=localStorage.getItem(ACCOUNT_OWNER_KEY)||'';}catch(_){}if(!owner&&state.accountOwnerId)owner=state.accountOwnerId;if(owner&&owner!==userId){saveAccountLocalSnapshot(owner);let cached=null;try{cached=localStorage.getItem(ACCOUNT_STATE_PREFIX+userId);}catch(_){}try{state=cached?sanitizeStateSnapshot(JSON.parse(cached)):JSON.parse(JSON.stringify(cleanState));}catch(error){console.warn('Saved account cache was invalid; using cloud copy:',error);state=JSON.parse(JSON.stringify(cleanState));}stateRevision++;persistLocalState(false);}else if(!owner&&hasLocalProgress(state)){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(error){console.warn('Could not preserve unassigned local progress:',error);}pendingLegacyAccountId=userId;return true;}state.accountOwnerId=userId;try{localStorage.setItem(ACCOUNT_OWNER_KEY,userId);}catch(_){}persistLocalState(false);return false;}
+function releaseLocalAccountState(userId){if(pendingLegacyAccountId===userId){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(_){}pendingLegacyAccountId=null;}else if(userId)saveAccountLocalSnapshot(userId);state=JSON.parse(JSON.stringify(cleanState));stateRevision++;persistLocalState(false);try{localStorage.removeItem(ACCOUNT_OWNER_KEY);}catch(_){} }
 function markRecordDeleted(kind,item){if(!item||!item.id)return;const value=kind+':'+String(item.id);state.deletedRecordIds=Array.isArray(state.deletedRecordIds)?state.deletedRecordIds:[];if(!state.deletedRecordIds.includes(value))state.deletedRecordIds.push(value);}
 function persistLocalState(markDirty=true){if(markDirty)stateRevision++;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));return true;}catch(error){console.error('Gymplified local save failed:',error);showToast('Could not save on this device. Free storage space, then export a backup and try again.');return false;}}
 function saveState(){rewards();persistLocalState();queueCloudStateSave();renderAll();}
@@ -1297,7 +1304,7 @@ async function syncUserAppState(){
   if(currentUser&&currentUser.id===id){
    if(revision===stateRevision){migrateAccountSnapshot(result.data);applySettings();renderAll();initPicker();}
    cloudSyncUserId=id;cloudSyncErrorShown=false;
-   try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);localStorage.setItem(ACCOUNT_STATE_PREFIX+id,JSON.stringify(state));}catch(_){}
+   try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);localStorage.setItem(ACCOUNT_STATE_PREFIX+id,JSON.stringify(state));if(clearLegacyBackupAfterSync){localStorage.removeItem(ACCOUNT_STATE_PREFIX+'unassigned');clearLegacyBackupAfterSync=false;}}catch(_){}
    if(revision!==stateRevision)queueCloudStateSave();
   }
  }catch(error){
@@ -2421,8 +2428,8 @@ async function initSocial(){
  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  const r=await sb.auth.getSession();if(r.error)socialError(r.error);currentUser=r.data&&r.data.session?r.data.session.user:null;
  if(currentUser&&!currentUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;authMode='signup';renderAuthPanel('Please verify your email address before using your Gymplified account.');}
- if(currentUser){prepareLocalAccountState(currentUser.id);await loadMyProfile();await syncUserAppState();loadSupportTickets();}renderFriends();
- sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);if(changed){resetCloudSaveQueue();cloudSyncUserId=null;cloudSyncLoadingUserId=null;if(currentUser&&nextUser)saveAccountLocalSnapshot(currentUser.id);if(nextUser)prepareLocalAccountState(nextUser.id);else if(currentUser)releaseLocalAccountState(currentUser.id);}currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed)await syncUserAppState();loadSupportTickets();}else{resetCloudSaveQueue();cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';renderAll();}friendRequests=[];friendProfiles={};renderFriends();},0);});
+ if(currentUser){const needsLegacyChoice=prepareLocalAccountState(currentUser.id);await loadMyProfile();if(needsLegacyChoice)showLegacyLocalDataDialog();else await syncUserAppState();loadSupportTickets();}renderFriends();
+ sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);let needsLegacyChoice=false;if(changed){resetCloudSaveQueue();cloudSyncUserId=null;cloudSyncLoadingUserId=null;if(currentUser&&nextUser)saveAccountLocalSnapshot(currentUser.id);if(nextUser)needsLegacyChoice=prepareLocalAccountState(nextUser.id);else if(currentUser)releaseLocalAccountState(currentUser.id);}currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed&&!needsLegacyChoice)await syncUserAppState();if(needsLegacyChoice)showLegacyLocalDataDialog();loadSupportTickets();}else{resetCloudSaveQueue();cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';renderAll();}friendRequests=[];friendProfiles={};renderFriends();},0);});
 }
 async function loadMyProfile(){if(!currentUser){currentProfile=null;return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url,created_at').eq('id',currentUser.id).maybeSingle();if(r.error){socialError(r.error);return;}currentProfile=r.data;}
 
@@ -2787,6 +2794,9 @@ function loadDeluxePlan(index){
  $('deluxePlanDayDescription').textContent=state.workouts.length?'Loading a day will replace the exercises currently in your Training Log.':'Choose which day to add to your Training Log.';
  deluxePendingPlanIndex=index;dialog.showModal();
 }
+function showLegacyLocalDataDialog(){const dialog=$('legacyLocalDataDialog');if(dialog&&!dialog.open)dialog.showModal();}
+function downloadLegacyLocalBackup(){try{const raw=localStorage.getItem(ACCOUNT_STATE_PREFIX+'unassigned');if(!raw)return showToast('No recovery copy is available');const a=document.createElement('a'),url=URL.createObjectURL(new Blob([raw],{type:'application/json'}));a.href=url;a.download='gymplified-local-recovery-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Recovery copy downloaded');}catch(error){showToast('Could not download the recovery copy');}}
+async function resolveLegacyLocalData(merge){const id=pendingLegacyAccountId;if(!id||!currentUser||currentUser.id!==id)return;const dialog=$('legacyLocalDataDialog');if(dialog&&dialog.open)dialog.close();pendingLegacyAccountId=null;if(!merge)state=JSON.parse(JSON.stringify(cleanState));else clearLegacyBackupAfterSync=true;state.accountOwnerId=id;try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);}catch(_){}persistLocalState(false);await syncUserAppState();loadSupportTickets();renderAll();}
 function closeDeluxePlanDayDialog(){const dialog=$('deluxePlanDayDialog');if(dialog&&dialog.open)dialog.close();deluxePendingPlanIndex=null;}
 function confirmLoadDeluxePlan(){
  const plan=state.deluxe?.plans?.[deluxePendingPlanIndex],select=$('deluxePlanDaySelect');

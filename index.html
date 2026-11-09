@@ -1248,7 +1248,43 @@ const ACCOUNT_OWNER_KEY='gymplified_account_owner_v1',ACCOUNT_STATE_PREFIX='gymp
 let pendingLegacyAccountId=null,clearLegacyBackupAfterSync=false;
 function hasLocalProgress(snapshot){return !!(snapshot&&(['workouts','foods','prs','sessions','routines','customEx','customFoods','waterEntries'].some(k=>Array.isArray(snapshot[k])&&snapshot[k].length)||Number(snapshot.game&&snapshot.game.xp)>0||Object.keys(snapshot.dailyHistory||{}).length));}
 function saveAccountLocalSnapshot(userId){if(!userId)return;try{const raw=localStorage.getItem(STORAGE_KEY);if(raw)localStorage.setItem(ACCOUNT_STATE_PREFIX+userId,raw);}catch(error){console.warn('Could not cache this account locally:',error);}}
-function prepareLocalAccountState(userId){if(!userId)return false;let owner='',cloudOnly=false;try{owner=localStorage.getItem(ACCOUNT_OWNER_KEY)||'';}catch(_){}if(!owner&&state.accountOwnerId)owner=state.accountOwnerId;if(owner&&owner!==userId){saveAccountLocalSnapshot(owner);let cached=null;try{cached=localStorage.getItem(ACCOUNT_STATE_PREFIX+userId);}catch(_){}try{state=cached?sanitizeStateSnapshot(JSON.parse(cached)):JSON.parse(JSON.stringify(cleanState));if(!cached)cloudOnly=true;}catch(error){console.warn('Saved account cache was invalid; using cloud copy:',error);state=JSON.parse(JSON.stringify(cleanState));cloudOnly=true;}stateRevision++;persistLocalState(false);}else if(!owner&&!hasLocalProgress(state)){let cached=null;try{cached=localStorage.getItem(ACCOUNT_STATE_PREFIX+userId);}catch(_){}if(cached){try{state=sanitizeStateSnapshot(JSON.parse(cached));stateRevision++;persistLocalState(false);}catch(error){console.warn('Could not restore this account local cache:',error);cloudOnly=true;}}else cloudOnly=true;}else if(!owner&&hasLocalProgress(state)){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(error){console.warn('Could not preserve unassigned local progress:',error);}pendingLegacyAccountId=userId;return true;}state.accountOwnerId=userId;try{localStorage.setItem(ACCOUNT_OWNER_KEY,userId);}catch(_){}persistLocalState(false);return cloudOnly?'cloud':false;}
+function prepareLocalAccountState(userId){
+ if(!userId)return false;
+ let owner='',cloudOnly=false;
+ try{owner=localStorage.getItem(ACCOUNT_OWNER_KEY)||'';}catch(_){}
+ if(!owner&&state.accountOwnerId)owner=state.accountOwnerId;
+ if(owner&&owner!==userId){
+  saveAccountLocalSnapshot(owner);
+  let cached=null,unassigned=null;
+  try{cached=localStorage.getItem(ACCOUNT_STATE_PREFIX+userId);unassigned=localStorage.getItem(ACCOUNT_STATE_PREFIX+'unassigned');}catch(_){}
+  if(cached){
+   try{state=sanitizeStateSnapshot(JSON.parse(cached));}
+   catch(error){console.warn('Saved account cache was invalid; using cloud copy:',error);state=JSON.parse(JSON.stringify(cleanState));cloudOnly=true;}
+  }else if(unassigned){
+   try{state=sanitizeStateSnapshot(JSON.parse(unassigned));stateRevision++;persistLocalState(false);pendingLegacyAccountId=userId;return true;}
+   catch(error){console.warn('Unassigned recovery copy was invalid:',error);state=JSON.parse(JSON.stringify(cleanState));cloudOnly=true;}
+  }else{state=JSON.parse(JSON.stringify(cleanState));cloudOnly=true;}
+  stateRevision++;persistLocalState(false);
+ }else if(!owner&&!hasLocalProgress(state)){
+  let cached=null,unassigned=null;
+  try{cached=localStorage.getItem(ACCOUNT_STATE_PREFIX+userId);unassigned=localStorage.getItem(ACCOUNT_STATE_PREFIX+'unassigned');}catch(_){}
+  if(cached){
+   try{state=sanitizeStateSnapshot(JSON.parse(cached));stateRevision++;persistLocalState(false);}
+   catch(error){console.warn('Could not restore this account local cache:',error);cloudOnly=true;}
+  }else if(unassigned){
+   try{state=sanitizeStateSnapshot(JSON.parse(unassigned));stateRevision++;persistLocalState(false);pendingLegacyAccountId=userId;return true;}
+   catch(error){console.warn('Unassigned recovery copy was invalid:',error);cloudOnly=true;}
+  }else cloudOnly=true;
+ }else if(!owner&&hasLocalProgress(state)){
+  try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}
+  catch(error){console.warn('Could not preserve unassigned local progress:',error);}
+  pendingLegacyAccountId=userId;return true;
+ }
+ state.accountOwnerId=userId;
+ try{localStorage.setItem(ACCOUNT_OWNER_KEY,userId);}catch(_){}
+ persistLocalState(false);
+ return cloudOnly?'cloud':false;
+}
 function releaseLocalAccountState(userId){if(pendingLegacyAccountId===userId){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(_){}pendingLegacyAccountId=null;}else if(userId)saveAccountLocalSnapshot(userId);state=JSON.parse(JSON.stringify(cleanState));stateRevision++;persistLocalState(false);try{localStorage.removeItem(ACCOUNT_OWNER_KEY);}catch(_){} }
 function markRecordDeleted(kind,item){if(!item||!item.id)return;const value=kind+':'+String(item.id);state.deletedRecordIds=Array.isArray(state.deletedRecordIds)?state.deletedRecordIds:[];if(!state.deletedRecordIds.includes(value))state.deletedRecordIds.push(value);}
 function persistLocalState(markDirty=true){if(markDirty)stateRevision++;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));return true;}catch(error){console.error('Gymplified local save failed:',error);showToast('Could not save on this device. Free storage space, then export a backup and try again.');return false;}}

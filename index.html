@@ -997,6 +997,13 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
   <div class="app-dialog-actions"><button class="btn" type="button" onclick="closeAccountDialogs()">Cancel</button><button class="btn" type="button" style="color:var(--danger)" onclick="confirmResetAllData()">Reset progress</button></div>
 </dialog>
 
+<dialog id="deluxePlanDayDialog" class="app-dialog" aria-labelledby="deluxePlanDayTitle" aria-describedby="deluxePlanDayDescription">
+  <h2 id="deluxePlanDayTitle">Load a training day</h2>
+  <p id="deluxePlanDayDescription">Choose which day to add to your Training Log.</p>
+  <label for="deluxePlanDaySelect">Training day</label>
+  <select id="deluxePlanDaySelect"></select>
+  <div class="app-dialog-actions"><button class="btn" type="button" onclick="closeDeluxePlanDayDialog()">Cancel</button><button class="btn btn-primary" type="button" onclick="confirmLoadDeluxePlan()">Load day</button></div>
+</dialog>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
 <script>
 // --- POOL OF 100 MOTIVATIONAL QUOTES ---
@@ -2771,14 +2778,23 @@ function renderDeluxePlanLibrary(){
  host.innerHTML=plans.length?'<div class="sub-h">Saved plans</div>'+plans.map((p,i)=>'<div class="deluxe-plan-row"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(p.name)+'</strong><span class="sub">'+p.days.reduce((n,d)=>n+d.exercises.length,0)+' planned exercises</span></div><div class="row-wrap" style="margin-top:9px"><button class="btn btn-primary" onclick="loadDeluxePlan('+i+')">Load a day</button><button class="btn" onclick="deleteDeluxePlan('+i+')">Delete</button></div></div>').join(''):'<p class="sub">Your saved training plans will appear here.</p>';
  renderDeluxePlanDraft();
 }
+let deluxePendingPlanIndex=null;
 function loadDeluxePlan(index){
  const plan=state.deluxe?.plans?.[index];if(!plan)return;
  const days=plan.days||[];if(!days.length)return showToast('This plan has no days to load');
- const day=prompt('Which day should be loaded?\n'+days.map((d,i)=>(i+1)+'. '+d.day).join('\n'),'1');
- if(day===null)return;const selected=days[Number(day)-1];if(!selected)return showToast('Enter a valid day number');
- if(state.workouts.length&&!confirm('Replace the current workout with '+selected.day+' from '+plan.name+'?'))return;
+ const select=$('deluxePlanDaySelect'),dialog=$('deluxePlanDayDialog');if(!select||!dialog)return;
+ select.innerHTML=days.map((d,i)=>'<option value="'+i+'">'+esc(d.day)+'</option>').join('');
+ $('deluxePlanDayDescription').textContent=state.workouts.length?'Loading a day will replace the exercises currently in your Training Log.':'Choose which day to add to your Training Log.';
+ deluxePendingPlanIndex=index;dialog.showModal();
+}
+function closeDeluxePlanDayDialog(){const dialog=$('deluxePlanDayDialog');if(dialog&&dialog.open)dialog.close();deluxePendingPlanIndex=null;}
+function confirmLoadDeluxePlan(){
+ const plan=state.deluxe?.plans?.[deluxePendingPlanIndex],select=$('deluxePlanDaySelect');
+ if(!plan||!select)return closeDeluxePlanDayDialog();
+ const selected=(plan.days||[])[Number(select.value)];if(!selected)return showToast('Choose a valid training day');
+ (state.workouts||[]).forEach(x=>markRecordDeleted('workouts',x));
  state.workouts=selected.exercises.map(e=>syncW({name:e.name,muscle:'',setList:Array.from({length:e.sets},()=>({kg:e.kg,reps:e.reps,done:false}))}));
- saveState();showToast(selected.day+' loaded into Training Log');showScreen('training',document.querySelector('nav button[data-screen="training"]'));
+ closeDeluxePlanDayDialog();saveState();showToast(selected.day+' loaded into Training Log');showScreen('training',document.querySelector('nav button[data-screen="training"]'));
 }
 function deleteDeluxePlan(index){
  const plans=state.deluxe?.plans;if(!plans||!plans[index]||!confirm('Delete this training plan?'))return;

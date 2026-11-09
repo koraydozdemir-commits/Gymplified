@@ -1724,59 +1724,124 @@ function gymPick(row,headers,names){
   for(const name of names){const i=headers.indexOf(gymHeader(name));if(i>=0&&row[i]!=null&&String(row[i]).trim()!=='')return String(row[i]).trim();}
   return '';
 }
-function gymNumber(value){if(value==null||value==='')return 0;const n=parseFloat(String(value).replace(',','.').replace(/[^\d.+-]/g,''));return Number.isFinite(n)&&n>=0?n:0;}
-function gymDate(value){
-  if(!value)return dayKey();
+function gymNumber(value,label,rowNumber,allowBlank){
+  if(value==null||String(value).trim()===''){if(allowBlank)return 0;throw new Error('Missing '+label+' on CSV row '+rowNumber+'.');}
+  let s=String(value).trim().replace(/[\s£€$]/g,'').replace(/(?:kg|kgs|lbs?|reps?)$/i,'');
+  if(!s)return 0;
+  if(s.includes(',')&&s.includes('.')){
+    if(s.lastIndexOf(',')>s.lastIndexOf('.'))s=s.replace(/\./g,'').replace(',','.');
+    else s=s.replace(/,/g,'');
+  }else if(s.includes(',')){
+    const tail=s.length-s.lastIndexOf(',')-1;
+    s=tail>0&&tail<=2?s.replace(',','.'):s.replace(/,/g,'');
+  }
+  if(!/^\+?\d+(?:\.\d+)?$/.test(s))throw new Error('Invalid '+label+' "'+value+'" on CSV row '+rowNumber+'.');
+  const n=Number(s);
+  if(!Number.isFinite(n)||n<0)throw new Error('Invalid '+label+' on CSV row '+rowNumber+'.');
+  return n;
+}
+function gymDate(value,rowNumber){
+  if(!value)throw new Error('Missing workout date on CSV row '+rowNumber+'.');
   const s=String(value).trim();
-  // Prefer explicit ISO dates and common day-first exports.
-  let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/);
-  if(m)return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0');
-  m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})/);
-  if(m)return m[3]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[1]).padStart(2,'0');
-  const d=new Date(s);return Number.isNaN(d.getTime())?dayKey():dayKey(d);
+  let m=s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?:[ T].*)?$/);
+  if(m){
+    const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]),test=new Date(Date.UTC(y,mo-1,d));
+    if(test.getUTCFullYear()!==y||test.getUTCMonth()!==mo-1||test.getUTCDate()!==d)throw new Error('Invalid workout date "'+value+'" on CSV row '+rowNumber+'.');
+    return m[1]+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  }
+  m=s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})(?:[ T].*)?$/);
+  if(m){
+    const d=Number(m[1]),mo=Number(m[2]),y=Number(m[3]),test=new Date(Date.UTC(y,mo-1,d));
+    if(test.getUTCFullYear()!==y||test.getUTCMonth()!==mo-1||test.getUTCDate()!==d)throw new Error('Invalid workout date "'+value+'" on CSV row '+rowNumber+'.');
+    return String(y)+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+  }
+  const parsed=new Date(s);
+  if(Number.isNaN(parsed.getTime()))throw new Error('Unrecognised workout date "'+value+'" on CSV row '+rowNumber+'.');
+  return dayKey(parsed);
+}
+function gymDuration(value,rowNumber){
+  if(!value)return 0;
+  const s=String(value).trim(),m=s.match(/^(\d+):([0-5]?\d)(?::([0-5]?\d))?$/);
+  if(m){const seconds=m[3]!=null?Number(m[1])*3600+Number(m[2])*60+Number(m[3]):Number(m[1])*60+Number(m[2]);if(seconds>86400)throw new Error('Duration is over 24 hours on CSV row '+rowNumber+'.');return seconds;}
+  const n=gymNumber(value,'duration',rowNumber,true);
+  if(n>86400)throw new Error('Duration is over 24 hours on CSV row '+rowNumber+'.');
+  return n;
+}
+function gymWorkoutSignature(w){
+  return JSON.stringify([String(w.date||''), (w.exercises||[]).map(e=>[
+    String(e.name||'').trim().toLowerCase(),
+    (e.sets||[]).map(s=>[Number(s.kg??s.weight)||0,Number(s.reps)||0])
+  ])]);
 }
 function gymImportRows(rows,fileName){
-  if(!rows.length||rows.length<2)throw new Error('This CSV has no workout rows.');
+  if(!Array.isArray(rows)||!rows.length||rows.length<2)throw new Error('This CSV has no workout rows.');
+  if(rows.length>50001)throw new Error('This CSV contains too many rows (50,000 maximum).');
   const headers=rows[0].map(gymHeader);
+  if(!headers.length||headers.length>100)throw new Error('The CSV header is invalid or contains too many columns.');
   const backupIndex=headers.indexOf('gymplified backup');
   if(backupIndex>=0){
     const payload=rows.slice(1).map(r=>r[backupIndex]).find(v=>v&&v.trim());
-    if(payload){let parsed;try{parsed=JSON.parse(payload);}catch(e){throw new Error('The Gymplified backup payload is damaged.');}
-      if(parsed.format==='gymplified-backup'&&parsed.state&&parsed.version>=2)return{type:'backup',state:parsed.state};}
+    if(payload){
+      let parsed;try{parsed=JSON.parse(payload);}catch(e){throw new Error('The Gymplified backup payload is damaged.');}
+      if(parsed.format==='gymplified-backup'&&parsed.state&&parsed.version>=2)return{type:'backup',state:validateBackupData(parsed.state)};
+    }
   }
-  const nameKeys=['exercise name','exercise','exercise title','movement','activity name','exercise name (english)'];
+  const nameKeys=['exercise name','exercise','exercise title','movement','activity name','exercise name english'];
   const dateKeys=['date','start time','workout date','workout start','performed at','datetime','timestamp'];
-  const weightKeys=['weight kg','weight (kg)','weight','weight lifted','load','kg','weight (lbs)','weight lbs'];
+  const weightKeys=['weight kg','weight (kg)','weight','weight lifted','load','kg','weight lbs','weight (lbs)','weight lb','weight in lbs','load lbs','load lb'];
   const repKeys=['reps','repetitions','rep'];
   const setKeys=['set order','set number','set','set #','set no','set index'];
   const workoutKeys=['workout name','workout','session name','routine name'];
+  const workoutIdKeys=['workout id','session id','workout uuid','session uuid'];
   const durationKeys=['duration seconds','seconds','duration','time'];
-  const distanceKeys=['distance km','distance','distance (km)'];
+  const distanceKeys=['distance km','distance (km)','distance','km'];
   const notesKeys=['notes','comment','comments'];
+  const dateHeader=headers.find(h=>dateKeys.map(gymHeader).includes(h));
+  if(!dateHeader)throw new Error('Could not find a workout date column. Include a Date or Workout Date column.');
   if(!headers.some(h=>nameKeys.map(gymHeader).includes(h)))throw new Error('Could not find an Exercise or Exercise Name column. Choose a workout-history CSV export.');
-  const grouped=new Map();let accepted=0;
+  const grouped=new Map(),seenRows=new Set();let accepted=0,lastDate='',lastWorkoutName='',lastWorkoutId='';
   rows.slice(1).forEach((row,idx)=>{
+    const rowNumber=idx+2;
     if(!row||!row.some(v=>String(v||'').trim()))return;
+    if(row.length>headers.length&&row.slice(headers.length).some(v=>String(v||'').trim()))throw new Error('Unexpected extra CSV columns on row '+rowNumber+'.');
     const exercise=gymPick(row,headers,nameKeys);if(!exercise)return;
-    const rawDate=gymPick(row,headers,dateKeys),date=gymDate(rawDate);
-    const weight=gymNumber(gymPick(row,headers,weightKeys));
+    const rawDate=gymPick(row,headers,dateKeys);
+    const date=rawDate?gymDate(rawDate,rowNumber):lastDate;
+    if(!date)throw new Error('Missing workout date on CSV row '+rowNumber+'.');
+    lastDate=date;
+    const rawWeight=gymPick(row,headers,weightKeys);
     const rawWeightHeader=headers.find(h=>weightKeys.map(gymHeader).includes(h))||'';
-    const weightKg=/lbs/.test(rawWeightHeader)?weight*0.45359237:weight;
-    const reps=gymNumber(gymPick(row,headers,repKeys));
-    const setOrder=gymNumber(gymPick(row,headers,setKeys))||idx+1;
-    const duration=gymNumber(gymPick(row,headers,durationKeys));
-    const distance=gymNumber(gymPick(row,headers,distanceKeys));
-    const workoutName=gymPick(row,headers,workoutKeys)||'Imported workout';
+    let weightKg=gymNumber(rawWeight,'weight',rowNumber,true);
+    if(/\blb/.test(rawWeightHeader))weightKg=weightKg*0.45359237;
+    weightKg=Math.round(weightKg*100)/100;
+    if(weightKg>1000)throw new Error('Weight exceeds 1,000 kg on CSV row '+rowNumber+'.');
+    const rawReps=gymPick(row,headers,repKeys);
+    const reps=rawReps?gymNumber(rawReps,'reps',rowNumber,false):0;
+    if(reps>1000)throw new Error('Reps exceed 1,000 on CSV row '+rowNumber+'.');
+    const rawDuration=gymPick(row,headers,durationKeys),duration=gymDuration(rawDuration,rowNumber);
+    const distance=gymNumber(gymPick(row,headers,distanceKeys),'distance',rowNumber,true);
+    if(distance>1000)throw new Error('Distance exceeds 1,000 km on CSV row '+rowNumber+'.');
+    if(!reps&&!duration&&!distance)throw new Error('CSV row '+rowNumber+' has no reps, duration or distance. Check the column mapping.');
+    const rawSetOrder=gymPick(row,headers,setKeys);
+    const setOrder=rawSetOrder?Math.round(gymNumber(rawSetOrder,'set number',rowNumber,false)):idx+1;
+    if(setOrder<1||setOrder>1000)throw new Error('Invalid set number on CSV row '+rowNumber+'.');
+    const rawWorkoutName=gymPick(row,headers,workoutKeys),workoutName=rawWorkoutName||lastWorkoutName||'Imported workout';
+    lastWorkoutName=workoutName;
+    const workoutId=gymPick(row,headers,workoutIdKeys)||lastWorkoutId;
+    if(workoutId)lastWorkoutId=workoutId;
     const notes=gymPick(row,headers,notesKeys);
-    const key=date+'|'+workoutName;
-    if(!grouped.has(key))grouped.set(key,{date,name:workoutName,mins:0,vol:0,sets:0,reps:0,ex:0,names:[],exercises:[],_map:{}});
-    const w=grouped.get(key);
-    if(!w._map[exercise]){w._map[exercise]={name:exercise,sets:[]};w.exercises.push(w._map[exercise]);w.names.push(exercise);w.ex++;}
-    w._map[exercise].sets.push({kg:Math.round(weightKg*100)/100,weight:Math.round(weightKg*100)/100,reps:Math.round(reps),done:true,duration,distance,notes,order:setOrder});
-    w.vol+=weightKg*reps;w.sets++;w.reps+=reps;accepted++;
+    const key=date+'|'+workoutName.toLowerCase()+'|'+workoutId;
+    if(!grouped.has(key))grouped.set(key,{date,name:workoutName,sourceWorkoutId:workoutId,mins:0,vol:0,sets:0,reps:0,ex:0,names:[],exercises:[],_map:{},_rows:new Set()});
+    const w=grouped.get(key),exerciseKey=exercise.trim().toLowerCase();
+    if(!w._map[exerciseKey]){w._map[exerciseKey]={name:exercise,sets:[]};w.exercises.push(w._map[exerciseKey]);w.names.push(exercise);w.ex++;}
+    const setKey=[exerciseKey,setOrder,weightKg,reps,duration,distance,notes].join('|');
+    if(w._rows.has(setKey)||seenRows.has(key+'|'+setKey))return;
+    w._rows.add(setKey);seenRows.add(key+'|'+setKey);
+    w._map[exerciseKey].sets.push({kg:weightKg,weight:weightKg,reps:Math.round(reps),done:true,duration,distance,notes,order:setOrder});
+    w.vol+=weightKg*reps;w.sets++;w.reps+=reps;w.mins=Math.max(w.mins,Math.round(duration/60));accepted++;
   });
-  const imported=Array.from(grouped.values()).map(w=>{delete w._map;w.vol=Math.round(w.vol);return w;});
-  if(!accepted)throw new Error('No recognised exercise/set rows were found in this CSV.');
+  const imported=Array.from(grouped.values()).map(w=>{delete w._map;delete w._rows;delete w.sourceWorkoutId;w.vol=Math.round(w.vol);return w;}).filter(w=>w.sets>0);
+  if(!accepted||!imported.length)throw new Error('No valid exercise/set rows were found in this CSV.');
   return{type:'external',workouts:imported,rows:accepted,fileName};
 }
 function importGymplifiedCSV(input){
@@ -1789,23 +1854,49 @@ function importGymplifiedCSV(input){
       const rows=parseGymCSV(String(reader.result||'').replace(/^\uFEFF/,''));
       const result=gymImportRows(rows,file.name);
       if(result.type==='backup'){
-        if(!confirm('Restore this Gymplified backup? Existing Gymplified data on this device will be replaced.')){input.value='';return;}
-        const restored=Object.assign(JSON.parse(JSON.stringify(cleanState)),result.state);
-        localStorage.setItem(STORAGE_KEY,JSON.stringify(restored));state=bootState();saveState();renderAll();
-        status.textContent='Gymplified backup restored · '+file.name;showToast('Gymplified data restored');
+        if(!confirm('Restore this validated Gymplified backup? Existing Gymplified data on this device and in your synced account will be replaced.')){input.value='';return;}
+        const restored=validateBackupData(result.state);
+        restored.resetAt=Date.now();restored.deletedRecordIds=[];
+        state=restored;persistLocalState();queueCloudStateSave();applySettings();renderAll();initPicker();initGoals();
+        status.textContent='Validated Gymplified backup restored · '+file.name;showToast('Gymplified data restored');
       }else{
-        const existing=new Set((state.sessions||[]).map(s=>JSON.stringify([s.date,s.name||'',(s.exercises||[]).map(e=>[e.name,(e.sets||[]).map(x=>[x.kg,x.reps])]) ])));
-        const fresh=result.workouts.filter(w=>!existing.has(JSON.stringify([w.date,w.name,w.exercises.map(e=>[e.name,e.sets.map(x=>[x.kg,x.reps])])])));
-        if(!fresh.length){status.textContent='All '+result.workouts.length+' workouts already appear to be imported.';showToast('No new workouts to import');input.value='';return;}
-        if(!confirm('Import '+fresh.length+' workout(s) containing '+fresh.reduce((n,w)=>n+w.sets,0)+' sets from '+file.name+'? Existing Gymplified data will be kept.')){input.value='';return;}
-        const prMap=new Map((state.prs||[]).map(p=>[String(p.name||'').toLowerCase(),p]));
-        fresh.forEach(w=>{
-          w.id=safeRecordId(w.id,newRecordId('session'));w.exercises=(w.exercises||[]).map((ex,i)=>Object.assign({},ex,{id:safeRecordId(ex.id,newRecordId('session-ex')),sets:(ex.sets||[]).map((set,j)=>Object.assign({},set,{id:safeRecordId(set.id,newRecordId('session-set'))}))}));
-          state.sessions.unshift(w);
-          w.exercises.forEach(ex=>{const best=ex.sets.reduce((a,b)=>b.kg>a.kg?b:a,{kg:0,reps:0});if(best.kg>0){const key=ex.name.toLowerCase(),old=prMap.get(key);if(!old||best.kg>old.weight){const pr={id:old&&old.id?old.id:newRecordId('pr'),name:ex.name,weight:best.kg,reps:best.reps||1,date:safeStateDay(w.date,dayKey())};if(old){const ix=state.prs.indexOf(old);if(ix>=0)state.prs[ix]=pr;}else state.prs.push(pr);prMap.set(key,pr);}}});
+        const existing=new Set((state.sessions||[]).map(gymWorkoutSignature));
+        const fresh=[],seen=new Set();
+        result.workouts.forEach(w=>{
+          const signature=gymWorkoutSignature(w);
+          if(existing.has(signature)||seen.has(signature))return;
+          seen.add(signature);fresh.push(w);
         });
-        state.sessions=state.sessions.slice(0,500);
-        saveState();status.textContent='Imported '+fresh.length+' workout(s) and '+result.rows+' set rows from '+file.name+'.';showToast('Workout history imported');
+        if(!fresh.length){status.textContent='All '+result.workouts.length+' workouts already appear in your history.';showToast('No new workouts to import');input.value='';return;}
+        const newSetCount=fresh.reduce((n,w)=>n+w.sets,0);
+        if((state.sessions||[]).length+fresh.length>500)throw new Error('This import would exceed the 500-workout history limit. Export a backup and remove old records before importing.');
+        if(!confirm('Import '+fresh.length+' new workout(s) containing '+newSetCount+' sets from '+file.name+'? Existing Gymplified data will be kept.')){input.value='';return;}
+        const additions=fresh.map(w=>{
+          const copy=JSON.parse(JSON.stringify(w));
+          copy.id=newRecordId('session');
+          copy.exercises=(copy.exercises||[]).map((ex,i)=>Object.assign({},ex,{
+            id:newRecordId('session-ex'),
+            sets:(ex.sets||[]).map(set=>Object.assign({},set,{id:newRecordId('session-set')}))
+          }));
+          return copy;
+        });
+        const prMap=new Map((state.prs||[]).map(p=>[String(p.name||'').trim().toLowerCase(),p]));
+        const updatedPRs=(state.prs||[]).slice();
+        additions.forEach(w=>{
+          w.exercises.forEach(ex=>{
+            const best=ex.sets.reduce((a,b)=>b.kg>a.kg?b:a,{kg:0,reps:0});
+            if(best.kg<=0)return;
+            const key=ex.name.trim().toLowerCase(),old=prMap.get(key);
+            if(!old||best.kg>Number(old.weight)||best.kg===Number(old.weight)&&best.reps>Number(old.reps||0)){
+              const pr={id:old&&old.id?old.id:newRecordId('pr'),name:ex.name,weight:best.kg,reps:best.reps||1,date:safeStateDay(w.date,dayKey())};
+              if(old){const ix=updatedPRs.indexOf(old);if(ix>=0)updatedPRs[ix]=pr;}else updatedPRs.push(pr);
+              prMap.set(key,pr);
+            }
+          });
+        });
+        state.sessions=(state.sessions||[]).concat(additions);
+        state.prs=updatedPRs;
+        saveState();status.textContent='Imported '+additions.length+' new workout(s) and '+newSetCount+' sets. Duplicate workouts and repeated CSV rows were skipped; existing history was preserved.';showToast('Workout history imported safely');
       }
     }catch(err){console.error(err);status.textContent=err.message||'Could not import this CSV.';showToast(err.message||'CSV import failed');}
     input.value='';
@@ -1813,7 +1904,6 @@ function importGymplifiedCSV(input){
   reader.onerror=()=>{status.textContent='Could not read this file.';input.value='';showToast('Could not read CSV file');};
   reader.readAsText(file);
 }
-
 function closeAccountDialogs(){['deleteAccountDialog','resetProgressDialog'].forEach(id=>{const dialog=$(id);if(dialog&&dialog.open)dialog.close();});}
 function updateDeleteAccountConfirm(){const input=$('deleteAccountConfirm'),button=$('confirmDeleteAccountButton');if(button)button.disabled=!input||input.value.trim()!=='DELETE';}
 function deleteGymplifiedAccount(){

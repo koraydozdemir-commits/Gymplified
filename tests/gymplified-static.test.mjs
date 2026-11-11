@@ -225,7 +225,7 @@ test('JSON restore refuses histories above the explicit session limit', async ()
 // ---- Batch 1: fix-first (A1–A5, C2, I3, I4) ----
 const appScript = (html) => [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1]).join('\n');
 const count = (text, pattern) => (text.match(pattern) || []).length;
-const INLINE_HANDLER_BUDGET = 118;
+const INLINE_HANDLER_BUDGET = 113;
 // Pull named top-level function declarations out of the app script so pure helpers can be executed.
 function extractFunctions(source, names) {
   return names.map(name => {
@@ -369,7 +369,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 16);
+  assert.ok(version >= 17);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -783,4 +783,110 @@ test('E2/E4/E5: privacy settings, weekly XP and streak for the server, and safe 
   assert.match(block, /'<button type="button" class="btn feed-react/);
   assert.match(block, /\$\('friendProfileTitle'\)\.textContent=personName\(p\)/, 'profile title is set as text');
   assert.match(js, /value:\(\)=>Math\.max\(state\.friends\.length,acceptedFriendCount\)/, 'first-friend badge counts accepted friends');
+});
+
+// ---- Batch 6: nutrition and hydration (F1–F9) ----
+const SLUG = "const slug=n=>n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');";
+
+test('F4: built-in food table is larger, consistent and has serving presets', async () => {
+  const js = appScript(await read('index.html'));
+  const foods = new Function(SLUG + js.slice(js.indexOf('const FOOD_TABLE=`'), js.indexOf('`;', js.indexOf('const FOOD_TABLE=`')) + 2) + extractFunctions(js, ['parseFoodTable']) + ';return parseFoodTable(FOOD_TABLE);')();
+  assert.ok(foods.length >= 100, 'expected at least 100 foods, got ' + foods.length);
+  assert.equal(new Set(foods.map(f => f.id)).size, foods.length, 'food ids are unique');
+  for (const f of foods) {
+    for (const k of ['cal', 'protein', 'carbs', 'fat']) assert.ok(Number.isFinite(f[k]) && f[k] >= 0, f.name + ' ' + k);
+    assert.ok(f.protein + f.carbs + f.fat <= 100.5, f.name + ' macros exceed 100 g per 100 g');
+    for (const s of f.servings) assert.ok(s.label && s.grams > 0 && s.grams <= 3000, f.name + ' serving ' + s.label);
+    // energy matches macros within 20%, except where fibre or alcohol explain the gap
+    const est = f.protein * 4 + f.carbs * 4 + f.fat * 9;
+    if (f.cal > 50 && !['Lager', 'Red wine'].includes(f.name)) assert.ok(Math.abs(est - f.cal) / f.cal <= 0.2, f.name + ': ' + f.cal + ' kcal vs ' + Math.round(est) + ' from macros');
+  }
+  assert.ok(foods.filter(f => f.servings.length).length >= foods.length * 0.9, 'most foods have serving presets');
+  assert.ok(foods.some(f => f.unit === 'ml' && f.name.startsWith('Milk')), 'drinks are measured in ml');
+  assert.match(js, /data-food-id="'\+esc\(f\.id\)\+'"/);
+  assert.doesNotMatch(js, /const BASE_FOODS=/);
+});
+
+test('F1: barcode lookup sends only the barcode and validates Open Food Facts data', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  assert.match(html, /connect-src 'self' https:\/\/ouwvujtsrnotnwtbvqhc\.supabase\.co wss:\/\/ouwvujtsrnotnwtbvqhc\.supabase\.co https:\/\/world\.openfoodfacts\.org;/);
+  assert.match(js, /fetch\(OFF_PRODUCT_URL\+encodeURIComponent\(code\)\+'\.json\?fields=product_name,brands,nutriments,serving_quantity'/);
+  assert.match(js, /new BarcodeDetector\(\{formats:\['ean_13','ean_8','upc_a','upc_e'\]\}\)/);
+  assert.match(js, /scanStream\.getTracks\(\)\.forEach\(t=>t\.stop\(\)\)/, 'camera is released');
+  assert.match(html, /Only the barcode number is sent to Open Food Facts/);
+  assert.match(await read('privacy.html'), /TODO\(owner\/legal\): The barcode scanner/);
+  const api = new Function(extractFunctions(js, ['validBarcode', 'offProductToFood']) + ';return {validBarcode,offProductToFood};')();
+  assert.equal(api.validBarcode('5000159484695'), true);
+  assert.equal(api.validBarcode('1234567'), false);
+  assert.equal(api.validBarcode('12345678901234567'), false);
+  assert.equal(api.validBarcode('5000a59484695'), false);
+  const product = (nutriments, extra = {}) => ({ status: 1, product: Object.assign({ product_name: 'Oat Bar', brands: 'Acme, Other', serving_quantity: 35, nutriments }, extra) });
+  const good = api.offProductToFood(product({ 'energy-kcal_100g': 420, proteins_100g: 9.5, carbohydrates_100g: 60, fat_100g: 15 }), '5000159484695');
+  assert.deepEqual(good, { name: 'Oat Bar (Acme)', cal: 420, protein: 9.5, carbs: 60, fat: 15, barcode: '5000159484695', servingG: 35, servingLabel: '1 serving' });
+  assert.equal(api.offProductToFood(product({ energy_100g: 1674, proteins_100g: 3, carbohydrates_100g: 70, fat_100g: 1 }), '40000000').cal, 400, 'kJ converts to kcal');
+  assert.equal(api.offProductToFood(product({ 'energy-kcal_100g': 420, proteins_100g: 9.5, fat_100g: 15 }), '40000000'), null, 'missing carbs');
+  assert.equal(api.offProductToFood(product({ 'energy-kcal_100g': 1420, proteins_100g: 9.5, carbohydrates_100g: 60, fat_100g: 15 }), '40000000'), null, 'impossible energy');
+  assert.equal(api.offProductToFood({ status: 0, status_verbose: 'product not found' }, '40000000'), null);
+  assert.equal(api.offProductToFood(null, '40000000'), null);
+  assert.equal(api.offProductToFood(product({ 'energy-kcal_100g': 50, proteins_100g: 1, carbohydrates_100g: 10, fat_100g: 0 }, { product_name: 'Acme crisps', serving_quantity: 'x' }), '40000000').name, 'Acme crisps', 'brand not repeated');
+});
+
+test('F2/F3/F5: meals, copy from yesterday and recipes', async () => {
+  const js = appScript(await read('index.html'));
+  const copy = new Function("const FOOD_MEALS=['Breakfast','Lunch','Dinner','Snacks'];" + extractFunctions(js, ['copyFoodEntries']) + ';return copyFoodEntries;')();
+  const yesterday = [{ id: 'a', name: 'Oats', grams: 40, portion: '1 serving', meal: 'Breakfast', cal: 156, protein: 6.8, carbs: 26.5, fat: 2.8, xp: 1 }, { id: 'b', name: 'Salmon', grams: 125, meal: 'Dinner', cal: 260, protein: 25.5, carbs: 0, fat: 16.8 }, { id: 'c', name: 'Odd', meal: 'Brunch', cal: 10 }];
+  let n = 0;
+  const all = copy(yesterday, '', () => 'new-' + (++n), '2026-11-11', 5);
+  assert.equal(all.length, 3);
+  assert.deepEqual(all[0], { id: 'new-1', name: 'Oats', grams: 40, portion: '1 serving', meal: 'Breakfast', day: '2026-11-11', createdAt: 5, cal: 156, protein: 6.8, carbs: 26.5, fat: 2.8 });
+  assert.equal(all[2].meal, 'Snacks', 'unknown meals fall back to snacks');
+  assert.ok(all.every(x => !('xp' in x)), 'copies earn XP as new entries, under the daily limit');
+  assert.deepEqual(copy(yesterday, 'Dinner', () => 'x', '2026-11-11', 5).map(x => x.name), ['Salmon']);
+  const build = new Function(extractFunctions(js, ['buildRecipe']) + ';return buildRecipe;')();
+  const r = build([{ grams: 100, cal: 200, protein: 10, carbs: 20, fat: 5 }, { grams: 300, cal: 300, protein: 30, carbs: 30, fat: 10 }], 2);
+  assert.deepEqual(r, { cal: 125, protein: 10, carbs: 12.5, fat: 3.8, servingG: 200, totalG: 400 });
+  assert.equal(build([{ grams: 0, cal: 100 }], 1), null);
+  assert.match(js, /FOOD_MEALS\.map\(meal=>/, 'every meal is shown with a subtotal');
+  assert.match(js, /data-food-action="save-recipe"/);
+  assert.match(js, /kind:x\.kind==='recipe'\?'recipe':'food',barcode:/);
+  assert.match(js, /portion:safeStateText\(x\.portion,'',60\)/);
+  assert.match(js, /grams:Number\(r\.grams\)\|\|0,portion:r\.portion\|\|''\}\)\);\}\}\);/, 'rewards keeps portion details on recents');
+});
+
+test('F6/F7: macro percentages and weekly nutrition summary', async () => {
+  const js = appScript(await read('index.html'));
+  const api = new Function(extractFunctions(js, ['macroGramsFromPercent', 'macroPercent', 'weeklyNutritionSummary']) + ';return {macroGramsFromPercent,macroPercent,weeklyNutritionSummary};')();
+  assert.deepEqual(api.macroGramsFromPercent(2500, 30, 45, 25), { protein: 188, carbs: 281, fat: 69 });
+  assert.equal(api.macroPercent(150, 4, 2500), 24);
+  assert.equal(api.macroPercent(70, 9, 0), 0);
+  const days = [{ cal: 2000, protein: 130 }, { cal: 0, protein: 0 }, { cal: 1500, protein: 90 }];
+  assert.deepEqual(api.weeklyNutritionSummary(days, 120), { daysSoFar: 3, logged: 2, avgCal: 1750, avgProtein: 110, proteinHit: 1 });
+  assert.equal(api.weeklyNutritionSummary(days, 0).proteinHit, null);
+  assert.deepEqual(api.weeklyNutritionSummary([], 120), { daysSoFar: 0, logged: 0, avgCal: 0, avgProtein: 0, proteinHit: 0 });
+  assert.match(js, /An estimate from a standard formula, not advice/);
+});
+
+test('F8/F9: hydration nudge timing, water history and per-entry undo', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  const nudge = new Function(extractFunctions(js, ['hydrationNudgeHours']) + ';return hydrationNudgeHours;')();
+  const at = h => { const d = new Date(2026, 10, 11, h, 0, 0); return d; };
+  assert.equal(nudge(at(14), at(11).getTime(), 1, 2.5, 0), 3);
+  assert.equal(nudge(at(14), at(13).getTime(), 1, 2.5, 0), null, 'drank an hour ago');
+  assert.equal(nudge(at(14), 0, 0, 2.5, 0), 5, 'nothing yet today, counted from 9:00');
+  assert.equal(nudge(at(8), 0, 0, 2.5, 0), null, 'not before 9:00');
+  assert.equal(nudge(at(21), 0, 0, 2.5, 0), null, 'not after 21:00');
+  assert.equal(nudge(at(14), at(11).getTime(), 2.5, 2.5, 0), null, 'goal reached');
+  assert.equal(nudge(at(14), at(11).getTime(), 1, 2.5, at(13).getTime()), null, 'dismissed recently');
+  assert.equal(nudge(at(14), at(9).getTime(), 1, 2.5, at(10).getTime()), 5, 'dismissal lapses after two hours');
+  assert.match(html, /id="hydrationNudge"[^>]*hidden/);
+  assert.match(js, /function removeWaterEntry\(id\)\{\n const entry=\(state\.waterEntries\|\|\[\]\)\.find\(x=>x\.id===id\);if\(!entry\)return;\n markRecordDeleted\('waterEntries',entry\);/);
+  assert.match(js, /data-water-range="30"/);
+  const block = js.slice(js.indexOf('// ===== Batch 6:'), js.indexOf('// ===== Gymplified accounts + real friend connections ====='));
+  assert.ok(block.length > 10000);
+  assert.doesNotMatch(block, /\son[a-z]+=/, 'Batch 6 UI uses listeners, not inline handlers');
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  assert.match(css, /\.food-entry-actions button\{min-height:44px;/);
+  assert.match(css, /html\[data-motion=reduced\] \.water-bar\{transition:none\}@media\(prefers-reduced-motion:reduce\)\{\.water-bar\{transition:none\}\}/);
 });

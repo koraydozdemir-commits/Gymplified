@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gymplified-shell-v12';
+const CACHE_NAME = 'gymplified-shell-v13';
 const SUPABASE_SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';
 const APP_SHELL = [
   './',
@@ -82,4 +82,14 @@ self.addEventListener('fetch', event => {
       return response;
     }))
   );
+});
+
+// Rest-timer notifications: bring the app back to the foreground when tapped.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of windows) { if ('focus' in client) return client.focus(); }
+    if (self.clients.openWindow) return self.clients.openWindow('./');
+  })());
 });

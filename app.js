@@ -2987,7 +2987,9 @@ function renderAuthPanel(message){
 }
 function switchAuthMode(mode){authMode=mode==='login'?'login':'signup';renderAuthPanel('');}
 async function handleAuthSubmit(event){
- event.preventDefault();if(!sb||socialBusy)return;const form=event.currentTarget,email=form.email.value.trim(),password=form.password.value;
+ event.preventDefault();if(!sb||socialBusy)return;
+ // The submit arrives through the delegated data-submit listener (bound on the document), so find the form from the event target.
+ const form=event.target&&event.target.closest?event.target.closest('form'):null;if(!form||!form.email)return;const email=form.email.value.trim(),password=form.password.value;
  const username=form.username?form.username.value.trim().toLowerCase():'';const displayName=form.displayName?form.displayName.value.trim():username;
  const msg=$('authMessage'),button=$('authSubmit'),resend=$('resendVerification');socialBusy=true;button.disabled=true;button.textContent=authMode==='signup'?'Creating account…':'Logging in…';pendingVerificationEmail=email;if(resend)resend.style.display='none';
  try{

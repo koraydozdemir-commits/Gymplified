@@ -3,7 +3,17 @@ import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const read = (path) => readFile(new URL(path, root), 'utf8');
+const readRaw = (path) => readFile(new URL(path, root), 'utf8');
+// K2: index.html is a thin shell that loads app.css and app.js. Most checks read the app as one document,
+// so `read('index.html')` puts the two files back where the shell references them.
+const read = async (path) => {
+  const text = await readRaw(path);
+  if (path !== 'index.html') return text;
+  const [css, js] = await Promise.all([readRaw('app.css'), readRaw('app.js')]);
+  return text
+    .replace('<link rel="stylesheet" href="./app.css">', () => '<style>\n' + css + '</style>')
+    .replace('<script src="./app.js"></script>', () => '<script>\n' + js + '</script>');
+};
 
 test('inline application scripts and standalone scripts parse', async () => {
   const html = await read('index.html');
@@ -373,7 +383,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 20);
+  assert.ok(version >= 21);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -1224,4 +1234,20 @@ test('H1: a new account with no cloud copy starts from a fully shaped state', as
   const js = appScript(await read('index.html'));
   assert.doesNotMatch(js, /state=JSON\.parse\(JSON\.stringify\(cleanState\)\)/, 'bare template has no game data and crashed the next save');
   assert.match(js, /function blankAccountState\(\)\{return sanitizeStateSnapshot\(/);
+});
+
+test('K2: index.html is a thin shell; styles and app code live in app.css and app.js and are cached for offline', async () => {
+  const shell = await readRaw('index.html');
+  assert.ok(shell.length < 120000, 'the shell stays small');
+  assert.equal(count(shell, /<link rel="stylesheet" href="\.\/app\.css">/g), 1);
+  assert.match(shell, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2\.57\.4\/dist\/umd\/supabase\.min\.js"><\/script>\n<script src="\.\/app\.js"><\/script>/, 'app.js loads right after the SDK, in the same place the inline script ran');
+  assert.doesNotMatch(shell, /<style[\s>]/, 'no inline style blocks');
+  assert.doesNotMatch(shell, /<script>(?!<\/script>)/, 'no inline script blocks');
+  const css = await readRaw('app.css'), js = await readRaw('app.js');
+  assert.doesNotMatch(css, /<\/?style/);
+  assert.doesNotMatch(js, /<\/?script/i);
+  assert.doesNotThrow(() => new Function(js));
+  const sw = await readRaw('sw.js');
+  assert.match(sw, /'\.\/app\.css',\n  '\.\/app\.js',/);
+  assert.match(sw, /if \(\/\\\/app\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
 });

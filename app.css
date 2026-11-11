@@ -810,3 +810,42 @@ nav button.nav-more{display:none}
 @media(max-width:480px){.top-actions [data-action="toggleQuickTheme"]{display:none}}
 /* Pop-up messages sit above the phone tab bar (and the rest bar), so an Undo message never covers navigation. */
 @media(max-width:860px){.toast-container{left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));align-items:center}html.session-active .toast-container{bottom:calc(132px + env(safe-area-inset-bottom))}}
+
+/* ===== Batch 12 (charm): warmer colours, softer shapes, friendly moments ===== */
+/* Warm charcoal instead of blue-black in dark mode; cream instead of cool grey in light mode.
+   High-contrast mode keeps its own borders and secondary text. */
+html:not([data-theme="light"]){--bg:#15120f;--panel:#1d1914;--panel-hover:#29231c;--ink:#faf6ef}
+html:not([data-theme="light"]):not([data-contrast="high"]){--muted:#b8ad9d;--line:#3d342a;--field-line:#8a7d6b}
+html[data-theme="light"]{--bg:#faf6ef;--panel:#fffdf9;--panel-hover:#f4ede2;--ink:#1f1a14}
+html[data-theme="light"]:not([data-contrast="high"]){--muted:#5f5446;--line:#e7ddcf;--field-line:#8f8170}
+/* Rounder, friendlier headings where the system has a rounded face (Apple: SF Pro Rounded). Body text stays plain.
+   The accessible-font setting still wins (it is more specific). */
+:root{--font-heading:ui-rounded,"SF Pro Rounded","Nunito","Varela Round",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--radius:10px}
+.panel{border-radius:16px;box-shadow:0 1px 2px rgb(0 0 0 / .16),0 10px 28px -16px rgb(0 0 0 / .45)}
+html[data-theme="light"] .panel{box-shadow:0 1px 2px rgb(60 40 10 / .06),0 10px 28px -18px rgb(60 40 10 / .22)}
+.btn{border-radius:10px}
+.btn-primary{box-shadow:0 6px 16px -8px color-mix(in srgb,var(--brand) 70%,transparent)}
+.empty-box{border-radius:14px}
+/* Greeting */
+.greeting-title{letter-spacing:-.03em}
+.greeting-line{font-size:calc(15px * var(--text-scale, 1))}
+/* A little pop when a set is ticked (turned off by reduced motion, in the system or in Settings). */
+@keyframes set-pop{0%{transform:scale(1)}40%{transform:scale(1.22)}100%{transform:scale(1)}}
+.check-btn.just-done{animation:set-pop .38s var(--ease-spring)}
+/* The streak flame grows with the streak. */
+.streak-flame{display:inline-block;transform-origin:50% 90%}
+.streak-flame.flame-0{filter:grayscale(1);opacity:.55}
+.streak-flame.flame-2{transform:scale(1.12)}
+.streak-flame.flame-3{transform:scale(1.25);filter:drop-shadow(0 0 4px rgb(255 140 0 / .55))}
+.streak-flame.flame-4{transform:scale(1.4);filter:drop-shadow(0 0 7px rgb(255 120 0 / .75))}
+@keyframes flame-flicker{0%,100%{transform:scale(1.25) rotate(-2deg)}50%{transform:scale(1.32) rotate(2deg)}}
+.streak-flame.flame-3,.streak-flame.flame-4{animation:flame-flicker 2.4s ease-in-out infinite}
+html[data-motion="reduced"] .streak-flame{animation:none}
+@media(prefers-reduced-motion:reduce){.streak-flame{animation:none}}
+/* A soft warm glow at the top of the page (decorative). */
+body{background-image:radial-gradient(900px 340px at 15% -120px,color-mix(in srgb,var(--brand) 16%,transparent),transparent 70%);background-repeat:no-repeat}
+.greeting-icon{display:inline-block;transform-origin:70% 70%}
+@keyframes wave{0%,60%,100%{transform:rotate(0)}15%,45%{transform:rotate(14deg)}30%{transform:rotate(-8deg)}}
+.greeting-icon{animation:wave 1.6s ease-in-out .4s 1}
+html[data-motion="reduced"] .greeting-icon{animation:none}
+@media(prefers-reduced-motion:reduce){.greeting-icon{animation:none}}

@@ -383,7 +383,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 25);
+  assert.ok(version >= 26);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -972,7 +972,9 @@ test('I1: colour tokens meet WCAG AA in every theme, accent and contrast mode', 
   }
   assert.deepEqual(failures, []);
   // the resolver really sees the theme overrides
-  assert.equal(colourTokens(css, 'light', 'gold', 'normal')('--muted'), '#526072');
+  assert.equal(colourTokens(css, 'light', 'gold', 'normal')('--muted'), '#5f5446', 'warm light theme (Batch 12)');
+  assert.equal(colourTokens(css, 'dark', 'gold', 'normal')('--bg'), '#15120f', 'warm dark theme (Batch 12)');
+  assert.equal(colourTokens(css, 'dark', 'gold', 'high')('--muted'), '#cbd5e1', 'high contrast keeps its own secondary text');
   assert.equal(colourTokens(css, 'light', 'gold', 'high')('--muted'), '#334155');
   assert.equal(colourTokens(css, 'dark', 'blue', 'normal')('--brand-text'), '#60a5fa');
   assert.equal(colourTokens(css, 'light', 'blue', 'normal')('--brand-text'), '#1d4ed8');
@@ -1413,4 +1415,60 @@ test('Q7: every "sign in" route opens the Account screen, never Friends', async 
   assert.match(js, /else if\(a==='open-account'\)openAccount\(authMode\);/);
   assert.match(js, /Deluxe is linked to your account'\);openAccount\('signup'\);return;/);
   assert.match(html, /are on the Account screen \(the person button at the top\)/);
+});
+
+// ===== Batch 12: charm — encouraging voice, warmer look, friendly moments =====
+test('C1: greeting follows the time of day and uses the first name only when signed in', async () => {
+  const js = await readRaw('app.js');
+  const greetingFor = new Function(extractFunctions(js, ['greetingFor']) + ';return greetingFor;')();
+  const at = h => new Date(2026, 10, 11, h, 0, 0);
+  assert.equal(greetingFor(at(7), 'Koray'), 'Good morning, Koray');
+  assert.equal(greetingFor(at(14), ''), 'Good afternoon');
+  assert.equal(greetingFor(at(20), 'Sam'), 'Good evening, Sam');
+  assert.equal(greetingFor(at(2), ''), 'Still up');
+  assert.match(js, /h\.textContent=greetingFor\(new Date\(\),name\);/, 'names are set as text');
+  assert.match(js, /line\.textContent=encouragementFor\(/);
+  const html = await readRaw('index.html');
+  assert.match(html, /<h1 class="greeting-title"><span id="dashGreetingTitle">Welcome to Gymplified<\/span> <span class="greeting-icon" id="dashGreetingIcon" aria-hidden="true">👋<\/span><\/h1>/, 'the icon is decorative and hidden from screen readers');
+  const icon = new Function(extractFunctions(js, ['greetingIconFor']) + ';return greetingIconFor;')();
+  assert.deepEqual([7, 14, 21].map(h => icon(new Date(2026, 10, 11, h))), ['☀️', '👋', '🌙']);
+});
+
+test('C2: encouragement picks the most relevant line and stays the same all day', async () => {
+  const js = await readRaw('app.js');
+  const enc = new Function(extractFunctions(js, ['pickLine', 'encouragementFor']) + ';return encouragementFor;')();
+  const base = { sessionActive: false, todayDone: false, totalSessions: 10, weekDone: 1, weekGoal: 3, streak: 0, daysSinceLast: 1, seed: 5 };
+  assert.match(enc({ ...base, sessionActive: true }), /mid-workout/);
+  assert.match(enc({ ...base, todayDone: true }), /today|Done/);
+  assert.match(enc({ ...base, totalSessions: 0 }), /first workout/);
+  assert.match(enc({ ...base, weekDone: 3 }), /Weekly goal smashed \(3\/3\)/);
+  assert.match(enc({ ...base, streak: 5 }), /^5-day streak/);
+  assert.match(enc({ ...base, daysSinceLast: 6 }), /Welcome back! It’s been 6 days/);
+  assert.match(enc({ ...base, weekDone: 2 }), /One more workout/);
+  assert.equal(enc(base), enc(base), 'same inputs, same line (no flicker)');
+  for (const x of [{ ...base }, { ...base, todayDone: true }]) assert.doesNotMatch(enc(x), /<|>/, 'plain text');
+});
+
+test('C3: friendly moments — growing flame, set pop, new-record celebration; all respect reduced motion', async () => {
+  const js = await readRaw('app.js'), css = await readRaw('app.css');
+  const flameTier = new Function(extractFunctions(js, ['flameTier']) + ';return flameTier;')();
+  assert.deepEqual([0, 1, 3, 7, 30, 100].map(flameTier), [0, 1, 2, 3, 4, 4]);
+  assert.match(js, /<span class="streak-flame flame-'\+flameTier\(streak\)\+'" aria-hidden="true">🔥<\/span>/);
+  assert.match(js, /x\.done&&justTicked&&justTicked\.i===i&&justTicked\.j===j&&Date\.now\(\)-justTicked\.at<1500\?' just-done':''/, 'only the set just ticked pops');
+  assert.match(js, /celebrate\(\{icon:'🏆',title:'New personal record!'/);
+  assert.match(css, /@keyframes set-pop/);
+  assert.match(css, /html\[data-motion="reduced"\] \.streak-flame\{animation:none\}/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.streak-flame\{animation:none\}\}/);
+  // the app-wide reduced-motion rules (system and in-app) still switch off every animation
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\*,\*::before,\*::after\{scroll-behavior:auto!important;animation-duration:\.01ms!important/);
+});
+
+test('C4: warmer palette and rounded headings without breaking high contrast or the accessible font', async () => {
+  const css = await readRaw('app.css'), html = await readRaw('index.html');
+  assert.match(css, /html:not\(\[data-theme="light"\]\)\{--bg:#15120f;--panel:#1d1914;--panel-hover:#29231c;--ink:#faf6ef\}/);
+  assert.match(css, /html\[data-theme="light"\]:not\(\[data-contrast="high"\]\)\{--muted:#5f5446/);
+  assert.match(css, /:root\{--font-heading:ui-rounded,"SF Pro Rounded"/);
+  assert.match(css, /html\[data-font="accessible"\] \{\s*--font-base: Verdana, Geneva, sans-serif;\s*--font-heading: Verdana/, 'accessible font setting is untouched (and more specific than :root)');
+  assert.match(html, /<meta name="theme-color" content="#15120f">/);
+  assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /@import|fonts\.googleapis|@font-face/, 'no web fonts are downloaded');
 });

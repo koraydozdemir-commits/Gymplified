@@ -383,7 +383,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 23);
+  assert.ok(version >= 24);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -1317,4 +1317,13 @@ test('K3: no inline styles anywhere, so the CSP allows styles only from files', 
   assert.match(js, /Math\.max\(0,Math\.min\(100,n\)\)\+'%'/);
   assert.match(js, /new MutationObserver\(list=>list\.forEach\(m=>m\.addedNodes\.forEach/);
   assert.match(css, /#layer2 path\.active\{fill:#d9531e!important;fill-opacity:\.9!important;stroke:#a8390f!important/, 'primary muscles keep the orange that rendered before');
+});
+
+test('K3 follow-up: functions run by delegated actions never rely on event.currentTarget', async () => {
+  const js = await readRaw('app.js');
+  const block = js.slice(js.indexOf('const UI_ACTIONS=Object.freeze({'), js.indexOf('function bindUiActions'));
+  const names = [...block.matchAll(/=>\s*([A-Za-z]+)\(/g)].map(m => m[1]).filter(n => /^function |^async function /m.test(js) && js.includes('function ' + n + '('));
+  const bodies = extractFunctions(js, [...new Set(names)].filter(n => js.includes('function ' + n + '(')));
+  assert.doesNotMatch(bodies, /currentTarget/, 'delegated handlers see the document as currentTarget');
+  assert.match(js, /const form=event\.target&&event\.target\.closest\?event\.target\.closest\('form'\):null;if\(!form\|\|!form\.email\)return;/);
 });

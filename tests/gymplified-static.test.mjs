@@ -225,7 +225,7 @@ test('JSON restore refuses histories above the explicit session limit', async ()
 // ---- Batch 1: fix-first (A1–A5, C2, I3, I4) ----
 const appScript = (html) => [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1]).join('\n');
 const count = (text, pattern) => (text.match(pattern) || []).length;
-const INLINE_HANDLER_BUDGET = 113;
+const INLINE_HANDLER_BUDGET = 111;
 // Pull named top-level function declarations out of the app script so pure helpers can be executed.
 function extractFunctions(source, names) {
   return names.map(name => {
@@ -369,7 +369,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 18);
+  assert.ok(version >= 19);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -1017,4 +1017,102 @@ test('I8/I9/I10: motion settings, non-colour cues and narrow-screen layout', asy
   assert.equal(count(html, /<span class="nav-text nav-short">/g), 7);
   assert.match(css, /@media\(max-width:480px\)\{\.top-label-long\{display:none\}\.top-label-short\{display:inline\}/);
   assert.match(css, /\.pick-grid\{display:grid;grid-template-columns:minmax\(0,1\.2fr\) minmax\(0,\.8fr\)/);
+});
+
+// ---- Batch 8: exercise library, custom exercises, detail sheet, swaps, form tips (B23–B27) ----
+async function libraryApi() {
+  const html = await read('index.html');
+  const js = appScript(html);
+  const lib = new Function(html.match(/const MC=\{[^}]*\};/)[0] + SLUG + "const mkEx=(n,eq,pm,sec,c)=>({id:(c?'c-':'')+slug(n),name:n,eq,pm,sec,custom:!!c});" +
+    html.match(/const LIB=\{[\s\S]*?\};/)[0] + html.match(/const EX=\[\];.*\n/)[0] + ';return {MC,LIB,EX,slug};')();
+  return { html, js, ...lib };
+}
+
+test('B23: library has 300 unique exercises with valid muscles, including bands and the requested machines', async () => {
+  const { EX, MC, LIB } = await libraryApi();
+  assert.ok(EX.length >= 300, 'expected at least 300 exercises, got ' + EX.length);
+  assert.equal(new Set(EX.map(x => x.name.toLowerCase())).size, EX.length, 'names are unique');
+  assert.equal(new Set(EX.map(x => x.id)).size, EX.length, 'ids are unique');
+  const muscles = Object.values(MC);
+  for (const x of EX) {
+    assert.ok(muscles.includes(x.pm), x.name + ' primary muscle');
+    for (const m of x.sec) assert.ok(muscles.includes(m) && m !== x.pm, x.name + ' supporting muscle ' + m);
+  }
+  assert.ok(LIB.Band && LIB.Band.split(';').length >= 15, 'resistance band exercises');
+  for (const name of ['Leg Extension', 'Seated Leg Curl', 'Lying Leg Curl', 'Hack Squat Machine', 'Pec Deck Fly', 'Assisted Pull-Up Machine', 'Cable Crossover', 'Smith Machine Squat', 'Hip Abductor', 'Hip Adductor', 'Leg Press Calf Raise', 'Seated Calf Raise', 'Glute Drive Machine', 'Back Extension', 'Preacher Curl Machine', 'Kettlebell Press', 'Nordic Hamstring Curl', 'EZ-Bar Curl'])
+    assert.ok(EX.some(x => x.name === name), 'library includes ' + name);
+});
+
+test('B27: form tips are short, attached to real exercises and labelled as general guidance', async () => {
+  const { js, EX } = await libraryApi();
+  const tips = new Function(js.slice(js.indexOf('const FORM_TIPS={'), js.indexOf('};', js.indexOf('const FORM_TIPS={')) + 2) + ';return FORM_TIPS;')();
+  const ids = new Set(EX.map(x => x.id));
+  assert.ok(Object.keys(tips).length >= 30);
+  for (const [id, tip] of Object.entries(tips)) {
+    assert.ok(ids.has(id), 'tip for unknown exercise ' + id);
+    assert.ok(tip.length <= 200, id + ' tip is short');
+    assert.ok(tip.split(/(?<=\.)\s/).length <= 2, id + ' tip is at most two sentences');
+  }
+  for (const major of ['barbell-back-squat', 'conventional-deadlift', 'flat-bench-press', 'overhead-press', 'barbell-row', 'pull-up', 'romanian-deadlift', 'hip-thrust']) assert.ok(tips[major], 'tip for ' + major);
+  assert.match(js, /General guidance, not personal coaching\./);
+});
+
+test('B26: alternatives train the same main muscle and prefer different equipment', async () => {
+  const { js, EX } = await libraryApi();
+  const suggest = new Function(extractFunctions(js, ['suggestAlternatives']) + ';return suggestAlternatives;')();
+  const legPress = EX.find(x => x.name === 'Leg Press');
+  const alts = suggest(legPress, EX, 5);
+  assert.equal(alts.length, 5);
+  assert.ok(alts.every(a => a.pm === legPress.pm && a.id !== legPress.id), 'same main muscle, never itself');
+  assert.ok(alts.filter(a => a.eq !== legPress.eq).length >= 3, 'mostly different equipment');
+  const bench = EX.find(x => x.name === 'Flat Bench Press');
+  const b = suggest(bench, EX, 5);
+  assert.ok(b.every(a => a.pm === 'chest'));
+  assert.ok(b[0].sec.includes('triceps') && b[0].sec.includes('shoulders'), 'best match shares supporting muscles: ' + b[0].name);
+  assert.deepEqual(suggest(null, EX), []);
+  assert.match(js, /if\(w\.setList\.some\(s=>s\.done\)\)return showToast\('Sets are already ticked/, 'swapping never discards ticked sets');
+});
+
+test('B24: renaming or merging a custom exercise moves its history everywhere', async () => {
+  const { js } = await libraryApi();
+  const rename = new Function(extractFunctions(js, ['renameExerciseEverywhere']) + ';return renameExerciseEverywhere;')();
+  const state = {
+    workouts: [{ name: 'my press', muscle: 'Chest' }, { name: 'Squat', muscle: 'Quads' }],
+    lastSession: [{ name: 'My Press' }], prs: [{ name: 'My Press', weight: 50 }],
+    sessions: [{ names: ['My Press', 'Squat'], prs: [{ name: 'My Press' }], exercises: [{ name: 'My Press' }, { name: 'Squat' }] }],
+    routines: [{ exercises: [{ name: 'My Press' }] }],
+    deluxe: { plans: [{ days: [{ exercises: [{ name: 'My Press' }] }] }] },
+    dailyHistory: { '2026-11-10': { workouts: [{ name: 'My Press', muscle: 'Chest' }] } },
+    lastSummary: { names: ['My Press'], prs: [{ name: 'My Press' }] },
+    lastKg: { 'My Press': 50 }
+  };
+  const n = rename(state, 'My Press', 'Chest Press Machine', 'Chest');
+  assert.equal(n, 9, 'nine named records (name lists are updated too but not counted)');
+  const all = JSON.stringify(state);
+  assert.ok(!/my press/i.test(all.replace(/"lastKg":\{[^}]*\}/, '')), 'no references left: ' + all);
+  assert.equal(state.lastKg['Chest Press Machine'], 50);
+  assert.equal(state.workouts[1].name, 'Squat');
+  assert.equal(rename(state, '', 'x'), 0);
+  assert.match(js, /markRecordDeleted\('customEx',state\.customEx\[i\]\);state\.customEx\.splice\(i,1\);/, 'merge and delete leave a tombstone for sync');
+  assert.match(js, /type:\['weights','bodyweight','timed'\]\.includes\(x\.type\)\?x\.type:'weights',custom:true\}\)\);/);
+  assert.match(js, /already exists'\+\(clash\.custom\?'':' in the library — use Merge instead'\)/);
+});
+
+test('B25: exercise sheet with muscle map, records, last five sessions and an accessible sparkline', async () => {
+  const { html, js } = await libraryApi();
+  assert.match(html, /<dialog id="exerciseSheet" class="app-dialog exercise-sheet" aria-labelledby="exerciseSheetTitle">/);
+  const pts = new Function(extractFunctions(js, ['sparklinePoints']) + ';return sparklinePoints;')();
+  assert.equal(pts([10, 20, 15], 100, 50, 0), '0.0,50.0 50.0,0.0 100.0,25.0');
+  assert.equal(pts([5], 100, 50, 0), '50.0,25.0', 'a single point sits in the middle');
+  assert.equal(pts([7, 7], 100, 50, 0), '0.0,25.0 100.0,25.0', 'a flat line is centred and does not divide by zero');
+  assert.equal(pts([], 100, 50), '');
+  assert.match(js, /<svg viewBox="0 0 '\+w\+' '\+h\+'" role="img" aria-label="'\+esc\(summary\)\+'">/);
+  assert.match(js, /rows\.slice\(0,5\)\.map/);
+  assert.match(js, /function viewExerciseHistory\(name\)\{openExerciseSheet\(name\);\}/, 'history buttons open the sheet');
+  assert.match(js, /data-ex-card-action="details"/);
+  assert.match(js, /dialog\.addEventListener\('close',\(\)=>\{if\(!dialog\.open\)sheetState=null;\}\);/, 'a late close event cannot wipe a reopened sheet');
+  const block = js.slice(js.indexOf('// ===== Batch 8:'), js.indexOf('// ===== Gymplified accounts + real friend connections ====='));
+  assert.ok(block.length > 8000);
+  assert.doesNotMatch(block, /\son[a-z]+=/, 'Batch 8 UI uses listeners, not inline handlers');
+  for (const field of ['esc(x.eq)', 'esc(x.pm)', 'esc(a.name)', 'esc(e.name)', 'esc(tip)', 'esc(summary)']) assert.ok(block.includes(field), field + ' is escaped');
 });

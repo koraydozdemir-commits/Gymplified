@@ -653,6 +653,28 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
 /* I8: honour both the OS setting and the in-app motion setting everywhere */
 html[data-motion=reduced]{scroll-behavior:auto}
 html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion=reduced] *::after{scroll-behavior:auto!important}
+/* Batch 8: exercise sheet */
+.exercise-sheet{width:min(96vw,720px)}
+.sheet-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.sheet-head h2{margin:0}
+.sheet-grid{display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:16px;align-items:start}
+@media(max-width:600px){.sheet-grid{grid-template-columns:minmax(0,1fr)}.sheet-map{max-width:260px;margin:0 auto}}
+.sheet-map svg{max-height:300px}
+.form-tip{border:1px solid var(--line);border-left:3px solid var(--brand);border-radius:8px;padding:10px 12px;margin-bottom:12px}
+.form-tip p{margin:4px 0;color:var(--ink)!important}
+.sparkline{margin:8px 0 0;color:var(--brand-text)}.sparkline svg{width:100%;height:64px;display:block}
+.sheet-history,.sheet-alts,.custom-ex-list{list-style:none;margin:0;padding:0}
+.sheet-history li,.sheet-alts li,.custom-ex-list li{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--line)}
+.sheet-alts small,.custom-ex-list small{display:block}
+.sheet-more{margin-top:8px}.sheet-more summary{font-weight:700}
+.sheet-manage{margin-top:14px}
+.custom-ex-form label{display:block;margin:10px 0 6px;font-weight:700}
+.custom-ex-form input:not([type=checkbox]),.custom-ex-form select{width:100%}
+.cx-secondary{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:10px 0;display:flex;flex-wrap:wrap;gap:0 14px}
+.cx-secondary legend{font-weight:700;padding:0 4px}
+.cx-secondary label{display:flex;align-items:center;gap:4px;margin:0;font-weight:500;min-height:44px}
+[data-ex-card-action]{min-width:44px}
+@media(max-width:480px){.card-btn-label{display:none}}
 .app-dialog{margin:auto;max-height:calc(100dvh - 32px);overflow:auto;width:min(92vw,480px);border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:22px;box-shadow:0 24px 90px #0009}
 .app-dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
 .app-dialog h2{margin:0 0 8px;font:700 20px var(--font-heading)}
@@ -1087,6 +1109,7 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
           <p>Your weekly streak counts weeks where you reach this many workouts.</p>
           <div class="row-wrap"><label class="sr" for="gWeek">Workouts per week goal</label><input type="number" id="gWeek" inputmode="numeric" min="1" max="14" style="width:110px"><button class="btn btn-primary" type="button" data-settings-action="save-weekly">Save weekly goal</button></div>
         </div>
+        <div class="settings-group" id="customExercisePanel" role="region" aria-label="Your custom exercises"></div>
         <div class="settings-group">
           <h3>Rest timer</h3>
           <p>Starts when you tick a set as done. You can still start it by hand on the Training screen.</p>
@@ -1299,6 +1322,10 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
 </div>
 
 <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="false"></div>
+<dialog id="exerciseSheet" class="app-dialog exercise-sheet" aria-labelledby="exerciseSheetTitle">
+  <div class="sheet-head"><h2 id="exerciseSheetTitle" tabindex="-1">Exercise</h2><button type="button" class="btn btn-icon-only" data-sheet-action="close" aria-label="Close exercise details">✕</button></div>
+  <div id="exerciseSheetBody"></div>
+</dialog>
 <dialog id="deluxeModal" class="app-dialog deluxe-dialog" aria-labelledby="deluxeModalTitle" aria-describedby="deluxeModalText">
   <span class="deluxe-pill">DELUXE PREVIEW</span>
   <h2 id="deluxeModalTitle" style="margin-top:12px">Explore Gymplified Deluxe</h2>
@@ -1821,7 +1848,7 @@ function renderAll() {
   renderTrainingLog();
   renderNutrition();
   renderExtras();
-  syncSettingsControls();renderBackupReminder();renderOnboarding();
+  syncSettingsControls();renderBackupReminder();renderOnboarding();renderCustomExerciseList();
   if(typeof renderDeluxeUI==='function')renderDeluxeUI();
 
   const now = new Date();
@@ -2248,7 +2275,7 @@ function sanitizeStateSnapshot(raw){
  const workouts=list(raw.workouts,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean);
  const foods=list(raw.foods,5000).map((x,i)=>cleanFood(x,i,gameDay)).filter(Boolean);
  const prs=list(raw.prs,2000).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-pr-'+i),name:safeStateText(x.name,'Exercise',80),weight:safeStateNumber(x.weight,0,2000,0),reps:safeStateNumber(x.reps,1,1000,1),date:safeStateDay(x.date,today),xp:safeStateNumber(x.xp,0,1,0)}));
- const customEx=list(raw.customEx,500).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'custom-ex-'+i),name:safeStateText(x.name||x.title,'Custom exercise',80),eq:safeStateText(x.eq||x.equipment,'Other',40),pm:safeStateText(x.pm||x.muscle,'chest',40),sec:list(x.sec,12).map(v=>safeStateText(v,'',40)),custom:true}));
+ const customEx=list(raw.customEx,500).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'custom-ex-'+i),name:safeStateText(x.name||x.title,'Custom exercise',80),eq:safeStateText(x.eq||x.equipment,'Other',40),pm:safeStateText(x.pm||x.muscle,'chest',40),sec:list(x.sec,12).map(v=>safeStateText(v,'',40)),type:['weights','bodyweight','timed'].includes(x.type)?x.type:'weights',custom:true}));
  const customFoods=list(raw.customFoods,500).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'custom-food-'+i),name:safeStateText(x.name,'Custom food',80),cal:safeStateNumber(x.cal,0,1000,0),protein:safeStateNumber(x.protein,0,100,0),carbs:safeStateNumber(x.carbs,0,100,0),fat:safeStateNumber(x.fat,0,100,0),kind:x.kind==='recipe'?'recipe':'food',barcode:/^\d{8,14}$/.test(String(x.barcode||''))?String(x.barcode):'',servingG:safeStateNumber(x.servingG,0,3000,0),servingLabel:safeStateText(x.servingLabel,'',40)}));
  const routines=list(raw.routines,100).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-routine-'+i),name:safeStateText(x.name,'Saved routine',80),createdAt:safeStateText(x.createdAt,'',40),exercises:list(x.exercises,100).filter(w=>w&&typeof w==='object'&&!Array.isArray(w)).map((w,j)=>({id:safeRecordId(w.id,'routine-ex-'+i+'-'+j),name:safeStateText(w.name||w.exercise,'Exercise',80),muscle:safeStateText(w.muscle,'',40),setList:cleanSets(w.setList,w.sets,w.weight,w.reps)}))}));
  const rawWater=list(raw.waterEntries,10000),legacyWater=list(raw.waterLog,10000);
@@ -2708,7 +2735,7 @@ function renderExtras(){
   const dl=$('recentFoods');if(dl)dl.innerHTML=state.recent.map(r=>'<option value="'+esc(r.name)+'">').join('');
   markNav();
 }
-function initGoals(){renderPrivacySettings();syncSettingsControls();renderProfilePanel();renderBackupReminder();renderOnboarding();initWaterSettings();}
+function initGoals(){renderPrivacySettings();renderCustomExerciseList();syncSettingsControls();renderProfilePanel();renderBackupReminder();renderOnboarding();initWaterSettings();}
 function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='gymplified-backup-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);markBackupDone();showToast('Backup exported');}
 function importData(file){
  if(!file)return;if(file.size>10*1024*1024)return showToast('Backup is larger than 10 MB.');
@@ -2736,14 +2763,15 @@ const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
 const slug=n=>n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const mkEx=(n,eq,pm,sec,c)=>({id:(c?'c-':'')+slug(n),name:n,eq,pm,sec,custom:!!c});
 const LIB={
-Machine:'Leg Press:qu:gl,ha;Hack Squat Machine:qu:gl;Leg Extension:qu;Seated Leg Curl:ha:ca;Lying Leg Curl:ha;Standing Calf Raise:ca;Seated Calf Raise:ca;Hip Abductor:gl;Hip Adductor:qu;Glute Kickback Machine:gl:ha;Smith Machine Squat:qu:gl;Chest Press Machine:ch:tr,sh;Incline Chest Press Machine:ch:sh,tr;Pec Deck Fly:ch:sh;Smith Machine Bench Press:ch:tr,sh;Shoulder Press Machine:sh:tr;Lateral Raise Machine:sh;Reverse Pec Deck:sh:tp;Lat Pulldown:la:bi;Seated Row Machine:la:bi,tp;Low Row Machine:la:tp;Assisted Pull-Up Machine:la:bi;Back Extension:ha:gl;Shrug Machine:tp;Bicep Curl Machine:bi;Triceps Extension Machine:tr;Dip Machine:tr:ch;Ab Crunch Machine:ab;Torso Rotation:ab',
-Barbell:'Barbell Back Squat:qu:gl,ha;Front Squat:qu:gl,ab;Barbell Lunge:qu:gl;Conventional Deadlift:ha:gl,la,tp;Romanian Deadlift:ha:gl;Sumo Deadlift:gl:qu,ha;Good Morning:ha:gl;Hip Thrust:gl:ha;Barbell Calf Raise:ca;Flat Bench Press:ch:tr,sh;Incline Bench Press:ch:sh,tr;Decline Bench Press:ch:tr;Close-Grip Bench Press:tr:ch;Overhead Press:sh:tr,tp;Barbell Row:la:bi,tp;Pendlay Row:la:tp;Barbell Shrug:tp;Barbell Curl:bi:fo;Skull Crushers:tr;Barbell Preacher Curl:bi:fo;Reverse-Grip Barbell Curl:bi:fo;Wide-Grip Barbell Curl:bi;Barbell Drag Curl:bi;JM Press:tr;Barbell Pullover:la:ch;Seal Row:la:bi,tp;Meadows Row:la:bi,tp;Deficit Deadlift:ha:gl,la;Paused Squat:qu:gl,ha;Barbell Glute Bridge:gl:ha;Barbell Step-Up:qu:gl;Barbell Reverse Lunge:qu:gl;Barbell Split Squat:qu:gl;Barbell Wrist Curl:fo;Behind-the-Back Wrist Curl:fo',
-Dumbbell:'Goblet Squat:qu:gl;Bulgarian Split Squat:qu:gl;Dumbbell Lunge:qu:gl;Dumbbell Romanian Deadlift:ha:gl;Dumbbell Bench Press:ch:tr,sh;Incline Dumbbell Press:ch:sh;Dumbbell Fly:ch;Dumbbell Shoulder Press:sh:tr;Arnold Press:sh:tr;Lateral Raise:sh;Front Raise:sh;Rear Delt Fly:sh:tp;One-Arm Dumbbell Row:la:bi;Dumbbell Curl:bi:fo;Hammer Curl:bi:fo;Incline Dumbbell Curl:bi;Concentration Curl:bi;Overhead Triceps Extension:tr;Triceps Kickback:tr;Dumbbell Shrug:tp:fo;Wrist Curl:fo;Dumbbell Preacher Curl:bi:fo;Dumbbell Spider Curl:bi;Zottman Curl:bi:fo;Cross-Body Hammer Curl:bi:fo;Drag Curl:bi;Bayesian Dumbbell Curl:bi;Dumbbell Tate Press:tr;Dumbbell JM Press:tr;Dumbbell Pullover:la:ch;Chest-Supported Dumbbell Row:la:bi,tp;Incline Bench Rear Delt Raise:sh:tp;Lean-Away Lateral Raise:sh;Dumbbell Y-Raise:sh;Dumbbell Squeeze Press:ch:tr;Dumbbell Reverse Fly:sh:tp;Dumbbell Step-Up:qu:gl;Dumbbell Sumo Squat:qu:gl;Dumbbell Single-Leg RDL:ha:gl;Dumbbell Hip Thrust:gl:ha;Dumbbell Calf Raise:ca;Dumbbell Reverse Lunge:qu:gl',
-Cable:'Cable Triceps Pushdown:tr;Rope Pushdown:tr;Cable Biceps Curl:bi;Cable Row:la:bi;Straight-Arm Pulldown:la:tr;Face Pull:sh:tp;Cable Lateral Raise:sh;Cable Fly:ch:sh;Cable Crunch:ab;Cable Woodchop:ab;Cable Pull-Through:gl:ha;Cable Preacher Curl:bi:fo;Bayesian Cable Curl:bi:fo;High Cable Curl:bi;Low Cable Curl:bi;Cross-Body Cable Curl:bi:fo;Cable Hammer Curl:bi:fo;Overhead Cable Triceps Extension:tr;Single-Arm Cable Pushdown:tr;Cable Kickback:tr;Cable Y-Raise:sh;Cable Reverse Fly:sh:tp;Cable Upright Row:sh:tp;Cable Lateral Raise Behind Body:sh;Cable Chest Press:ch:tr,sh;Low-to-High Cable Fly:ch:sh;High-to-Low Cable Fly:ch;Single-Arm Cable Row:la:bi;Chest-Supported Cable Row:la:bi,tp;Wide-Grip Cable Row:la:tp;Kneeling Lat Pulldown:la:bi;Single-Arm Lat Pulldown:la:bi;Cable Shrug:tp;Cable Lunge:qu:gl;Cable Leg Extension:qu;Cable Leg Curl:ha;Cable Glute Kickback:gl;Cable Hip Abduction:gl;Cable Standing Calf Raise:ca',
-'EZ-Bar':'EZ-Bar Preacher Curl:bi:fo;EZ-Bar Reverse Preacher Curl:bi:fo;EZ-Bar Spider Curl:bi;EZ-Bar Reverse Curl:fo:bi;EZ-Bar Skull Crusher:tr;EZ-Bar French Press:tr;EZ-Bar Upright Row:sh:tp;EZ-Bar Front Raise:sh',
-'Smith Machine':'Smith Machine Incline Bench Press:ch:sh,tr;Smith Machine Decline Bench Press:ch:tr;Smith Machine Shoulder Press:sh:tr;Smith Machine Romanian Deadlift:ha:gl;Smith Machine Hip Thrust:gl:ha;Smith Machine Bulgarian Split Squat:qu:gl;Smith Machine Calf Raise:ca;Smith Machine Bent-Over Row:la:bi,tp',
-Kettlebell:'Kettlebell Swing:gl:ha;Kettlebell Goblet Squat:qu:gl;Kettlebell Clean:sh:gl;Kettlebell Clean and Press:sh:tr,gl;Kettlebell Snatch:sh:gl;Kettlebell Turkish Get-Up:ab:sh;Kettlebell Windmill:ab:sh;Kettlebell Suitcase Carry:ab:fo;Kettlebell Deadlift:ha:gl;Kettlebell Reverse Lunge:qu:gl',
-Bodyweight:'Pull-Up:la:bi;Chin-Up:bi:la;Inverted Row:la:bi;Push-Up:ch:tr,sh;Dips:tr:ch,sh;Pike Push-Up:sh:tr;Plank:ab;Crunch:ab;Hanging Leg Raise:ab;Russian Twist:ab;Mountain Climbers:ab:sh;Bodyweight Squat:qu:gl;Walking Lunge:qu:gl;Glute Bridge:gl:ha;Calf Raise (Bodyweight):ca;Burpees:qu:ch,sh;Dead Hang:fo:la'};
+Machine:'Leg Press:qu:gl,ha;Hack Squat Machine:qu:gl;Leg Extension:qu;Seated Leg Curl:ha:ca;Lying Leg Curl:ha;Standing Calf Raise:ca;Seated Calf Raise:ca;Hip Abductor:gl;Hip Adductor:qu;Glute Kickback Machine:gl:ha;Smith Machine Squat:qu:gl;Chest Press Machine:ch:tr,sh;Incline Chest Press Machine:ch:sh,tr;Pec Deck Fly:ch:sh;Smith Machine Bench Press:ch:tr,sh;Shoulder Press Machine:sh:tr;Lateral Raise Machine:sh;Reverse Pec Deck:sh:tp;Lat Pulldown:la:bi;Seated Row Machine:la:bi,tp;Low Row Machine:la:tp;Assisted Pull-Up Machine:la:bi;Back Extension:ha:gl;Shrug Machine:tp;Bicep Curl Machine:bi;Triceps Extension Machine:tr;Dip Machine:tr:ch;Ab Crunch Machine:ab;Torso Rotation:ab;Pendulum Squat:qu:gl;Belt Squat:qu:gl,ha;V-Squat Machine:qu:gl;Horizontal Leg Press:qu:gl,ha;Single-Leg Leg Press:qu:gl;Leg Press Calf Raise:ca;Donkey Calf Raise Machine:ca;Kneeling Leg Curl:ha:ca;Standing Leg Curl:ha:ca;Glute Drive Machine:gl:ha;Reverse Hyperextension:gl:ha;Preacher Curl Machine:bi:fo;Iso-Lateral Chest Press:ch:tr,sh;Decline Chest Press Machine:ch:tr;Iso-Lateral Row:la:bi,tp;Iso-Lateral Lat Pulldown:la:bi;T-Bar Row Machine:la:tp,bi;Pullover Machine:la:ch;Assisted Dip Machine:tr:ch,sh;Seated Chest Fly Machine:ch:sh',
+Barbell:'Barbell Back Squat:qu:gl,ha;Front Squat:qu:gl,ab;Barbell Lunge:qu:gl;Conventional Deadlift:ha:gl,la,tp;Romanian Deadlift:ha:gl;Sumo Deadlift:gl:qu,ha;Good Morning:ha:gl;Hip Thrust:gl:ha;Barbell Calf Raise:ca;Flat Bench Press:ch:tr,sh;Incline Bench Press:ch:sh,tr;Decline Bench Press:ch:tr;Close-Grip Bench Press:tr:ch;Overhead Press:sh:tr,tp;Barbell Row:la:bi,tp;Pendlay Row:la:tp;Barbell Shrug:tp;Barbell Curl:bi:fo;Skull Crushers:tr;Barbell Preacher Curl:bi:fo;Reverse-Grip Barbell Curl:bi:fo;Wide-Grip Barbell Curl:bi;Barbell Drag Curl:bi;JM Press:tr;Barbell Pullover:la:ch;Seal Row:la:bi,tp;Meadows Row:la:bi,tp;Deficit Deadlift:ha:gl,la;Paused Squat:qu:gl,ha;Barbell Glute Bridge:gl:ha;Barbell Step-Up:qu:gl;Barbell Reverse Lunge:qu:gl;Barbell Split Squat:qu:gl;Barbell Wrist Curl:fo;Behind-the-Back Wrist Curl:fo;Landmine T-Bar Row:la:tp,bi;Landmine Press:sh:ch,tr;Landmine Squat:qu:gl;Zercher Squat:qu:gl,ab;Box Squat:qu:gl,ha;Push Press:sh:tr,qu;Power Clean:gl:ha,tp,qu;Rack Pull:tp:gl,ha,fo;Floor Press:ch:tr;Snatch-Grip Deadlift:ha:gl,tp,la;Barbell Upright Row:sh:tp;Yates Row:la:bi,tp',
+Dumbbell:'Goblet Squat:qu:gl;Bulgarian Split Squat:qu:gl;Dumbbell Lunge:qu:gl;Dumbbell Romanian Deadlift:ha:gl;Dumbbell Bench Press:ch:tr,sh;Incline Dumbbell Press:ch:sh;Dumbbell Fly:ch;Dumbbell Shoulder Press:sh:tr;Arnold Press:sh:tr;Lateral Raise:sh;Front Raise:sh;Rear Delt Fly:sh:tp;One-Arm Dumbbell Row:la:bi;Dumbbell Curl:bi:fo;Hammer Curl:bi:fo;Incline Dumbbell Curl:bi;Concentration Curl:bi;Overhead Triceps Extension:tr;Triceps Kickback:tr;Dumbbell Shrug:tp:fo;Wrist Curl:fo;Dumbbell Preacher Curl:bi:fo;Dumbbell Spider Curl:bi;Zottman Curl:bi:fo;Cross-Body Hammer Curl:bi:fo;Drag Curl:bi;Bayesian Dumbbell Curl:bi;Dumbbell Tate Press:tr;Dumbbell JM Press:tr;Dumbbell Pullover:la:ch;Chest-Supported Dumbbell Row:la:bi,tp;Incline Bench Rear Delt Raise:sh:tp;Lean-Away Lateral Raise:sh;Dumbbell Y-Raise:sh;Dumbbell Squeeze Press:ch:tr;Dumbbell Reverse Fly:sh:tp;Dumbbell Step-Up:qu:gl;Dumbbell Sumo Squat:qu:gl;Dumbbell Single-Leg RDL:ha:gl;Dumbbell Hip Thrust:gl:ha;Dumbbell Calf Raise:ca;Dumbbell Reverse Lunge:qu:gl;Dumbbell Floor Press:ch:tr;Incline Dumbbell Fly:ch:sh;Decline Dumbbell Press:ch:tr;Dumbbell Close-Grip Press:tr:ch;Dumbbell Upright Row:sh:tp;Dumbbell Skull Crusher:tr;Renegade Row:la:ab,bi;Farmer\'s Carry:fo:tp,ab;Dumbbell Deadlift:ha:gl,qu;Dumbbell Front Squat:qu:gl;Dumbbell Lateral Lunge:qu:gl;Dumbbell Walking Lunge:qu:gl;Kroc Row:la:bi,fo;Single-Arm Dumbbell Overhead Press:sh:tr,ab;Reverse Wrist Curl:fo',
+Cable:'Cable Triceps Pushdown:tr;Rope Pushdown:tr;Cable Biceps Curl:bi;Cable Row:la:bi;Straight-Arm Pulldown:la:tr;Face Pull:sh:tp;Cable Lateral Raise:sh;Cable Fly:ch:sh;Cable Crunch:ab;Cable Woodchop:ab;Cable Pull-Through:gl:ha;Cable Preacher Curl:bi:fo;Bayesian Cable Curl:bi:fo;High Cable Curl:bi;Low Cable Curl:bi;Cross-Body Cable Curl:bi:fo;Cable Hammer Curl:bi:fo;Overhead Cable Triceps Extension:tr;Single-Arm Cable Pushdown:tr;Cable Kickback:tr;Cable Y-Raise:sh;Cable Reverse Fly:sh:tp;Cable Upright Row:sh:tp;Cable Lateral Raise Behind Body:sh;Cable Chest Press:ch:tr,sh;Low-to-High Cable Fly:ch:sh;High-to-Low Cable Fly:ch;Single-Arm Cable Row:la:bi;Chest-Supported Cable Row:la:bi,tp;Wide-Grip Cable Row:la:tp;Kneeling Lat Pulldown:la:bi;Single-Arm Lat Pulldown:la:bi;Cable Shrug:tp;Cable Lunge:qu:gl;Cable Leg Extension:qu;Cable Leg Curl:ha;Cable Glute Kickback:gl;Cable Hip Abduction:gl;Cable Standing Calf Raise:ca;Cable Crossover:ch:sh;Cable Front Raise:sh;Cable Romanian Deadlift:ha:gl;Cable Hip Adduction:qu;Cable Wrist Curl:fo;Cable Reverse Curl:fo:bi;Cable Pallof Press:ab;Close-Grip Cable Pulldown:la:bi',
+'EZ-Bar':'EZ-Bar Preacher Curl:bi:fo;EZ-Bar Reverse Preacher Curl:bi:fo;EZ-Bar Spider Curl:bi;EZ-Bar Reverse Curl:fo:bi;EZ-Bar Skull Crusher:tr;EZ-Bar French Press:tr;EZ-Bar Upright Row:sh:tp;EZ-Bar Front Raise:sh;EZ-Bar Curl:bi:fo',
+'Smith Machine':'Smith Machine Incline Bench Press:ch:sh,tr;Smith Machine Decline Bench Press:ch:tr;Smith Machine Shoulder Press:sh:tr;Smith Machine Romanian Deadlift:ha:gl;Smith Machine Hip Thrust:gl:ha;Smith Machine Bulgarian Split Squat:qu:gl;Smith Machine Calf Raise:ca;Smith Machine Bent-Over Row:la:bi,tp;Smith Machine Shrug:tp;Smith Machine Close-Grip Bench Press:tr:ch;Smith Machine Upright Row:sh:tp;Smith Machine Reverse Lunge:qu:gl',
+Kettlebell:'Kettlebell Swing:gl:ha;Kettlebell Goblet Squat:qu:gl;Kettlebell Clean:sh:gl;Kettlebell Clean and Press:sh:tr,gl;Kettlebell Snatch:sh:gl;Kettlebell Turkish Get-Up:ab:sh;Kettlebell Windmill:ab:sh;Kettlebell Suitcase Carry:ab:fo;Kettlebell Deadlift:ha:gl;Kettlebell Reverse Lunge:qu:gl;Kettlebell Press:sh:tr;Kettlebell Row:la:bi;Kettlebell Front Squat:qu:gl,ab;Kettlebell High Pull:tp:sh,gl;Kettlebell Halo:sh:ab;Kettlebell Farmer\'s Carry:fo:tp,ab;Kettlebell Single-Leg Deadlift:ha:gl;Kettlebell Thruster:qu:sh,gl;Kettlebell Floor Press:ch:tr',
+Band:'Band Pull-Apart:sh:tp;Band Face Pull:sh:tp;Band Bicep Curl:bi:fo;Band Triceps Pushdown:tr;Band Overhead Triceps Extension:tr;Band Lateral Raise:sh;Band Seated Row:la:bi;Band Lat Pulldown:la:bi;Band Chest Press:ch:tr,sh;Band Chest Fly:ch:sh;Band Squat:qu:gl;Band Good Morning:ha:gl;Band Romanian Deadlift:ha:gl;Band Glute Kickback:gl:ha;Band Lateral Walk:gl;Band Clamshell:gl;Band Pallof Press:ab;Band Overhead Press:sh:tr;Band-Assisted Pull-Up:la:bi;Band Upright Row:sh:tp',
+Bodyweight:'Pull-Up:la:bi;Chin-Up:bi:la;Inverted Row:la:bi;Push-Up:ch:tr,sh;Dips:tr:ch,sh;Pike Push-Up:sh:tr;Plank:ab;Crunch:ab;Hanging Leg Raise:ab;Russian Twist:ab;Mountain Climbers:ab:sh;Bodyweight Squat:qu:gl;Walking Lunge:qu:gl;Glute Bridge:gl:ha;Calf Raise (Bodyweight):ca;Burpees:qu:ch,sh;Dead Hang:fo:la;Nordic Hamstring Curl:ha:gl;Pistol Squat:qu:gl;Side Plank:ab;Hollow Body Hold:ab;Ab Wheel Rollout:ab:la,sh;L-Sit:ab:tr;Sit-Up:ab;Lying Leg Raise:ab;Captain\'s Chair Leg Raise:ab;Dead Bug:ab;Bench Dips:tr:ch,sh;Diamond Push-Up:tr:ch;Decline Push-Up:ch:sh,tr;Incline Push-Up:ch:tr,sh;Single-Leg Glute Bridge:gl:ha;Bodyweight Step-Up:qu:gl;Jump Squat:qu:gl,ca;Wall Sit:qu:gl;Superman Hold:gl:ha;Neutral-Grip Pull-Up:la:bi;Muscle-Up:la:tr,ch;Handstand Push-Up:sh:tr;Bear Crawl:sh:ab,qu'};
 const EX=[];Object.keys(LIB).forEach(eq=>LIB[eq].split(';').forEach(t=>{const p=t.split(':');EX.push(mkEx(p[0],eq,MC[p[1]],(p[2]?p[2].split(','):[]).map(c=>MC[c]),false));}));
 function normalizeCustomExercise(x,i){
  if(!x||typeof x!=='object')return null;
@@ -2751,7 +2779,7 @@ function normalizeCustomExercise(x,i){
  const pm=validMuscles.includes(x.pm)?x.pm:(validMuscles.includes(x.muscle)?x.muscle:'chest');
  const sec=(Array.isArray(x.sec)?x.sec:[]).filter(m=>validMuscles.includes(m)&&m!==pm);
  const name=String(x.name||x.title||'Custom exercise').trim().slice(0,80)||'Custom exercise';
- return {id:safeRecordId(x.id,'c-'+slug(name)+'-'+i),name,eq:safeStateText(x.eq||x.equipment,'Other',40),pm,sec,custom:true};
+ return {id:safeRecordId(x.id,'c-'+slug(name)+'-'+i),name,eq:safeStateText(x.eq||x.equipment,'Other',40),pm,sec,type:['weights','bodyweight','timed'].includes(x.type)?x.type:'weights',custom:true};
 }
 const allEx=()=>EX.concat((Array.isArray(state.customEx)?state.customEx:[]).map((x,i)=>normalizeCustomExercise(x,i)).filter(Boolean));
 function syncW(w){w.id=safeRecordId(w.id,newRecordId('workout'));w.setList.forEach(x=>{x.id=safeRecordId(x.id,newRecordId('set'));});w.sets=w.setList.length;w.weight=Math.max(0,...w.setList.map(x=>x.kg));w.reps=w.setList.length?w.setList[0].reps:0;w.done=w.setList.length>0&&w.setList.every(x=>x.done);return w;}
@@ -2839,12 +2867,7 @@ function exerciseHistoryMarkup(name){
 function closeExerciseHistory(){const host=$('exerciseHistoryPanel');if(host){host.innerHTML='';host.dataset.exercise='';}}
 function viewExerciseHistoryById(id){const x=allEx().find(e=>e.id===id);if(x)viewExerciseHistory(x.name);}
 function viewExerciseHistoryForSession(sessionIndex,exerciseIndex){const x=state.sessions[sessionIndex]?.exercises?.[exerciseIndex];if(x)viewExerciseHistory(x.name);}
-function viewExerciseHistory(name){
- const host=$('exerciseHistoryPanel');if(!host)return;
- if(host.dataset.exercise===name){closeExerciseHistory();return;}
- host.dataset.exercise=name;
- host.innerHTML='<div class="panel" style="margin:16px 0"><div class="section-title"><span>'+esc(name)+' · History</span><button class="btn" onclick="closeExerciseHistory()">Close</button></div>'+exerciseHistoryMarkup(name)+'</div>';
-}
+function viewExerciseHistory(name){openExerciseSheet(name);}
 function addEx(id){
  const x=allEx().find(e=>e.id===String(id));
  if(!x){showToast('Exercise not found. Please refresh and try again.');return;}
@@ -2880,22 +2903,22 @@ function muscleMapKeys(name){
  if(key==='traps')return ['trapezius','traps'];
  return [MUSCLE_MAP_ALIASES[key]||key].filter(Boolean);
 }
+function loadMuscleMapTemplate(){
+ if(!muscleMapTemplatePromise)muscleMapTemplatePromise=fetch('./assets/muscle-map-template.svg').then(response=>{
+  if(!response.ok)throw new Error('Could not load anatomical muscle illustration');
+  return response.text();
+ }).then(source=>{
+  const doc=new DOMParser().parseFromString(source,'image/svg+xml'),svg=doc.documentElement;
+  if(doc.querySelector('parsererror')||svg.localName!=='svg')throw new Error('Invalid anatomical SVG');
+  return svg;
+ }).catch(error=>{muscleMapTemplatePromise=null;throw error;});
+ return muscleMapTemplatePromise;
+}
 async function renderMuscleMap(exercise){
  const mount=$('muscleMapMount');if(!mount)return;
  const request=++muscleMapRenderVersion;
  try{
-  if(!muscleMapTemplatePromise){
-   muscleMapTemplatePromise=fetch('./assets/muscle-map-template.svg').then(response=>{
-    if(!response.ok)throw new Error('Could not load anatomical muscle illustration');
-    return response.text();
-   }).then(source=>{
-    const doc=new DOMParser().parseFromString(source,'image/svg+xml');
-    const svg=doc.documentElement;
-    if(doc.querySelector('parsererror')||svg.localName!=='svg')throw new Error('Invalid anatomical SVG');
-    return svg;
-   });
-  }
-  const template=await muscleMapTemplatePromise;
+  const template=await loadMuscleMapTemplate();
   if(request!==muscleMapRenderVersion)return;
   const svg=template.cloneNode(true);
   svg.removeAttribute('width');svg.removeAttribute('height');
@@ -2924,7 +2947,7 @@ function previewEx(id){const x=id&&allEx().find(e=>e.id===id),b=$('exPreview');
   renderMuscleMap(x);
   if(!x){b.innerHTML='<p class="sub">Select an exercise to highlight its primary and supporting muscles.</p>';return;}
   const prev=previousExercisePerformance(x.name),last=prev&&prev.sets.length?prev.sets[prev.sets.length-1]:null;
-  b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+esc(x.eq)+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="sub" style="margin-top:10px">Last time · '+esc(prev.date)+' · '+esc(fmtWeight(last.kg,2))+' × '+esc(last.reps)+' reps</p>':'<p class="sub" style="margin-top:10px">No previous performance logged yet.</p>')+'<button class="btn" style="margin-top:10px" onclick="viewExerciseHistoryById('+jsArg(x.id)+')">View exercise history</button>';}
+  b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+esc(x.eq)+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="sub" style="margin-top:10px">Last time · '+esc(prev.date)+' · '+esc(fmtWeight(last.kg,2))+' × '+esc(last.reps)+' reps</p>':'<p class="sub" style="margin-top:10px">No previous performance logged yet.</p>')+'<button type="button" class="btn" style="margin-top:10px" data-ex-details="'+esc(x.name)+'">Details, history &amp; alternatives</button>';}
 function initPicker(){const mo=Object.values(MC).map(m=>'<option value="'+m+'">'+cap(m)+'</option>').join(''),eo=Object.keys(LIB).map(e=>'<option>'+e+'</option>').join('');
   $('exMuscle').innerHTML='<option value="">All muscles</option>'+mo;$('exEquip').innerHTML='<option value="">All equipment</option>'+eo;$('cMuscle').innerHTML=mo;$('cEquip').innerHTML=eo+'<option>Other</option>';renderPicker();previewEx(null);}
 function renderTrainingLog(){
@@ -3042,7 +3065,7 @@ function exerciseCardMarkup(w,i){
  const previous=previousExercisePerformance(w.name),best=previous?bestPreviousSet(previous.sets.filter(s=>setTypeOf(s)!=='warmup')):null;
  const lastLine=previous?'Last time · '+esc(previous.date)+': '+previous.sets.slice(0,8).map(s=>{const t=setTypeOf(s);return (t!=='normal'?SET_TYPE_INFO[t].short+' ':'')+esc(fmtWeight(s.kg,2))+' × '+esc(Number(s.reps));}).join(', ')+(best?' · best '+format1RM(best.kg,best.reps)+' e1RM':''):'No previous performance yet. Estimated 1RM updates as you enter weight and reps.';
  const pending=w.setList.some(x=>x.auto&&!x.done);
- return '<div class="panel" style="margin-bottom:12px"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="btn btn-icon-only" style="color:var(--danger)" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
+ return '<div class="panel" style="margin-bottom:12px"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="btn btn-icon-only" style="color:var(--danger)" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
   '<div class="setrow sub" aria-hidden="true"><span>Set</span><span>'+weightUnit()+'</span><span>Reps</span><span>Done</span><span></span></div>'+
   w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
   '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
@@ -3129,7 +3152,7 @@ function sessionSummaryMarkup(){
 }
 
 // --- B21/B22: forgiving exercise search, favourites and recents ---
-const EX_SYNONYMS=[['romanian deadlift','rdl'],['overhead press','ohp'],['overhead press','military press'],['dumbbell','db'],['barbell','bb'],['kettlebell','kb'],['bodyweight','bw'],['pull up','pullup'],['chin up','chinup'],['push up','pushup'],['push up','press up'],['sit up','situp'],['pulldown','pull down'],['pushdown','push down'],['triceps','tricep'],['biceps','bicep'],['shoulders','delts'],['shoulders','delt'],['quadriceps','quads'],['quadriceps','quad'],['hamstrings','hams'],['chest','pecs'],['glutes','glute'],['calves','calf'],['leg curl','hamstring curl'],['skull crusher','skullcrusher'],['skull crushers','skullcrushers'],['fly','flye'],['fly','flyes'],['fly','flys'],['bench press','benchpress'],['hip thrust','hip thruster'],['ez bar','ezbar'],['lats','lat']]
+const EX_SYNONYMS=[['romanian deadlift','rdl'],['overhead press','ohp'],['overhead press','military press'],['dumbbell','db'],['barbell','bb'],['kettlebell','kb'],['bodyweight','bw'],['pull up','pullup'],['chin up','chinup'],['push up','pushup'],['push up','press up'],['sit up','situp'],['pulldown','pull down'],['pushdown','push down'],['triceps','tricep'],['biceps','bicep'],['shoulders','delts'],['shoulders','delt'],['quadriceps','quads'],['quadriceps','quad'],['hamstrings','hams'],['chest','pecs'],['glutes','glute'],['calves','calf'],['leg curl','hamstring curl'],['skull crusher','skullcrusher'],['skull crushers','skullcrushers'],['fly','flye'],['fly','flyes'],['fly','flys'],['bench press','benchpress'],['hip thrust','hip thruster'],['ez bar','ezbar'],['band','resistance band'],['farmers carry','farmer walk'],['farmers carry','farmers walk'],['cable crossover','cable cross over'],['glute drive','glute drive machine'],['lats','lat']]
  .sort((a,b)=>b[1].length-a[1].length);
 function exNormalize(text){
  let s=' '+String(text||'').toLowerCase().replace(/['’]/g,'').replace(/[^a-z0-9]+/g,' ').trim()+' ';
@@ -3214,7 +3237,7 @@ function initWorkoutControls(){
   list.addEventListener('click',e=>{
    const b=e.target.closest('button');if(!b||!list.contains(b))return;const i=Number(b.dataset.i),j=Number(b.dataset.j);
    if(b.dataset.setAction==='type')cycleSetType(i,j);else if(b.dataset.setAction==='done')toggleSet(i,j);else if(b.dataset.setAction==='remove')removeSet(i,j);
-   else if(b.dataset.exCardAction==='add-set')addSet(i);else if(b.dataset.exCardAction==='remove')deleteWorkout(i);else if(b.dataset.exCardAction==='accept')acceptSuggestedSets(i);else if(b.dataset.exCardAction==='best')applyPreviousBest(i);
+   else if(b.dataset.exCardAction==='add-set')addSet(i);else if(b.dataset.exCardAction==='remove')deleteWorkout(i);else if(b.dataset.exCardAction==='accept')acceptSuggestedSets(i);else if(b.dataset.exCardAction==='details')openExerciseSheet(state.workouts[i]&&state.workouts[i].name);else if(b.dataset.exCardAction==='swap')openExerciseSheet(state.workouts[i]&&state.workouts[i].name,{swapIndex:i});else if(b.dataset.exCardAction==='best')applyPreviousBest(i);
   });
   list.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.setField;if(f)updateSetEstimate(Number(e.target.dataset.i),Number(e.target.dataset.j),f,e.target.value);});
   list.addEventListener('change',e=>{const f=e.target.dataset&&e.target.dataset.setField;if(f)setVal(Number(e.target.dataset.i),Number(e.target.dataset.j),f,e.target.value,e.target);});
@@ -3972,6 +3995,219 @@ function initAccessibilityControls(){
  announceScreen((document.querySelector('.screen.active')||{}).id||'dashboard',false);
 }
 
+// ===== Batch 8: exercise library, custom exercises, detail sheet, swaps, form tips =====
+// B27: short form tips in our own words. General guidance, not personalised coaching.
+const FORM_TIPS={
+ 'barbell-back-squat':'Brace your midsection before you go down and keep your whole foot on the floor. Let your knees follow your toes, then stand up by pushing the floor away.',
+ 'front-squat':'Keep your elbows high so the bar stays on your shoulders. Sit straight down and keep your chest tall.',
+ 'goblet-squat':'Hold the weight close to your chest and sit down between your heels. Keep your chest up the whole time.',
+ 'paused-squat':'Hold the bottom position still for a full second without relaxing, then drive up.',
+ 'box-squat':'Sit back to the box under control, stay braced while you touch it, and stand without rocking.',
+ 'conventional-deadlift':'Start with the bar over the middle of your foot and take the slack out before it leaves the floor. Keep the bar close and push the floor away.',
+ 'sumo-deadlift':'Take a wide stance with your knees pushed out over your toes. Keep your chest up and push through the floor.',
+ 'romanian-deadlift':'Soften your knees and push your hips back while the bar slides down your thighs. Stop at a strong hamstring stretch, then bring your hips forward.',
+ 'dumbbell-romanian-deadlift':'Push your hips back and keep the dumbbells close to your legs. Stop at a strong hamstring stretch, then stand tall.',
+ 'flat-bench-press':'Pull your shoulder blades back and down and keep your feet planted. Lower the bar under control to your lower chest, then press up.',
+ 'incline-bench-press':'Keep your shoulder blades pinned to the bench. Lower the bar to your upper chest and press up over your shoulders.',
+ 'dumbbell-bench-press':'Keep your wrists stacked over your elbows. Lower until your elbows are just below the bench, then press up and slightly in.',
+ 'overhead-press':'Squeeze your glutes and brace so your lower back stays neutral. Move your head back to let the bar pass, then push your head through once it clears.',
+ 'dumbbell-shoulder-press':'Start with the dumbbells at shoulder height and press up without arching your back. Lower them slowly to the same start position.',
+ 'barbell-row':'Hinge forward with a flat back and pull the bar to your lower ribs. Lead with your elbows and avoid jerking the weight up.',
+ 'one-arm-dumbbell-row':'Support yourself on the bench and keep your back flat. Pull the dumbbell towards your hip rather than straight up.',
+ 'pull-up':'Start from a full hang and pull your chest towards the bar. Keep your body still and lower all the way down.',
+ 'chin-up':'With palms facing you, pull until your chin clears the bar. Lower all the way without swinging.',
+ 'lat-pulldown':'Lean back only slightly and pull the bar to your upper chest. Think about driving your elbows down to your sides.',
+ 'cable-row':'Sit tall and pull the handle to your stomach. Squeeze your shoulder blades together, then let them stretch forward slowly.',
+ 'hip-thrust':'Rest your upper back on the bench with your feet flat. Push through your heels and squeeze your glutes at the top without arching your lower back.',
+ 'bulgarian-split-squat':'Keep most of your weight on the front foot. Lower straight down until your back knee nearly touches the floor.',
+ 'dumbbell-lunge':'Step far enough that your front knee stays over your foot. Push through the front heel to come back.',
+ 'walking-lunge':'Take controlled steps and keep your chest up. Let your back knee come close to the floor on each step.',
+ 'leg-press':'Keep your lower back against the pad. Lower until your knees are bent about 90 degrees without your hips lifting, and avoid snapping your knees straight at the top.',
+ 'leg-extension':'Line your knees up with the machine pivot. Lift with control and pause briefly at the top.',
+ 'seated-leg-curl':'Keep your hips down in the seat. Curl all the way, then let the pad return slowly.',
+ 'push-up':'Keep a straight line from head to heels. Lower your chest close to the floor with your elbows angled back, not flared out.',
+ 'dips':'Keep your shoulders down, away from your ears. Lower until your upper arms are about level with the floor, then press up.',
+ 'barbell-curl':'Keep your elbows at your sides and avoid swinging. Lower the bar slowly all the way down.',
+ 'dumbbell-curl':'Keep your elbows still and turn your palms up as you lift. Lower slowly to a straight arm.',
+ 'hammer-curl':'Keep your thumbs pointing up and your elbows by your sides. Lower with control.',
+ 'cable-triceps-pushdown':'Pin your elbows to your sides and move only your forearms. Straighten your arms fully at the bottom.',
+ 'skull-crushers':'Keep your upper arms still and bend only at the elbows. Lower the bar towards your forehead slowly.',
+ 'lateral-raise':'Raise the weights out to your sides with a slight bend in your elbows, stopping around shoulder height. Lead with your elbows, not your hands.',
+ 'face-pull':'Pull the rope towards your face with your elbows high. Finish with your hands beside your ears.',
+ 'standing-calf-raise':'Use the full range: a deep stretch at the bottom and a pause on your toes at the top.',
+ 'plank':'Squeeze your glutes and brace your stomach so your hips do not sag. Keep breathing steadily.',
+ 'hanging-leg-raise':'Avoid swinging; curl your pelvis up as you lift your legs. Lower slowly.',
+ 'kettlebell-swing':'It is a hip hinge, not a squat: snap your hips forward to float the bell. Your arms guide it while your hips do the work.',
+ 'glute-bridge':'Push through your heels and lift until your body is straight from shoulders to knees. Squeeze your glutes at the top.',
+ 'farmer-s-carry':'Stand tall, brace your stomach and walk with short, steady steps. Keep your shoulders down and back.',
+ 'nordic-hamstring-curl':'Lower yourself as slowly as you can while keeping your hips straight. Use your hands to catch yourself and push back up.'
+};
+const EX_TYPES={weights:'Weights',bodyweight:'Bodyweight',timed:'Timed or distance'};
+function exerciseByName(name){const key=String(name||'').trim().toLowerCase();return allEx().find(e=>e.name.toLowerCase()===key)||null;}
+
+// --- B26: alternatives that train the same main muscle ---
+// Pure: score shared muscles, prefer different equipment (the usual reason to swap), then name.
+function suggestAlternatives(target,list,count=5){
+ if(!target||!target.pm)return [];
+ const sec=new Set(target.sec||[]);
+ return list.filter(c=>c.id!==target.id&&c.name.toLowerCase()!==target.name.toLowerCase())
+  .map(c=>{let score=0;if(c.pm===target.pm)score+=4;else if((c.sec||[]).includes(target.pm))score+=1;else return null;
+   (c.sec||[]).forEach(m=>{if(sec.has(m))score+=1;});if(c.eq!==target.eq)score+=1;return {c,score};})
+  .filter(Boolean).sort((a,b)=>b.score-a.score||a.c.name.localeCompare(b.c.name)).slice(0,count).map(x=>x.c);
+}
+
+// --- B25: history, records and a sparkline for one exercise ---
+function exerciseSessions(name){
+ const key=String(name||'').trim().toLowerCase(),rows=[];
+ (state.sessions||[]).forEach(s=>(s.exercises||[]).forEach(e=>{if(String(e.name||'').trim().toLowerCase()!==key)return;
+  const work=(e.sets||[]).filter(x=>setTypeOf(x)!=='warmup');const best=bestPreviousSet(work.filter(x=>Number(x.kg)>0&&Number(x.reps)>0));
+  rows.push({date:s.date,sets:e.sets||[],best,e1rm:best?calculate1RM(best.kg,best.reps):0,volume:work.reduce((n,x)=>n+(Number(x.kg)||0)*(Number(x.reps)||0),0)});}));
+ return rows; // newest first, like state.sessions
+}
+// Pure: SVG polyline points for values (oldest first) in a w x h box with padding.
+function sparklinePoints(values,w,h,pad=4){
+ if(!values.length)return '';
+ const min=Math.min(...values),max=Math.max(...values),span=max-min;
+ return values.map((v,i)=>{const x=values.length===1?w/2:pad+i*(w-2*pad)/(values.length-1),y=span?h-pad-(v-min)/span*(h-2*pad):h/2;return x.toFixed(1)+','+y.toFixed(1);}).join(' ');
+}
+function sparklineMarkup(rows){
+ const points=rows.filter(r=>r.e1rm>0).slice(0,12).reverse();
+ if(points.length<2)return '<p class="sub">Log this exercise in two or more workouts to see a progress line.</p>';
+ const values=points.map(r=>r.e1rm),first=values[0],last=values[values.length-1],w=280,h=64,pts=sparklinePoints(values,w,h);
+ const summary='Best estimated 1RM went from '+fmtWeight(first)+' to '+fmtWeight(last)+' over the last '+values.length+' workouts';
+ return '<figure class="sparkline"><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(summary)+'"><polyline points="'+pts+'" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'+pts.split(' ').map((p,i)=>'<circle cx="'+p.split(',')[0]+'" cy="'+p.split(',')[1]+'" r="'+(i===values.length-1?4:2.5)+'" fill="currentColor"/>').join('')+'</svg><figcaption class="sub">'+esc(summary)+' ('+(last>=first?'+':'')+esc(fmtWeight(last-first))+').</figcaption></figure>';
+}
+
+// --- B25: the sheet ---
+let sheetState=null; // {name, mode:'view'|'edit', swapIndex}
+async function renderMuscleMapInto(mountId,exercise){
+ const mount=$(mountId);if(!mount)return;
+ try{
+  const template=await loadMuscleMapTemplate();const svg=template.cloneNode(true);
+  svg.removeAttribute('width');svg.removeAttribute('height');svg.style.width='100%';svg.style.height='auto';
+  svg.setAttribute('role','img');svg.setAttribute('aria-label',(exercise?exercise.name+': ':'')+'muscles worked, front and back');
+  const primary=new Set(muscleMapKeys(exercise&&exercise.pm)),secondary=new Set((exercise&&exercise.sec||[]).flatMap(muscleMapKeys));
+  svg.querySelectorAll('[data-muscle]').forEach(path=>{const raw=path.getAttribute('data-muscle')||'',base=raw.replace(/_(left|right)$/,'');if(primary.has(raw)||primary.has(base))path.classList.add('active');else if(secondary.has(raw)||secondary.has(base))path.classList.add('secondary');});
+  const style=document.createElementNS('http://www.w3.org/2000/svg','style');
+  style.textContent='#layer2 path.active{fill:#e6b93f!important;fill-opacity:.96!important;stroke:#9a7019!important;stroke-width:.8!important}#layer2 path.secondary{fill:#c18d27!important;fill-opacity:.72!important;stroke:#9a7019!important;stroke-width:.65!important}';
+  svg.insertBefore(style,svg.firstChild);mount.replaceChildren(svg);
+ }catch(e){mount.innerHTML='<p class="sub">The muscle illustration could not be loaded.</p>';}
+}
+function openExerciseSheet(name,opts){
+ const dialog=$('exerciseSheet');if(!dialog)return;
+ sheetState={name:String(name||''),mode:(opts&&opts.mode)||'view',swapIndex:opts&&Number.isInteger(opts.swapIndex)?opts.swapIndex:null,confirmDelete:false};
+ renderExerciseSheet();
+ if(!dialog.open)dialog.showModal();
+ ($('cxName')&&sheetState.mode==='edit'?$('cxName'):$('exerciseSheetTitle')).focus({preventScroll:true});
+}
+function renderExerciseSheet(){
+ const dialog=$('exerciseSheet');if(!dialog||!sheetState)return;
+ const x=exerciseByName(sheetState.name),name=x?x.name:sheetState.name,body=$('exerciseSheetBody');
+ $('exerciseSheetTitle').textContent=name;
+ if(sheetState.mode==='edit'&&x&&x.custom){body.innerHTML=customExerciseFormMarkup(x);return;}
+ const rows=exerciseSessions(name),best=rows.reduce((b,r)=>r.e1rm>(b?b.e1rm:0)?r:b,null),heaviest=rows.flatMap(r=>r.sets.filter(s=>setTypeOf(s)!=='warmup').map(s=>({kg:Number(s.kg)||0,reps:Number(s.reps)||0,date:r.date}))).reduce((b,s)=>!b||s.kg>b.kg?s:b,null);
+ const prE1rm=exerciseRecordE1RM(name),tip=x&&FORM_TIPS[x.id.replace(/^c-/,'')]||'',swap=sheetState.swapIndex!==null&&state.workouts[sheetState.swapIndex]&&!state.workouts[sheetState.swapIndex].setList.some(s=>s.done);
+ const alts=x?suggestAlternatives(x,allEx()):[];
+ body.innerHTML='<p class="sub">'+(x?esc(x.eq)+(x.custom?' · your custom exercise'+(x.type?' · '+esc(EX_TYPES[x.type]||''):''):''):'Not in the exercise library')+'</p>'+
+  (x?'<div class="tag-list" style="margin:8px 0 12px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>':'')+
+  '<div class="sheet-grid"><div class="sheet-map" id="sheetMuscleMap"></div><div>'+
+   (tip?'<div class="form-tip"><strong>Form tip</strong><p>'+esc(tip)+'</p><small class="sub">General guidance, not personal coaching.</small></div>':'')+
+   '<div class="stat-row">'+'<div class="stat"><b>'+(prE1rm?esc(fmtWeight(prE1rm)):'—')+'</b><span>best estimated 1RM</span></div><div class="stat"><b>'+(heaviest&&heaviest.kg?esc(fmtWeight(heaviest.kg,2))+' × '+heaviest.reps:'—')+'</b><span>heaviest set</span></div><div class="stat"><b>'+rows.length+'</b><span>workouts logged</span></div></div>'+
+   sparklineMarkup(rows)+'</div></div>'+
+  '<div class="sub-h">Last 5 times</div>'+(rows.length?'<ul class="sheet-history">'+rows.slice(0,5).map(r=>'<li><strong>'+esc(relativeDay(r.date)||r.date)+'</strong><span>'+(r.best?esc(fmtWeight(r.best.kg,2))+' × '+Number(r.best.reps)+' best':'')+' · '+r.sets.length+' set'+(r.sets.length===1?'':'s')+(r.volume?' · '+esc(fmtVolume(r.volume)):'')+'</span></li>').join('')+'</ul>':'<p class="sub">No finished workouts with this exercise yet.</p>')+
+  (rows.length>5?'<details class="sheet-more"><summary>All history</summary>'+exerciseHistoryMarkup(name)+'</details>':'')+
+  (alts.length?'<div class="sub-h">'+(swap?'Swap for':'Alternatives')+' · same main muscle</div><ul class="sheet-alts">'+alts.map(a=>'<li><span><strong>'+esc(a.name)+'</strong><small class="sub">'+esc(a.eq)+' · '+esc(a.pm)+(a.sec.length?' + '+a.sec.map(esc).join(', '):'')+'</small></span><span class="row-wrap"><button type="button" class="btn" data-sheet-action="view" data-name="'+esc(a.name)+'" aria-label="Details for '+esc(a.name)+'">Details</button>'+(swap?'<button type="button" class="btn btn-primary" data-sheet-action="swap" data-name="'+esc(a.name)+'" aria-label="Swap '+esc(name)+' for '+esc(a.name)+'">Swap</button>':'<button type="button" class="btn btn-primary" data-sheet-action="add" data-name="'+esc(a.name)+'" aria-label="Add '+esc(a.name)+' to today">+ Add</button>')+'</span></li>').join('')+'</ul>':'')+
+  (x&&x.custom?'<div class="row-wrap sheet-manage"><button type="button" class="btn" data-sheet-action="edit">✎ Edit or merge</button></div>':'');
+ renderMuscleMapInto('sheetMuscleMap',x);
+}
+function customExerciseFormMarkup(x){
+ const muscles=Object.values(MC),equipment=Object.keys(LIB).concat('Other'),same=allEx().filter(e=>!e.custom&&e.pm===x.pm).sort((a,b)=>a.name.localeCompare(b.name)),others=allEx().filter(e=>!e.custom&&e.pm!==x.pm).sort((a,b)=>a.name.localeCompare(b.name));
+ const opt=(v,l,sel)=>'<option value="'+esc(v)+'"'+(sel?' selected':'')+'>'+esc(l)+'</option>';
+ return '<form class="custom-ex-form" data-custom-id="'+esc(x.id)+'">'+
+  '<label for="cxName">Name</label><input id="cxName" maxlength="60" value="'+esc(x.name)+'" required>'+
+  '<div class="form-grid"><div class="field"><label for="cxEquip">Equipment</label><select id="cxEquip">'+equipment.map(e=>opt(e,e,e===x.eq)).join('')+'</select></div>'+
+  '<div class="field"><label for="cxType">Type</label><select id="cxType">'+Object.keys(EX_TYPES).map(k=>opt(k,EX_TYPES[k],(x.type||'weights')===k)).join('')+'</select></div>'+
+  '<div class="field"><label for="cxPrimary">Main muscle</label><select id="cxPrimary">'+muscles.map(m=>opt(m,cap(m),m===x.pm)).join('')+'</select></div></div>'+
+  '<fieldset class="cx-secondary"><legend>Supporting muscles</legend>'+muscles.map(m=>'<label><input type="checkbox" value="'+m+'"'+(x.sec.includes(m)?' checked':'')+'> '+cap(m)+'</label>').join('')+'</fieldset>'+
+  '<p class="sub">Renaming also updates your past workouts, records and routines that use this exercise.</p>'+
+  '<div class="row-wrap"><button type="submit" class="btn btn-primary">Save changes</button><button type="button" class="btn" data-sheet-action="cancel-edit">Cancel</button></div>'+
+  '<div class="sub-h">Merge into a library exercise</div><p class="sub">Use this if your custom exercise is the same as one in the library. Your history moves to the library exercise and the custom one is removed.</p>'+
+  '<div class="row-wrap"><label class="sr" for="cxMergeTarget">Library exercise to merge into</label><select id="cxMergeTarget"><option value="">Choose an exercise…</option><optgroup label="Same main muscle">'+same.map(e=>opt(e.name,e.name+' ('+e.eq+')',false)).join('')+'</optgroup><optgroup label="Other exercises">'+others.map(e=>opt(e.name,e.name+' ('+e.eq+')',false)).join('')+'</optgroup></select><button type="button" class="btn" data-sheet-action="merge">Merge</button></div>'+
+  '<div class="sub-h">Delete</div><p class="sub">Deleting removes it from the library. Workouts you already logged keep their history.</p>'+
+  '<button type="button" class="btn" data-sheet-action="delete" style="color:var(--danger);border-color:var(--danger)">'+(sheetState.confirmDelete?'Tap again to delete permanently':'Delete exercise')+'</button></form>';
+}
+
+// --- B24: custom exercise management ---
+// Pure-ish: renames an exercise everywhere it is referenced by name. Returns how many records changed.
+function renameExerciseEverywhere(target,from,to,muscle){
+ const key=String(from||'').trim().toLowerCase();if(!key||!to)return 0;let n=0;
+ const fix=o=>{if(o&&typeof o.name==='string'&&o.name.trim().toLowerCase()===key){o.name=to;if(muscle&&'muscle' in o)o.muscle=muscle;n++;}};
+ (target.workouts||[]).forEach(fix);(target.lastSession||[]).forEach(fix);(target.prs||[]).forEach(fix);
+ (target.sessions||[]).forEach(s=>{(s.exercises||[]).forEach(fix);if(Array.isArray(s.names))s.names=s.names.map(x=>String(x).trim().toLowerCase()===key?to:x);(s.prs||[]).forEach(fix);});
+ (target.routines||[]).forEach(r=>(r.exercises||[]).forEach(fix));
+ ((target.deluxe&&target.deluxe.plans)||[]).forEach(p=>(p.days||[]).forEach(d=>(d.exercises||[]).forEach(fix)));
+ Object.values(target.dailyHistory||{}).forEach(d=>(d.workouts||[]).forEach(fix));
+ if(target.lastSummary){(target.lastSummary.prs||[]).forEach(fix);if(Array.isArray(target.lastSummary.names))target.lastSummary.names=target.lastSummary.names.map(x=>String(x).trim().toLowerCase()===key?to:x);}
+ if(target.lastKg)Object.keys(target.lastKg).forEach(k=>{if(k.trim().toLowerCase()===key){target.lastKg[to]=target.lastKg[k];if(k!==to)delete target.lastKg[k];}});
+ return n;
+}
+function customIndexById(id){return (state.customEx||[]).findIndex(c=>c&&(c.id===id||normalizeCustomExercise(c,0).id===id));}
+function saveCustomExerciseEdit(form){
+ const id=form.dataset.customId,i=customIndexById(id);if(i<0)return;
+ const old=normalizeCustomExercise(state.customEx[i],i),name=$('cxName').value.trim().slice(0,60),pm=$('cxPrimary').value,sec=[...form.querySelectorAll('.cx-secondary input:checked')].map(c=>c.value).filter(m=>m!==pm);
+ if(!name)return showToast('Enter a name');
+ const clash=allEx().find(e=>e.name.toLowerCase()===name.toLowerCase()&&e.id!==old.id);if(clash)return showToast('“'+name+'” already exists'+(clash.custom?'':' in the library — use Merge instead'));
+ state.customEx[i]=Object.assign({},state.customEx[i],{id:old.id,name,eq:$('cxEquip').value,type:EX_TYPES[$('cxType').value]?$('cxType').value:'weights',pm,sec,custom:true});
+ const moved=name!==old.name?renameExerciseEverywhere(state,old.name,name,cap(pm)):0;
+ sheetState.name=name;sheetState.mode='view';saveState();renderExerciseSheet();showToast('Saved'+(moved?' · '+moved+' logged item'+(moved===1?'':'s')+' renamed':''));
+}
+function mergeCustomExercise(){
+ const i=customIndexById($('exerciseSheet').querySelector('form[data-custom-id]')?.dataset.customId);if(i<0)return;
+ const custom=normalizeCustomExercise(state.customEx[i],i),target=exerciseByName($('cxMergeTarget').value);
+ if(!target||target.custom)return showToast('Choose a library exercise to merge into');
+ const moved=renameExerciseEverywhere(state,custom.name,target.name,cap(target.pm));
+ markRecordDeleted('customEx',state.customEx[i]);state.customEx.splice(i,1);
+ if(state.exFav&&state.exFav[custom.id]){state.exFav[custom.id]=0;state.exFav[target.id]=1;}
+ sheetState={name:target.name,mode:'view',swapIndex:null,confirmDelete:false};saveState();renderExerciseSheet();showToast('Merged into '+target.name+(moved?' · '+moved+' logged item'+(moved===1?'':'s')+' moved':''));
+}
+function deleteCustomExercise(){
+ if(!sheetState)return;
+ if(!sheetState.confirmDelete){sheetState.confirmDelete=true;renderExerciseSheet();$('exerciseSheet').querySelector('[data-sheet-action="delete"]')?.focus();return;}
+ const i=customIndexById($('exerciseSheet').querySelector('form[data-custom-id]')?.dataset.customId);if(i<0)return;
+ const custom=normalizeCustomExercise(state.customEx[i],i);markRecordDeleted('customEx',state.customEx[i]);state.customEx.splice(i,1);if(state.exFav)state.exFav[custom.id]=0;
+ $('exerciseSheet').close();saveState();showToast('Deleted '+custom.name+'. Logged workouts keep their history.');
+}
+function swapWorkoutExercise(index,name){
+ if(index===null||index===undefined)return;
+ const w=state.workouts[index],x=exerciseByName(name);if(!w||!x)return;
+ if(w.setList.some(s=>s.done))return showToast('Sets are already ticked for this exercise; add the new one instead');
+ const old=w.name;w.name=x.name;w.muscle=cap(x.pm);w.setList=suggestedSetsFor(x.name).sets;syncW(w);
+ $('exerciseSheet').close();refreshTraining();showToast('Swapped '+old+' for '+x.name);
+}
+function renderCustomExerciseList(){
+ const host=$('customExercisePanel');if(!host)return;
+ const list=allEx().filter(e=>e.custom).sort((a,b)=>a.name.localeCompare(b.name));
+ host.innerHTML='<h3>Your custom exercises</h3><p>Edit, merge into a library exercise or delete the exercises you created.</p>'+
+  (list.length?'<ul class="custom-ex-list">'+list.map(e=>'<li><span><strong>'+esc(e.name)+'</strong><small class="sub">'+esc(e.eq)+' · '+esc(e.pm)+'</small></span><button type="button" class="btn" data-custom-manage="'+esc(e.name)+'" aria-label="Manage '+esc(e.name)+'">Manage</button></li>').join('')+'</ul>':'<p class="sub">None yet. Create one from “Can’t find it? Add a custom exercise” on the Training screen.</p>');
+}
+function initLibraryControls(){
+ const dialog=$('exerciseSheet');
+ if(dialog){
+  dialog.addEventListener('click',e=>{const b=e.target.closest('[data-sheet-action]');if(!b)return;const a=b.dataset.sheetAction,n=b.dataset.name;
+   if(a==='close')dialog.close();else if(a==='view'){sheetState={name:n,mode:'view',swapIndex:sheetState.swapIndex,confirmDelete:false};renderExerciseSheet();$('exerciseSheetTitle').focus();}
+   else if(a==='add'){const x=exerciseByName(n);if(x){dialog.close();addEx(x.id);}}
+   else if(a==='swap')swapWorkoutExercise(sheetState.swapIndex,n);
+   else if(a==='edit'){sheetState.mode='edit';sheetState.confirmDelete=false;renderExerciseSheet();$('cxName')?.focus();}
+   else if(a==='cancel-edit'){sheetState.mode='view';renderExerciseSheet();$('exerciseSheetTitle').focus();}
+   else if(a==='merge')mergeCustomExercise();else if(a==='delete')deleteCustomExercise();});
+  dialog.addEventListener('submit',e=>{const f=e.target.closest('form.custom-ex-form');if(!f)return;e.preventDefault();saveCustomExerciseEdit(f);});
+  // The close event is queued, so it can arrive after the sheet was reopened; only reset when it is really closed.
+  dialog.addEventListener('close',()=>{if(!dialog.open)sheetState=null;});
+ }
+ $('customExercisePanel')?.addEventListener('click',e=>{const b=e.target.closest('[data-custom-manage]');if(b)openExerciseSheet(b.dataset.customManage,{mode:'edit'});});
+ $('exPreview')?.addEventListener('click',e=>{const b=e.target.closest('[data-ex-details]');if(b)openExerciseSheet(b.dataset.exDetails);});
+}
+
 // ===== Gymplified accounts + real friend connections =====
 const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3iqgTv1xyZgxhnD8iV1uMQ_DcrlHxPj';
@@ -4401,6 +4637,7 @@ initGameControls();
 initFriendsControls();
 initNutritionControls();
 initAccessibilityControls();
+initLibraryControls();
 initGoals();
 if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();

@@ -72,7 +72,10 @@ export function disputedPaymentIntent(dispute) {
 }
 
 // The parameters for a one-time Deluxe Checkout Session.
-export function deluxeCheckoutParams({ priceId, userId, email, siteUrl, termsRequired = false, submitNote = '', automaticTax = false }) {
+// With Stripe Managed Payments (Stripe as merchant of record, on by default for the account) Stripe itself
+// sends receipts and invoices, calculates VAT and controls the checkout text, so those parameters are rejected
+// and must not be sent. They are only used when Managed Payments is turned off.
+export function deluxeCheckoutParams({ priceId, userId, email, siteUrl, termsRequired = false, submitNote = '', automaticTax = false, managedPayments = true }) {
   const params = {
     mode: 'payment',
     line_items: [{ price: priceId, quantity: 1 }],
@@ -81,12 +84,15 @@ export function deluxeCheckoutParams({ priceId, userId, email, siteUrl, termsReq
     success_url: siteUrl + '/?deluxe=success&session_id={CHECKOUT_SESSION_ID}',
     cancel_url: siteUrl + '/?deluxe=cancel',
     metadata: { product: DELUXE_PRODUCT_TAG, user_id: userId },
-    payment_intent_data: { metadata: { product: DELUXE_PRODUCT_TAG, user_id: userId } },
-    invoice_creation: { enabled: true }
+    payment_intent_data: { metadata: { product: DELUXE_PRODUCT_TAG, user_id: userId } }
   };
-  if (email) { params.customer_email = email; params.payment_intent_data.receipt_email = email; }
+  if (email) params.customer_email = email;
   if (termsRequired) params.consent_collection = { terms_of_service: 'required' };
-  if (submitNote) params.custom_text = { submit: { message: String(submitNote).slice(0, 1200) } };
-  if (automaticTax) params.automatic_tax = { enabled: true };
+  if (!managedPayments) {
+    params.invoice_creation = { enabled: true };
+    if (email) params.payment_intent_data.receipt_email = email;
+    if (submitNote) params.custom_text = { submit: { message: String(submitNote).slice(0, 1200) } };
+    if (automaticTax) params.automatic_tax = { enabled: true };
+  }
   return params;
 }

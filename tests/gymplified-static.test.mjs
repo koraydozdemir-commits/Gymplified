@@ -1168,9 +1168,17 @@ test('H1/H3: checkout parameters and paid-session checks bind the purchase to on
   assert.equal(params.get('success_url'), 'https://gymplified.com/?deluxe=success&session_id={CHECKOUT_SESSION_ID}');
   assert.equal(params.get('automatic_tax[enabled]'), null, 'tax collection is an owner decision and stays off unless configured');
   assert.equal(params.get('consent_collection[terms_of_service]'), null);
-  const withTerms = formEncode(deluxeCheckoutParams({ priceId: 'p', userId: user, siteUrl: 'https://gymplified.com', termsRequired: true, automaticTax: true }));
+  // Managed Payments (default): Stripe is merchant of record and rejects receipt, invoice, custom-text and tax parameters.
+  for (const k of ['payment_intent_data[receipt_email]', 'invoice_creation[enabled]', 'custom_text[submit][message]', 'automatic_tax[enabled]'])
+    assert.equal(formEncode(deluxeCheckoutParams({ priceId: 'p', userId: user, email: 'a@b.co', siteUrl: 'https://gymplified.com', submitNote: 'x', automaticTax: true })).get(k), null, k + ' is never sent with Managed Payments');
+  assert.equal(params.get('customer_email'), 'a@b.co', 'the receipt still goes to the account email (Stripe sends it)');
+  const withTerms = formEncode(deluxeCheckoutParams({ priceId: 'p', userId: user, email: 'a@b.co', siteUrl: 'https://gymplified.com', termsRequired: true, automaticTax: true, submitNote: 'note', managedPayments: false }));
   assert.equal(withTerms.get('consent_collection[terms_of_service]'), 'required');
-  assert.equal(withTerms.get('automatic_tax[enabled]'), 'true');
+  assert.equal(withTerms.get('automatic_tax[enabled]'), 'true', 'without Managed Payments the app can ask Stripe Tax');
+  assert.equal(withTerms.get('payment_intent_data[receipt_email]'), 'a@b.co');
+  assert.equal(withTerms.get('invoice_creation[enabled]'), 'true');
+  const fn = await read('supabase/functions/gymplified-deluxe/index.ts');
+  assert.match(fn, /managedPayments: Deno\.env\.get\('STRIPE_MANAGED_PAYMENTS'\) !== '0'/);
   const paid = { object: 'checkout.session', id: 'cs_test_1', mode: 'payment', payment_status: 'paid', client_reference_id: user, payment_intent: 'pi_1', amount_total: 999, currency: 'eur', metadata: { product: DELUXE_PRODUCT_TAG, user_id: user } };
   assert.equal(entitlementFromCheckoutSession(paid).userId, user);
   assert.equal(entitlementFromCheckoutSession({ ...paid, payment_status: 'unpaid' }), null, 'unpaid sessions grant nothing');

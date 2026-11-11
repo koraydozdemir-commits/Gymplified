@@ -159,19 +159,37 @@ const cleanState = {
 let state = bootState();
 
 // --- TOAST NOTIFICATIONS ---
-function showToast(message) {
+function showToast(message, options) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.textContent = message;
+  const text = document.createElement('span');
+  text.textContent = message;
+  toast.appendChild(text);
+  const action = options && typeof options.onAction === 'function' ? options : null;
+  let closed = false;
+  const close = () => { if (closed) return; closed = true; toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); };
+  if (action) {
+    // Batch 11: a toast can carry one action (Undo). It stays longer and is clickable.
+    toast.classList.add('toast-action');
+    const button = document.createElement('button');
+    button.type = 'button'; button.className = 'toast-btn'; button.textContent = action.actionLabel || 'Undo';
+    button.addEventListener('click', () => { if (closed) return; close(); action.onAction(); });
+    toast.appendChild(button);
+  }
   container.appendChild(toast);
 
   setTimeout(() => toast.classList.add('show'), 20);
-  setTimeout(() => {
-    toast.classList.remove('show');
-    setTimeout(() => toast.remove(), 300);
-  }, 2200);
+  setTimeout(close, action ? 6500 : 2200);
 }
+// Batch 11: deleting is instant and reversible. Restored records get fresh ids, so a deletion that already
+// synced (tombstoned on the server) can never delete the restored copy again.
+const UNDO_ID_PREFIX={prs:'pr',workouts:'workout',foods:'food',waterEntries:'water',routines:'routine'};
+function freshCopy(kind,item){const c=JSON.parse(JSON.stringify(item));c.id=newRecordId(UNDO_ID_PREFIX[kind]||'item');if(kind==='workouts'&&Array.isArray(c.setList)){c.setList.forEach(x=>{delete x.id;});syncW(c);}return c;}
+function offerUndo(message,restore){showToast(message,{actionLabel:'Undo',onAction:()=>{restore();saveState();renderAll();showToast('Restored');}});}
+function insertAt(list,index,items){list.splice(Math.max(0,Math.min(Number(index)||0,list.length)),0,...items);}
+function recalcTodayWater(){const today=(state.waterEntries||[]).filter(x=>x.day===dayKey());state.water=+today.reduce((n,x)=>n+x.amount,0).toFixed(3);state.waterLog=today.map(x=>x.amount);}
+function addFoodTotals(f,sign){['cal','protein','carbs','fat'].forEach(k=>{state[k]=Math.max(0,(Number(state[k])||0)+sign*(Number(f[k])||0));});}
 
 // --- PERSISTENCE & SETTINGS ---
 let cloudSyncUserId=null,cloudSyncLoadingUserId=null,cloudSaveTimer=null,cloudSaveBusy=false,cloudSavePending=false,stateRevision=0,cloudSyncErrorShown=false;
@@ -315,14 +333,14 @@ function toggleQuickTheme() {
 }
 
 // --- NAVIGATION ---
+const MORE_SCREENS=['more','prs','deluxe','settings','account'];
 function showScreen(screenId, btn) {
+  if(!document.getElementById(screenId))screenId='dashboard';
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
-  if (btn) {
-    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-  }
-  markNav(); scrollTo(0,0); announceScreen(screenId,true); if(screenId==='friends')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
+  // Highlight by screen, not by the clicked element, so code-driven navigation and the More menu stay in sync.
+  document.querySelectorAll('nav button[data-screen]').forEach(b => b.classList.toggle('active', b.dataset.screen===screenId || (b.dataset.screen==='more' && MORE_SCREENS.includes(screenId))));
+  markNav(); scrollTo(0,0); announceScreen(screenId,true); if(screenId==='friends')renderFriends(); if(screenId==='account')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
   if(screenId === 'prs') { nextQuote(); }
   if(screenId === 'deluxe'){ renderDeluxeUI(); if(currentUser) refreshDeluxeAccess(); }
 }
@@ -454,6 +472,7 @@ function renderAll() {
   renderExtras();
   syncSettingsControls();renderBackupReminder();renderOnboarding();renderCustomExerciseList();
   if(typeof renderDeluxeUI==='function')renderDeluxeUI();
+  if(typeof renderAccountChrome==='function')renderAccountChrome();
 
   const now = new Date();
   document.getElementById('currentDate').textContent = now.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
@@ -481,17 +500,17 @@ function savePRRecord() {
 }
 
 function deletePR(index) {
-  markRecordDeleted('prs',state.prs[index]);state.prs.splice(index, 1);
+  const pr=state.prs[index];if(!pr)return;
+  markRecordDeleted('prs',pr);state.prs.splice(index, 1);
   saveState();
-  showToast('Personal Record removed');
+  offerUndo('Personal Record removed',()=>insertAt(state.prs,index,[freshCopy('prs',pr)]));
 }
 
 function clearAllPRs() {
-  if (confirm('Are you sure you want to clear all Personal Records?')) {
-    (state.prs||[]).forEach(x=>markRecordDeleted('prs',x));state.prs = [];
-    saveState();
-    showToast('All PRs cleared');
-  }
+  const removed=(state.prs||[]).slice();if(!removed.length)return showToast('No records to clear');
+  removed.forEach(x=>markRecordDeleted('prs',x));state.prs = [];
+  saveState();
+  offerUndo('All PRs cleared',()=>{state.prs=removed.map(x=>freshCopy('prs',x)).concat(state.prs);});
 }
 
 // --- WORKOUT ACTIONS ---
@@ -513,17 +532,17 @@ function saveDirectExercise() {
 }
 
 function deleteWorkout(index) {
-  markRecordDeleted('workouts',state.workouts[index]);state.workouts.splice(index, 1);
+  const w=state.workouts[index];if(!w)return;
+  markRecordDeleted('workouts',w);state.workouts.splice(index, 1);
   saveState();
-  showToast('Exercise removed');
+  offerUndo(w.name+' removed',()=>insertAt(state.workouts,index,[freshCopy('workouts',w)]));
 }
 
 function clearAllWorkouts() {
-  if (confirm('Clear all logged exercises for today?')) {
-    (state.workouts||[]).forEach(x=>markRecordDeleted('workouts',x));state.workouts = [];
-    saveState();
-    showToast('Workout log cleared');
-  }
+  const removed=(state.workouts||[]).slice();if(!removed.length)return showToast('Nothing logged today');
+  removed.forEach(x=>markRecordDeleted('workouts',x));state.workouts = [];
+  saveState();
+  offerUndo('Workout log cleared',()=>{state.workouts=removed.map(x=>freshCopy('workouts',x)).concat(state.workouts);});
 }
 
 // --- NUTRITION 2.0: searchable foods, portions and meal diary ---
@@ -546,12 +565,14 @@ function saveNutritionTargets(){
 function saveFoodEntry(){showToast('Choose a food from the new food search');}
 function deleteFood(index){
   const f=state.foods[index];if(!f)return;markRecordDeleted('foods',f);
-  state.cal=Math.max(0,state.cal-(Number(f.cal)||0));state.protein=Math.max(0,state.protein-(Number(f.protein)||0));state.carbs=Math.max(0,state.carbs-(Number(f.carbs)||0));state.fat=Math.max(0,state.fat-(Number(f.fat)||0));
-  state.foods.splice(index,1);saveState();renderAll();showToast('Food removed from diary');
+  addFoodTotals(f,-1);
+  state.foods.splice(index,1);saveState();renderAll();
+  offerUndo((f.name?f.name+' ':'Food ')+'removed from diary',()=>{const c=freshCopy('foods',f);insertAt(state.foods,index,[c]);addFoodTotals(c,1);});
 }
 function clearFoodLogs(){
-  if(!confirm('Clear every food entry logged today?'))return;
-  (state.foods||[]).forEach(x=>markRecordDeleted('foods',x));state.foods=[];state.cal=state.protein=state.carbs=state.fat=0;saveState();renderAll();showToast('Today’s food diary cleared');
+  const removed=(state.foods||[]).slice(),totals={cal:state.cal,protein:state.protein,carbs:state.carbs,fat:state.fat};if(!removed.length)return showToast('No food logged today');
+  removed.forEach(x=>markRecordDeleted('foods',x));state.foods=[];state.cal=state.protein=state.carbs=state.fat=0;saveState();renderAll();
+  offerUndo('Today’s food diary cleared',()=>{state.foods=removed.map(x=>freshCopy('foods',x)).concat(state.foods);['cal','protein','carbs','fat'].forEach(k=>{state[k]=(Number(state[k])||0)+(Number(totals[k])||0);});});
 }
 
 
@@ -929,6 +950,8 @@ function sanitizeStateSnapshot(raw){
  if(settings.restSeconds!=null)state.settings.restSeconds=Math.round(safeStateNumber(settings.restSeconds,0,REST_SECONDS_MAX,REST_DEFAULT_SECONDS));
  if(typeof settings.restBeep==='boolean')state.settings.restBeep=settings.restBeep;
  if(typeof settings.restNotify==='boolean')state.settings.restNotify=settings.restNotify;
+ if(typeof settings.keepAwake==='boolean')state.settings.keepAwake=settings.keepAwake;
+ if(settings.restByExercise&&typeof settings.restByExercise==='object'&&!Array.isArray(settings.restByExercise)){const m={};Object.keys(settings.restByExercise).filter(k=>/^[a-z0-9-]{1,60}$/.test(k)).slice(0,300).forEach(k=>{m[k]=Math.round(safeStateNumber(settings.restByExercise[k],0,REST_SECONDS_MAX,0));});state.settings.restByExercise=m;}
  if(['kg','lb'].includes(settings.weightUnit))state.settings.weightUnit=settings.weightUnit;
  if(['km','mi'].includes(settings.distanceUnit))state.settings.distanceUnit=settings.distanceUnit;
  if(['cm','ftin'].includes(settings.heightUnit))state.settings.heightUnit=settings.heightUnit;
@@ -1265,7 +1288,7 @@ function loadSavedRoutine(index){
  state.workouts=routine.exercises.map(w=>syncW({name:w.name,muscle:w.muscle,setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,done:false}))}));
  saveState();showToast(routine.name+' loaded');
 }
-function deleteSavedRoutine(index){const routine=(state.routines||[])[index];if(!routine||!confirm('Delete saved routine "'+routine.name+'"?'))return;markRecordDeleted('routines',routine);state.routines.splice(index,1);saveState();showToast('Routine deleted');}
+function deleteSavedRoutine(index){const routine=(state.routines||[])[index];if(!routine)return;markRecordDeleted('routines',routine);state.routines.splice(index,1);saveState();offerUndo('Routine "'+routine.name+'" deleted',()=>insertAt(state.routines,index,[freshCopy('routines',routine)]));}
 function renderWaterSummary(){
   const goal=state.waterGoal>0?state.waterGoal:2.5,wp=Math.min(100,Math.round(state.water/goal*100));
   $('dashWater').textContent=formatWaterTotal(state.water);$('dashWaterGoal').textContent=formatWaterTotal(goal);$('dashWaterUnit').textContent=waterTotalUnitLabel();
@@ -1446,9 +1469,11 @@ function setVal(i,j,k,v,el){const w=state.workouts[i],x=w&&w.setList[j];if(!x)re
  const row=el&&el.closest('.setrow');if(row){row.classList.remove('set-auto');row.querySelectorAll('input[data-set-field]').forEach(input=>{if(input.value===''||input===el)input.value=input.dataset.setField==='kg'?kgToDisplay(x.kg,2):x.reps;});}
  updateTrainingTotals();}
 function toggleSet(i,j){const w=state.workouts[i],x=w&&w.setList[j];if(!x)return;x.done=!x.done;if(x.done){x.auto=false;state.lastKg[w.name]=x.kg;}syncW(w);flushDraftSave();saveState();
- if(x.done){try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}if(restSetting()>0)startRest(restSetting());}}
+ if(x.done){try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}const r=restFor(w.name);if(r>0)startRest(r);}}
 function addSet(i){const w=state.workouts[i];if(!w)return;if(w.setList.length>=50)return showToast('An exercise can have up to 50 sets');const l=w.setList[w.setList.length-1]||{kg:0,reps:10};const type=setTypeOf(l);w.setList.push({kg:l.kg,reps:l.reps,type:type==='warmup'?'normal':type,done:false,auto:true});syncW(w);refreshTraining();}
-function removeSet(i,j){const w=state.workouts[i];if(!w)return;if(w.setList.length<=1)return showToast('Keep one set, or remove the exercise');w.setList.splice(j,1);syncW(w);flushDraftSave();saveState();}
+function removeSet(i,j){const w=state.workouts[i];if(!w)return;if(w.setList.length<=1)return showToast('Keep one set, or remove the exercise');const removed=w.setList.splice(j,1)[0];syncW(w);flushDraftSave();saveState();
+ // Sets live inside their exercise (no separate tombstone), so undo puts the same set back while the exercise still exists.
+ offerUndo('Set '+(j+1)+' removed',()=>{const target=state.workouts.find(x=>x.id===w.id);if(!target)return showToast('That exercise was removed');if(target.setList.length>=50)return showToast('An exercise can have up to 50 sets');insertAt(target.setList,j,[removed]);syncW(target);});}
 function toggleWorkoutDone(i){const w=state.workouts[i],v=!w.done;w.setList.forEach(x=>{x.done=v;if(v)x.auto=false;});syncW(w);saveState();}
 function previousExercisePerformance(name){
  const key=String(name||'').trim().toLowerCase();
@@ -1581,6 +1606,31 @@ function sessionTotals(){let volume=0,setsDone=0,setsTotal=0,reps=0;(state.worko
 // --- B1/B2: rest timer (device-local, survives reload, driven by an end timestamp) ---
 const REST_TIMER_KEY='gymplified_rest_timer_v1';
 let restTimer=null,restTick=null,restAudio=null,restDoneTimeout=null;
+// Batch 11: rest can be set per exercise (synced in settings.restByExercise; 0 = no timer). Otherwise the default applies.
+function restKey(name){return String(name||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60);}
+function restFor(name){const map=state.settings&&state.settings.restByExercise,k=restKey(name);return map&&k&&Object.prototype.hasOwnProperty.call(map,k)?map[k]:restSetting();}
+function setExerciseRest(i,value){
+ const w=state.workouts[i],k=w&&restKey(w.name);if(!k)return;
+ const map=state.settings.restByExercise=Object.assign({},state.settings.restByExercise);
+ if(value===''||value==null)delete map[k];else map[k]=Math.max(0,Math.min(REST_SECONDS_MAX,Math.round(Number(value))||0));
+ saveWorkoutSettings();showToast(value===''?'Rest for '+w.name+' uses your default':map[k]?'Rest after '+w.name+': '+formatClockSeconds(map[k]):'No rest timer for '+w.name);
+}
+function exerciseRestMarkup(w,i){
+ const map=state.settings.restByExercise||{},k=restKey(w.name),has=Object.prototype.hasOwnProperty.call(map,k),cur=has?String(map[k]):'',d=restSetting();
+ const opts=[['','Default ('+(d?formatClockSeconds(d):'off')+')'],['0','No timer'],['30','0:30'],['60','1:00'],['90','1:30'],['120','2:00'],['180','3:00'],['240','4:00']];
+ if(has&&!opts.some(o=>o[0]===cur))opts.push([cur,formatClockSeconds(map[k])]);
+ return '<label class="ex-rest"><span>Rest</span><select data-ex-rest data-i="'+i+'" aria-label="Rest after each set of '+esc(w.name)+'">'+opts.map(o=>'<option value="'+o[0]+'"'+(o[0]===cur?' selected':'')+'>'+o[1]+'</option>').join('')+'</select></label>';
+}
+// Batch 11: keep the screen on while a workout is running (Screen Wake Lock API; on by default, can be turned off).
+let wakeLockSentinel=null,wakeLockPending=false;
+function wantWakeLock(){return !!state.session&&state.settings.keepAwake!==false&&document.visibilityState==='visible'&&!!(navigator.wakeLock&&navigator.wakeLock.request);}
+function syncWakeLock(){
+ if(wantWakeLock()){
+  if(wakeLockSentinel||wakeLockPending)return;wakeLockPending=true;
+  navigator.wakeLock.request('screen').then(lock=>{wakeLockPending=false;wakeLockSentinel=lock;lock.addEventListener('release',()=>{if(wakeLockSentinel===lock)wakeLockSentinel=null;});if(!wantWakeLock())syncWakeLock();}).catch(()=>{wakeLockPending=false;});
+ }else if(wakeLockSentinel){const lock=wakeLockSentinel;wakeLockSentinel=null;lock.release().catch(()=>{});}
+}
+document.addEventListener('visibilitychange',syncWakeLock);
 function restSetting(){const n=Number(state.settings&&state.settings.restSeconds);return Number.isFinite(n)?Math.max(0,Math.min(REST_SECONDS_MAX,Math.round(n))):REST_DEFAULT_SECONDS;}
 function saveRestTimer(){try{if(restTimer)localStorage.setItem(REST_TIMER_KEY,JSON.stringify(restTimer));else localStorage.removeItem(REST_TIMER_KEY);}catch(e){}}
 function unlockRestAudio(){if(!state.settings||state.settings.restBeep===false)return;try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;if(!restAudio)restAudio=new Ctx();if(restAudio.state==='suspended')restAudio.resume();}catch(e){}}
@@ -1639,6 +1689,7 @@ function syncRestSettingsUI(){
  $('restCustomWrap').hidden=select.value!=='custom';
  if(custom&&document.activeElement!==custom)custom.value=seconds||REST_DEFAULT_SECONDS;
  $('restBeepToggle').checked=state.settings.restBeep!==false;
+ const awake=$('keepAwakeToggle');if(awake){awake.checked=state.settings.keepAwake!==false;awake.disabled=!(navigator.wakeLock&&navigator.wakeLock.request);awake.title=awake.disabled?'Not supported in this browser':'';}
  $('restNotifyToggle').checked=!!state.settings.restNotify&&'Notification' in window&&Notification.permission==='granted';
 }
 function saveWorkoutSettings(){persistLocalState();queueCloudStateSave();syncRestSettingsUI();}
@@ -1657,15 +1708,35 @@ function suggestedSetsFor(name){
  if(previous&&previous.sets.length)return {fromHistory:true,sets:previous.sets.slice(0,20).map(s=>({kg:Number(s.kg)||0,reps:Math.max(1,Math.round(Number(s.reps))||1),type:setTypeOf(s),done:false,auto:true}))};
  return {fromHistory:false,sets:[0,1,2].map(()=>({kg:0,reps:10,type:'normal',done:false,auto:true}))};
 }
+// Batch 11: quick − / + buttons for the set being edited (weight in 2.5 kg or 5 lb steps, reps in 1s).
+let activeStepRow=null;
+function weightStep(){return weightUnit()==='lb'?5:2.5;}
+function setStepsMarkup(i,j,n){
+ const at=' data-i="'+i+'" data-j="'+j+'"',u=weightUnit(),ws=weightStep();
+ return '<div class="set-steps" role="group" aria-label="Adjust set '+n+'">'+
+  '<button type="button" class="btn" data-set-action="step" data-field="kg" data-delta="-1"'+at+' aria-label="Set '+n+': '+ws+' '+u+' less">−'+ws+'</button>'+
+  '<button type="button" class="btn" data-set-action="step" data-field="kg" data-delta="1"'+at+' aria-label="Set '+n+': '+ws+' '+u+' more">+'+ws+'</button>'+
+  '<button type="button" class="btn" data-set-action="step" data-field="reps" data-delta="-1"'+at+' aria-label="Set '+n+': one rep less">−1 rep</button>'+
+  '<button type="button" class="btn" data-set-action="step" data-field="reps" data-delta="1"'+at+' aria-label="Set '+n+': one rep more">+1 rep</button></div>';
+}
+function stepSetValue(current,field,dir){const n=Number(current)||0,next=field==='reps'?Math.round(n)+dir:Math.round((n+dir*weightStep())*100)/100;return field==='reps'?Math.max(1,Math.min(1000,next)):Math.max(0,next);}
+function stepSet(i,j,field,dir,btn){
+ const w=state.workouts[i],x=w&&w.setList[j];if(!x||(field!=='kg'&&field!=='reps'))return;
+ const row=btn&&btn.closest('.setrow'),input=row&&row.querySelector('input[data-set-field="'+field+'"]');
+ const current=field==='kg'?kgToDisplay(x.kg,2):x.reps,next=stepSetValue(current,field,dir>0?1:-1);
+ if(input)input.value=String(next);
+ setVal(i,j,field,String(next),input);updateSetEstimate(i,j,field,String(next));
+}
+function markStepRow(row){document.querySelectorAll('#trainingLogList .setrow.is-editing').forEach(r=>{if(r!==row)r.classList.remove('is-editing');});if(row){row.classList.add('is-editing');const b=row.querySelector('[data-set-action="step"]');activeStepRow=b?{i:Number(b.dataset.i),j:Number(b.dataset.j)}:null;}}
 function setRowMarkup(w,i,j,x){
  const type=setTypeOf(x),info=SET_TYPE_INFO[type],auto=!!x.auto&&!x.done,n=j+1,at=' data-i="'+i+'" data-j="'+j+'"';
  const shown=kgToDisplay(x.kg,2),hint=auto?', suggested '+shown+' '+weightUnitName()+' for '+Number(x.reps)+' reps':'';
- return '<div class="setrow'+(type!=='normal'?' set-'+type:'')+(auto?' set-auto':'')+'">'+
+ return '<div class="setrow'+(type!=='normal'?' set-'+type:'')+(auto?' set-auto':'')+(activeStepRow&&activeStepRow.i===i&&activeStepRow.j===j?' is-editing':'')+'">'+
   '<button type="button" class="set-type-btn" data-set-action="type"'+at+' aria-label="Set '+n+' type: '+info.label+'. Change set type" title="'+info.label+' — tap to change">'+(info.short||n)+'</button>'+
   '<input type="number" inputmode="decimal" min="0" step="0.5" value="'+(auto?'':shown)+'" placeholder="'+(auto&&shown>0?shown:weightUnit())+'" data-set-field="kg"'+at+' aria-label="'+esc(w.name)+' set '+n+' weight in '+weightUnitName()+hint+'">'+
   '<input type="number" inputmode="numeric" min="1" step="1" value="'+(auto?'':Number(x.reps))+'" placeholder="'+(auto?Number(x.reps):'reps')+'" data-set-field="reps"'+at+' aria-label="'+esc(w.name)+' set '+n+' reps'+hint+'">'+
   '<button type="button" class="check-btn '+(x.done?'done':'')+'" data-set-action="done"'+at+' aria-pressed="'+!!x.done+'" aria-label="Set '+n+' done'+(auto?' — accept suggested values':'')+'">'+(x.done?'✓':'')+'</button>'+
-  '<button type="button" class="btn btn-icon-only" data-set-action="remove"'+at+' aria-label="Remove set '+n+'">−</button>'+setEstimateMarkup(i,j,x)+'</div>';
+  '<button type="button" class="btn btn-icon-only" data-set-action="remove"'+at+' aria-label="Remove set '+n+'">−</button>'+setEstimateMarkup(i,j,x)+setStepsMarkup(i,j,n)+'</div>';
 }
 function exerciseCardMarkup(w,i){
  const previous=previousExercisePerformance(w.name),best=previous?bestPreviousSet(previous.sets.filter(s=>setTypeOf(s)!=='warmup')):null;
@@ -1674,7 +1745,7 @@ function exerciseCardMarkup(w,i){
  return '<div class="st-14 panel"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="st-7 btn btn-icon-only" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
   '<div class="setrow sub" aria-hidden="true"><span>Set</span><span>'+weightUnit()+'</span><span>Reps</span><span>Done</span><span></span></div>'+
   planLineMarkup(w)+w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
-  '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
+  '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+exerciseRestMarkup(w,i)+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
   '<div class="st-59 sub">Volume: <span id="exVolume-'+i+'">'+volumeNumber(vol(w))+'</span> '+weightUnit()+' <span class="sub">· warm-up sets (W) are not counted</span></div></div>';
 }
 function liveStatsMarkup(){const t=sessionTotals();return t.exercises?'<div class="stat-row"><div class="stat"><b>'+volumeNumber(t.volume)+'</b><span>'+weightUnit()+' volume</span></div><div class="stat"><b>'+t.setsDone+'/'+t.setsTotal+'</b><span>sets done</span></div><div class="stat"><b>'+t.reps+'</b><span>reps done</span></div><div class="stat"><b>'+t.exercises+'</b><span>exercises</span></div></div>':'';}
@@ -1695,7 +1766,7 @@ function acceptSuggestedSets(i){const w=state.workouts[i];if(!w)return;w.setList
 let resumeBannerOpen=false;
 function renderSessionChrome(){
  const active=!!state.session,t=sessionTotals(),chip=$('sessionChip');
- document.documentElement.classList.toggle('session-active',active);
+ document.documentElement.classList.toggle('session-active',active);syncWakeLock();
  if(chip){chip.hidden=!active;if(active){$('sessionChipClock').textContent=clock();$('sessionChipMeta').textContent=fmtVolume(t.volume)+' · '+t.setsDone+' '+(t.setsDone===1?'set':'sets');chip.setAttribute('aria-label','Workout in progress: '+volumeNumber(t.volume)+' '+weightUnitName()+', '+t.setsDone+' sets done. Open workout');}}
  const banner=$('resumeBanner');
  if(banner){if(!active)resumeBannerOpen=false;banner.hidden=!(active&&resumeBannerOpen);if(!banner.hidden)$('resumeBannerText').textContent='Started '+new Date(state.session.start).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})+' · '+t.setsDone+' of '+t.setsTotal+' sets done. Everything you logged was saved.';}
@@ -1844,11 +1915,13 @@ function initWorkoutControls(){
  if(list){
   list.addEventListener('click',e=>{
    const b=e.target.closest('button');if(!b||!list.contains(b))return;const i=Number(b.dataset.i),j=Number(b.dataset.j);
-   if(b.dataset.setAction==='type')cycleSetType(i,j);else if(b.dataset.setAction==='done')toggleSet(i,j);else if(b.dataset.setAction==='remove')removeSet(i,j);
+   if(b.dataset.setAction==='type')cycleSetType(i,j);else if(b.dataset.setAction==='done')toggleSet(i,j);else if(b.dataset.setAction==='remove')removeSet(i,j);else if(b.dataset.setAction==='step')stepSet(i,j,b.dataset.field,Number(b.dataset.delta),b);
    else if(b.dataset.exCardAction==='add-set')addSet(i);else if(b.dataset.exCardAction==='remove')deleteWorkout(i);else if(b.dataset.exCardAction==='accept')acceptSuggestedSets(i);else if(b.dataset.exCardAction==='details')openExerciseSheet(state.workouts[i]&&state.workouts[i].name);else if(b.dataset.exCardAction==='swap')openExerciseSheet(state.workouts[i]&&state.workouts[i].name,{swapIndex:i});else if(b.dataset.exCardAction==='best')applyPreviousBest(i);
   });
   list.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.setField;if(f)updateSetEstimate(Number(e.target.dataset.i),Number(e.target.dataset.j),f,e.target.value);});
-  list.addEventListener('change',e=>{const f=e.target.dataset&&e.target.dataset.setField;if(f)setVal(Number(e.target.dataset.i),Number(e.target.dataset.j),f,e.target.value,e.target);});
+  list.addEventListener('change',e=>{const d=e.target.dataset||{};if(d.setField)setVal(Number(d.i),Number(d.j),d.setField,e.target.value,e.target);else if(d.exRest!==undefined)setExerciseRest(Number(d.i),e.target.value);});
+  // The − / + buttons follow the set being edited (tapping a button does not move focus on every phone, so this is tracked explicitly).
+  list.addEventListener('focusin',e=>{if(e.target.matches&&e.target.matches('input[data-set-field]'))markStepRow(e.target.closest('.setrow'));});
  }
  const results=$('exResults');
  if(results){
@@ -1861,6 +1934,7 @@ function initWorkoutControls(){
  $('restCustomSeconds')?.addEventListener('change',e=>{const v=Math.round(Number(e.target.value));if(!(v>=5&&v<=REST_SECONDS_MAX)){showToast('Custom rest must be 5–'+REST_SECONDS_MAX+' seconds');e.target.value=restSetting()||REST_DEFAULT_SECONDS;return;}state.settings.restSeconds=v;saveWorkoutSettings();showToast('Rest timer set to '+formatClockSeconds(v));});
  $('restBeepToggle')?.addEventListener('change',e=>{state.settings.restBeep=e.target.checked;if(e.target.checked)unlockRestAudio();saveWorkoutSettings();});
  $('restNotifyToggle')?.addEventListener('change',e=>setRestNotify(e.target.checked));
+ $('keepAwakeToggle')?.addEventListener('change',e=>{state.settings.keepAwake=e.target.checked;saveWorkoutSettings();syncWakeLock();});
  $('sessionChip')?.addEventListener('click',goToTraining);
  $('resumeBanner')?.addEventListener('click',e=>{const a=e.target.closest('button')?.dataset.resumeAction;if(!a)return;resumeBannerOpen=false;renderSessionChrome();if(a==='resume')goToTraining();});
  $('workoutHero')?.addEventListener('click',e=>{const a=e.target.closest('button')?.dataset.heroAction;if(a==='start')startWorkoutNow();else if(a==='resume')goToTraining();else if(a==='summary')viewTodaySummary();});
@@ -2006,7 +2080,7 @@ function initSettingsControls(){
    else if(a==='clear-profile'){state.profile={heightCm:0,weightKg:0,age:0,sex:'',goal:'',activity:''};saveState();renderProfilePanel();showToast('Profile cleared');}
    else if(a==='use-estimate'){const n=suggestCalories(state.profile);if(n){state.calTarget=n;saveState();initGoals();showToast('Calorie target set to '+n.toLocaleString()+' kcal');}}
    else if(a==='export-backup')exportData();else if(a==='import-backup')$('importFile').click();
-   else if(a==='open-account')showScreen('friends',document.querySelector('nav button[data-screen="friends"]'));
+   else if(a==='open-account')openAccount(authMode);
   });
   settings.addEventListener('change',e=>{
    const id=e.target.id,map={weightUnitSelect:'weightUnit',distanceUnitSelect:'distanceUnit',heightUnitSelect:'heightUnit',weekStartSelect:'weekStart'};
@@ -2480,8 +2554,8 @@ function renderWaterPanel(){
 function removeWaterEntry(id){
  const entry=(state.waterEntries||[]).find(x=>x.id===id);if(!entry)return;
  markRecordDeleted('waterEntries',entry);state.waterEntries=state.waterEntries.filter(x=>x.id!==id);
- const today=state.waterEntries.filter(x=>x.day===dayKey());state.water=+today.reduce((n,x)=>n+x.amount,0).toFixed(3);state.waterLog=today.map(x=>x.amount);
- saveState();showToast('Removed '+formatWaterAmount(entry.amount*1000));
+ recalcTodayWater();
+ saveState();offerUndo('Removed '+formatWaterAmount(entry.amount*1000),()=>{state.waterEntries.push(freshCopy('waterEntries',entry));recalcTodayWater();});
 }
 
 // --- F1: barcode scan → Open Food Facts ---
@@ -2580,7 +2654,7 @@ function initNutritionControls(){
 }
 
 // ===== Batch 7: accessibility =====
-const SCREEN_TITLES={dashboard:'Dashboard',prs:'Personal Records',training:'Training Log',nutrition:'Nutrition',friends:'Friends',deluxe:'Deluxe',settings:'Settings'};
+const SCREEN_TITLES={dashboard:'Dashboard',prs:'Personal Records',training:'Training Log',nutrition:'Nutrition',friends:'Friends',deluxe:'Deluxe',settings:'Settings',account:'Account',more:'More'};
 // I6: a screen change updates the page title and moves focus to the screen's heading, so screen
 // readers announce where the user landed and keyboard users start at the top of the new screen.
 function announceScreen(id,moveFocus){
@@ -2842,14 +2916,14 @@ async function refreshDeluxeAccess(){
 function deluxeOwned(){return !!(deluxeAccess.deluxe&&currentUser&&deluxeAccess.userId===currentUser.id);}
 function deluxeDemoOn(){if(!deluxeDemoAllowed())return false;try{return localStorage.getItem(DELUXE_DEMO_KEY)==='1';}catch(e){return false;}}
 async function buyDeluxe(button){
- if(!currentUser){showToast('Sign in or create an account first — Deluxe is linked to your account');showScreen('friends',document.querySelector('nav button[data-screen="friends"]'));return;}
+ if(!currentUser){showToast('Sign in or create an account first — Deluxe is linked to your account');openAccount('signup');return;}
  if(button)button.disabled=true;
  try{const d=await callDeluxe('checkout');if(d.alreadyOwned){await refreshDeluxeAccess();showToast('Deluxe is already unlocked on your account');return;}if(!d.url)throw new Error('Checkout is not available right now');location.assign(d.url);}
  catch(e){showToast(e.message||'Checkout is not available right now');}
  finally{if(button)button.disabled=false;}
 }
 async function restoreDeluxe(button){
- if(!currentUser){showToast('Sign in with the account you used to buy Deluxe');showScreen('friends',document.querySelector('nav button[data-screen="friends"]'));return;}
+ if(!currentUser){showToast('Sign in with the account you used to buy Deluxe');openAccount('login');return;}
  if(button)button.disabled=true;
  try{const d=await callDeluxe('restore');await refreshDeluxeAccess();showToast(d.deluxe?(d.restored?'Purchase found — Deluxe restored':'Deluxe is unlocked on your account'):'No Deluxe purchase was found for this account');}
  catch(e){showToast(e.message||'Could not check purchases right now');}
@@ -2939,6 +3013,27 @@ async function initSocial(){
  if(currentUser){const syncMode=prepareLocalAccountState(currentUser.id);await loadMyProfile();if(syncMode===true)showLegacyLocalDataDialog();else await syncUserAppState(syncMode==='cloud');loadSupportTickets();}renderFriends();refreshDeluxeAccess();
  sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);let syncMode=false;if(changed){resetCloudSaveQueue();cloudSyncUserId=null;cloudSyncLoadingUserId=null;if(currentUser&&nextUser){if(pendingLegacyAccountId===currentUser.id){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(_){}pendingLegacyAccountId=null;}else saveAccountLocalSnapshot(currentUser.id);}if(nextUser)syncMode=prepareLocalAccountState(nextUser.id);else if(currentUser)releaseLocalAccountState(currentUser.id);}currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed&&syncMode!==true)await syncUserAppState(syncMode==='cloud');if(syncMode===true)showLegacyLocalDataDialog();loadSupportTickets();}else{resetCloudSaveQueue();cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';renderAll();}friendRequests=[];friendProfiles={};renderFriends();refreshDeluxeAccess();},0);});
 }
+// ===== Batch 11: the account is its own place (top bar, Account screen, dashboard nudge), not part of Friends =====
+const ACCOUNT_NUDGE_KEY='gymplified_account_nudge_hidden_until';
+function accountNudgeHidden(){try{return Number(localStorage.getItem(ACCOUNT_NUDGE_KEY))>Date.now();}catch(_){return false;}}
+function renderAccountChrome(){
+ const signedIn=!!currentUser,p=currentProfile||{};
+ const name=signedIn?(p.display_name||p.username||(currentUser.email||'').split('@')[0]||'Account'):'';
+ const btn=$('accountButton');
+ if(btn){
+  btn.classList.toggle('signed-in',signedIn);
+  $('accountButtonLabel').textContent=signedIn?name:'Sign in';
+  const initial=$('accountButtonAvatar');initial.textContent=signedIn?(name.trim().charAt(0).toUpperCase()||'G'):'';initial.hidden=!signedIn;$('accountButtonIcon').style.display=signedIn?'none':'';
+  btn.setAttribute('aria-label',signedIn?'Your account: '+name:'Sign in or create an account');
+ }
+ const hint=$('moreAccountHint');if(hint)hint.textContent=signedIn?'Signed in as '+name:'Sign in or create an account';
+ const sub=$('accountSubtitle');if(sub)sub.textContent=signedIn?'Your profile, picture and sign-in details. Your progress syncs across your devices.':'Sign in to back up your progress and use Gymplified on every device.';
+ const benefits=$('accountBenefits');if(benefits)benefits.hidden=signedIn;
+ // One prompt at a time: the sign-in card waits until first-run setup is finished.
+ const nudge=$('accountNudge');if(nudge)nudge.hidden=signedIn||!sb||accountNudgeHidden()||!state.onboarded||(typeof onboardingNeeded==='function'&&onboardingNeeded())||!!onboardingDraft;
+}
+function openAccount(mode){authMode=mode==='login'?'login':'signup';showScreen('account');if(!currentUser){renderAuthPanel('');setTimeout(()=>{const f=$(authMode==='signup'?'authUsername':'authEmail');if(f)f.focus();},50);}}
+function dismissAccountNudge(){try{localStorage.setItem(ACCOUNT_NUDGE_KEY,String(Date.now()+7*864e5));}catch(_){}renderAccountChrome();showToast('Hidden for a week. You can sign in any time from the top bar.');}
 async function loadMyProfile(){if(!currentUser){currentProfile=null;return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url,created_at').eq('id',currentUser.id).maybeSingle();if(r.error){socialError(r.error);return;}currentProfile=r.data;}
 
 let supportCurrentTicketId=null;
@@ -3066,8 +3161,9 @@ async function fetchSocialData(){
  const p=await sb.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);if(p.error)throw p.error;friendProfiles={};(p.data||[]).forEach(function(x){friendProfiles[x.id]=x;});
 }
 function renderFriends(){
- if(!currentUser){$('friendConnections').style.display='none';$('friendSearchPanel').style.display='none';leaderboardRows=null;feedItems=null;renderLeaderboard();renderFeed();renderAuthPanel('');return;}
- $('friendConnections').style.display='block';$('friendSearchPanel').style.display='block';renderAccountPanel();
+ renderAccountChrome();
+ if(!currentUser){$('friendConnections').hidden=true;$('friendSearchPanel').hidden=true;$('friendsSignedOut').hidden=false;leaderboardRows=null;feedItems=null;renderLeaderboard();renderFeed();renderAuthPanel('');return;}
+ $('friendConnections').hidden=false;$('friendSearchPanel').hidden=false;$('friendsSignedOut').hidden=true;renderAccountPanel();
  renderLeaderboard();renderFeed();loadFriendsCircle().catch(function(e){leaderboardError=feedError=socialError(e);leaderboardRows=leaderboardRows||[];feedItems=feedItems||[];renderLeaderboard();renderFeed();});
  fetchSocialData().then(function(){
   const incoming=friendRequests.filter(function(x){return x.receiver_id===currentUser.id&&x.status==='pending';});
@@ -3318,8 +3414,9 @@ function confirmLoadDeluxePlan(){
  closeDeluxePlanDayDialog();loadPlanDay(plan,selected,false);
 }
 function deleteDeluxePlan(index){
- const plans=state.deluxe?.plans;if(!plans||!plans[index]||!confirm('Delete this training plan?'))return;
- plans.splice(index,1);saveState();renderDeluxePlanLibrary();
+ const plans=state.deluxe?.plans;if(!plans||!plans[index])return;
+ const removed=plans.splice(index,1)[0];saveState();renderDeluxePlanLibrary();
+ offerUndo('Plan "'+removed.name+'" deleted',()=>{insertAt(state.deluxe.plans,index,[removed]);renderDeluxePlanLibrary();});
 }
 function deluxeCSVCell(value){const s=String(value==null?'':value);return '"'+s.replace(/"/g,'""')+'"';}
 function exportDeluxeCSV(){
@@ -3398,7 +3495,9 @@ const UI_ACTIONS=Object.freeze({
  openDeluxeDemo:()=>openDeluxeDemo(),previewDeluxeFeature:el=>previewDeluxeFeature(el.dataset.arg),saveDeluxeCustomisation:()=>saveDeluxeCustomisation(),renderDeluxePerformance:()=>renderDeluxePerformance(),
  addDeluxePlanExercise:()=>addDeluxePlanExercise(),removeDeluxeDraftExercise:el=>removeDeluxeDraftExercise(uiNum(el.dataset.i),uiNum(el.dataset.j)),saveDeluxePlan:()=>saveDeluxePlan(),
  loadDeluxePlan:el=>loadDeluxePlan(uiNum(el.dataset.i)),deleteDeluxePlan:el=>deleteDeluxePlan(uiNum(el.dataset.i)),confirmLoadDeluxePlan:()=>confirmLoadDeluxePlan(),closeDeluxePlanDayDialog:()=>closeDeluxePlanDayDialog(),
- exportDeluxeCSV:()=>exportDeluxeCSV(),exportDeluxeReport:()=>exportDeluxeReport()
+ exportDeluxeCSV:()=>exportDeluxeCSV(),exportDeluxeReport:()=>exportDeluxeReport(),
+ // Batch 11: account
+ openAccount:el=>openAccount(el.dataset.arg),dismissAccountNudge:()=>dismissAccountNudge()
 });
 function bindUiActions(){
  [['click','data-action'],['change','data-change'],['input','data-input'],['submit','data-submit']].forEach(([type,attr])=>{

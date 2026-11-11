@@ -707,3 +707,11 @@ test('D8/D9: level titles, XP log and daily XP limits', async () => {
   assert.match(js, /History is kept on this device/);
   assert.ok(caps);
 });
+
+test('admin check runs as its owner so allowlisted admins can reach the private schema', async () => {
+  const sql = await read('supabase/migrations/20261111085441_gymplified_restore_admin_analytics_access.sql');
+  assert.match(sql, /CREATE OR REPLACE FUNCTION public\.get_admin_analytics\(days_back integer DEFAULT 30\)\nRETURNS jsonb\nLANGUAGE sql\nSECURITY DEFINER\nSET search_path TO ''/);
+  assert.match(sql, /select private\.get_admin_analytics\(days_back\);/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.get_admin_analytics\(integer\) FROM PUBLIC, anon;/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.get_admin_analytics\(integer\) TO authenticated;/);
+});

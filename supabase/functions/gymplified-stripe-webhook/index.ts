@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   } catch (error) {
     return new Response('Invalid signature', { status: 400 });
   }
-  const admin = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), { auth: { persistSession: false, autoRefreshToken: false } });
+  const admin = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default, { auth: { persistSession: false, autoRefreshToken: false } });
   try {
     if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
       const grant = entitlementFromCheckoutSession(event.data && event.data.object);

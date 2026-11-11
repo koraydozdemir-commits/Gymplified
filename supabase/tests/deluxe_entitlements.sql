@@ -1,4 +1,4 @@
--- Local test for 20261111120000_gymplified_deluxe_entitlements.sql on an EMPTY Postgres 16 database.
+-- Local test for 20261111120000_gymplified_deluxe_entitlements.sql and 20261111130000_gymplified_admin_deluxe_toggle.sql on an EMPTY Postgres 16 database.
 -- Usage: psql -v ON_ERROR_STOP=1 -f supabase/tests/deluxe_entitlements.sql
 \set QUIET on
 \pset tuples_only on
@@ -14,7 +14,8 @@ GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION auth.uid() TO anon, authenticated, service_role;
 GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 \ir ../migrations/20261111120000_gymplified_deluxe_entitlements.sql
-INSERT INTO auth.users VALUES ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b');
+\ir ../migrations/20261111130000_gymplified_admin_deluxe_toggle.sql
+INSERT INTO auth.users VALUES ('00000000-0000-0000-0000-00000000000a'), ('00000000-0000-0000-0000-00000000000b'), ('00000000-0000-0000-0000-0000000000ad');
 CREATE FUNCTION pg_temp.expect_error(p_sql text, p_like text) RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
   EXECUTE p_sql;
@@ -60,5 +61,38 @@ SELECT public.gymplified_grant_deluxe('00000000-0000-0000-0000-00000000000a', 's
 RESET ROLE;
 SET ROLE authenticated;
 DO $$ BEGIN ASSERT (public.gymplified_my_entitlement() ->> 'deluxe')::boolean, 'a new payment restores it'; END $$;
+RESET ROLE;
+
+-- admin toggle: only the service role (behind the admin allowlist check) can call it
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000ad', false);
+SELECT pg_temp.expect_error($q$SELECT public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000b', true, '00000000-0000-0000-0000-0000000000ad')$q$, '%permission denied%');
+RESET ROLE;
+SET ROLE anon;
+SELECT pg_temp.expect_error($q$SELECT public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000b', true, '00000000-0000-0000-0000-0000000000ad')$q$, '%permission denied%');
+RESET ROLE;
+SET ROLE service_role;
+DO $$ DECLARE r jsonb; BEGIN
+  r := public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000b', false, '00000000-0000-0000-0000-0000000000ad');
+  ASSERT NOT (r ->> 'deluxe')::boolean, 'removing Deluxe from someone without it is a harmless no-op';
+  r := public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000b', true, '00000000-0000-0000-0000-0000000000ad');
+  ASSERT (r ->> 'deluxe')::boolean AND r ->> 'source' = 'admin' AND NOT (r ->> 'paid')::boolean, 'admin grant';
+  r := public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000b', true, '00000000-0000-0000-0000-0000000000ad');
+  ASSERT (r ->> 'deluxe')::boolean, 'granting twice is idempotent';
+  r := public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000b', false, '00000000-0000-0000-0000-0000000000ad');
+  ASSERT NOT (r ->> 'deluxe')::boolean AND r ->> 'revoked_at' IS NOT NULL, 'admin removal';
+  -- a paying customer's record keeps its source and payment details through an admin off/on
+  r := public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000a', false, '00000000-0000-0000-0000-0000000000ad');
+  ASSERT NOT (r ->> 'deluxe')::boolean, 'admin can remove a paid entitlement';
+  r := public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000a', true, '00000000-0000-0000-0000-0000000000ad');
+  ASSERT (r ->> 'deluxe')::boolean AND r ->> 'source' = 'stripe_restore' AND (r ->> 'paid')::boolean, 'paid record is not overwritten';
+END $$;
+SELECT pg_temp.expect_error($q$SELECT public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-0000000000ff', true, '00000000-0000-0000-0000-0000000000ad')$q$, '%Unknown account%');
+SELECT pg_temp.expect_error($q$SELECT public.gymplified_admin_set_deluxe('00000000-0000-0000-0000-00000000000b', true, NULL)$q$, '%Unknown admin%');
+RESET ROLE;
+DO $$ BEGIN ASSERT (SELECT changed_by FROM public.deluxe_entitlements WHERE user_id = '00000000-0000-0000-0000-00000000000b') = '00000000-0000-0000-0000-0000000000ad', 'the admin who made the change is recorded'; END $$;
+SET ROLE authenticated;
+SELECT set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000000b', false);
+DO $$ BEGIN ASSERT NOT (public.gymplified_my_entitlement() ->> 'deluxe')::boolean, 'b sees the admin removal'; END $$;
 RESET ROLE;
 \echo deluxe entitlement tests passed

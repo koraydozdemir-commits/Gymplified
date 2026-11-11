@@ -1251,3 +1251,21 @@ test('K2: index.html is a thin shell; styles and app code live in app.css and ap
   assert.match(sw, /'\.\/app\.css',\n  '\.\/app\.js',/);
   assert.match(sw, /if \(\/\\\/app\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
 });
+
+test('Deluxe admin toggle: service-role only, keeps paid records, and the admin page uses listeners and escaping', async () => {
+  const sql = await read('supabase/migrations/20261111130000_gymplified_admin_deluxe_toggle.sql');
+  assert.match(sql, /SECURITY DEFINER\s+SET search_path = pg_catalog, public/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.gymplified_admin_set_deluxe\(uuid, boolean, uuid\) FROM PUBLIC, anon, authenticated;/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.gymplified_admin_set_deluxe\(uuid, boolean, uuid\) TO service_role;/);
+  assert.doesNotMatch(sql, /DO UPDATE[\s\S]*source\s*=\s*EXCLUDED\.source[\s\S]*END IF/, 'an admin re-grant never overwrites how Deluxe was bought');
+  const fn = await read('supabase/functions/gymplified-admin-users/index.ts');
+  const allowlist = fn.indexOf('rpc("get_admin_analytics"'), setDeluxe = fn.indexOf('action === "set_deluxe"');
+  assert.ok(allowlist > 0 && setDeluxe > allowlist, 'the admin allowlist is checked before any action');
+  assert.match(fn, /p_admin: authData\.user\.id/, 'the acting admin is recorded from the verified token, not the request body');
+  assert.match(fn, /typeof body\.on !== "boolean"/);
+  const page = await read('admin-users.html');
+  assert.match(page, /\$\('deluxeAdminBtn'\)\.addEventListener\('click',toggleDeluxe\)/);
+  assert.doesNotMatch(page, /id="deluxeAdminBtn"[^>]*onclick/);
+  assert.match(page, /This member does not have Deluxe\./);
+  assert.match(page, /this does not refund them/);
+});

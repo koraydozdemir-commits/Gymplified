@@ -29,7 +29,11 @@ Deno.serve(async (req) => {
   try {
     const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
     if (!token) return json({ error: 'Sign in required' }, 401, origin);
-    const url = Deno.env.get('SUPABASE_URL'), anon = Deno.env.get('SUPABASE_ANON_KEY'), service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const url = Deno.env.get('SUPABASE_URL');
+    // Newer projects expose keys as JSON maps instead of the legacy single-key variables.
+    const anon = Deno.env.get('SUPABASE_ANON_KEY') || JSON.parse(Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') || '{}').default;
+    const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
+    if (!url || !anon || !service) return json({ error: 'Server configuration is incomplete' }, 500, origin);
     const userClient = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: 'Bearer ' + token } } });
     const { data: auth, error: authError } = await userClient.auth.getUser(token);
     if (authError || !auth.user) return json({ error: 'Your session is invalid. Please sign in again.' }, 401, origin);

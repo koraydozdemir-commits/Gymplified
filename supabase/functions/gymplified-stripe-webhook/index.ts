@@ -1,9 +1,9 @@
 // Stripe webhook for Gymplified Deluxe. Deploy with JWT verification OFF (Stripe cannot send a Supabase JWT);
 // every request is authenticated by its Stripe-Signature instead.
 // Secrets: STRIPE_WEBHOOK_SECRET (whsec_…). Events to send: checkout.session.completed,
-// checkout.session.async_payment_succeeded, charge.refunded.
+// checkout.session.async_payment_succeeded, charge.refunded, charge.dispute.created.
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { verifyStripeWebhook, entitlementFromCheckoutSession } from '../_shared/stripe.js';
+import { verifyStripeWebhook, entitlementFromCheckoutSession, disputedPaymentIntent } from '../_shared/stripe.js';
 
 Deno.serve(async (req) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
@@ -27,6 +27,14 @@ Deno.serve(async (req) => {
       // Only a full refund removes Deluxe; partial refunds (goodwill credits) keep it.
       if (charge && charge.refunded && typeof charge.payment_intent === 'string') {
         const { error } = await admin.rpc('gymplified_revoke_deluxe_by_payment', { p_payment_intent: charge.payment_intent });
+        if (error) throw error;
+      }
+    } else if (event.type === 'charge.dispute.created') {
+      // A chargeback takes the money back, so it removes Deluxe like a full refund. If the dispute is won,
+      // an admin can give Deluxe back from admin-users.html (the paid record is kept).
+      const paymentIntent = disputedPaymentIntent(event.data && event.data.object);
+      if (paymentIntent) {
+        const { error } = await admin.rpc('gymplified_revoke_deluxe_by_payment', { p_payment_intent: paymentIntent });
         if (error) throw error;
       }
     }

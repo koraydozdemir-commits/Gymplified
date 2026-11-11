@@ -64,6 +64,13 @@ export function entitlementFromCheckoutSession(session) {
   return { userId, paymentIntent: pi || null, checkoutSession: session.id || null, amount: Number(session.amount_total) || 0, currency: String(session.currency || '').toLowerCase() };
 }
 
+// The payment a dispute (chargeback) is about, or null when the event is not a usable dispute.
+export function disputedPaymentIntent(dispute) {
+  if (!dispute || dispute.object !== 'dispute') return null;
+  const pi = typeof dispute.payment_intent === 'string' ? dispute.payment_intent : dispute.payment_intent && dispute.payment_intent.id;
+  return typeof pi === 'string' && /^pi_[A-Za-z0-9_]{6,200}$/.test(pi) ? pi : null;
+}
+
 // The parameters for a one-time Deluxe Checkout Session.
 export function deluxeCheckoutParams({ priceId, userId, email, siteUrl, termsRequired = false, submitNote = '', automaticTax = false }) {
   const params = {

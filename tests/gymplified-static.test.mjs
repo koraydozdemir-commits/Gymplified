@@ -121,7 +121,7 @@ test('account sync is isolated by authenticated owner', async () => {
 test('completed workouts cannot count the same checked sets twice', async () => {
   const html = await read('index.html');
   assert.match(html, /state\.lastSession=state\.workouts\.map/);
-  assert.match(html, /state\.workouts\.forEach\(w=>\{w\.done=false;\(w\.setList\|\|\[\]\)\.forEach\(x=>\{x\.done=false;/);
+  assert.match(html, /state\.workouts\.forEach\(w=>\{w\.done=false;w\.note='';\(w\.setList\|\|\[\]\)\.forEach\(x=>\{x\.done=false;/);
   assert.doesNotMatch(html, /state\.sessions=state\.sessions\.slice\(0,200\)/);
 });
 
@@ -319,7 +319,7 @@ test('A4: the local Deluxe demo unlock only works behind the ?demo=1 developer f
 
 test('A5: dashboard markup has no hard-coded targets and renders goals from state', async () => {
   const html = await read('index.html');
-  const markup = html.slice(0, html.indexOf('<script src="https://cdn.jsdelivr.net'));
+  const markup = html.slice(0, html.indexOf('<script src="./sdk/supabase'));
   assert.doesNotMatch(markup, />2500</);
   assert.doesNotMatch(markup, />2\.50</);
   assert.doesNotMatch(markup, /2,500 kcal remaining/);
@@ -467,7 +467,7 @@ test('B4/G3: warm-up sets are excluded from volume and PR detection', async () =
 test('B1/B2: rest timer auto-starts, persists, and alerts with vibration, beep and optional notification', async () => {
   const html = await read('index.html');
   const js = appScript(html);
-  assert.match(js, /const r=restFor\(w\.name\);if\(r>0\)startRest\(r\);/, 'ticking a set starts the rest for that exercise (or the default)');
+  assert.match(js, /const r=restFor\(w\.name\);if\(r>0&&GymLib\.restDueAfterSet\(state\.workouts,i\)\)startRest\(r\);/, 'ticking a set starts the rest for that exercise (or the default), after the last exercise of a superset');
   assert.match(js, /localStorage\.setItem\(REST_TIMER_KEY/);
   assert.match(js, /function restoreRestTimer/);
   assert.match(js, /navigator\.vibrate&&navigator\.vibrate\(\[200,100,200\]\)/);
@@ -623,7 +623,7 @@ test('page markup inside <main> has balanced container tags', async () => {
   }
   // every screen is a direct child of <main>, so one screen can never swallow the next
   const screens = [...main.matchAll(/\n( *)<section id="([a-z]+)" class="screen/g)];
-  assert.equal(screens.length, 9, 'seven screens plus Account and More');
+  assert.equal(screens.length, 10, 'seven screens plus Account, Progress and More');
   assert.equal(new Set(screens.map(m => m[1].length)).size, 1);
 });
 
@@ -1029,8 +1029,8 @@ test('I8/I9/I10: motion settings, non-colour cues and narrow-screen layout', asy
   // bottom navigation: seven columns, short labels on phones (it was six, pushing Settings off-screen)
   assert.doesNotMatch(css, /nav\{grid-template-columns:repeat\(6,/);
   assert.match(css, / nav\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);gap:2px\}/);
-  assert.equal(count(html, /<span class="nav-text nav-long">/g), 9);
-  assert.equal(count(html, /<span class="nav-text nav-short">/g), 9);
+  assert.equal(count(html, /<span class="nav-text nav-long">/g), 10);
+  assert.equal(count(html, /<span class="nav-text nav-short">/g), 10);
   assert.match(css, /@media\(max-width:480px\)\{\.top-label-long\{display:none\}\.top-label-short\{display:inline\}/);
   assert.match(css, /\.pick-grid\{display:grid;grid-template-columns:minmax\(0,1\.2fr\) minmax\(0,\.8fr\)/);
 });
@@ -1242,7 +1242,7 @@ test('K2: index.html is a thin shell; styles and app code live in app.css and ap
   const shell = await readRaw('index.html');
   assert.ok(shell.length < 120000, 'the shell stays small');
   assert.equal(count(shell, /<link rel="stylesheet" href="\.\/app\.css">/g), 1);
-  assert.match(shell, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2\.57\.4\/dist\/umd\/supabase\.min\.js"><\/script>\n<script src="\.\/app\.js"><\/script>/, 'app.js loads right after the SDK, in the same place the inline script ran');
+  assert.match(shell, /<script src="\.\/sdk\/supabase-2\.57\.4\.js"><\/script>\n<script src="\.\/lib\.js"><\/script>\n<script src="\.\/app\.js"><\/script>\n<script src="\.\/plus\.js"><\/script>/, 'the SDK, pure logic, app and feature scripts load in order, where the inline script ran');
   assert.doesNotMatch(shell, /<style[\s>]/, 'no inline style blocks');
   assert.doesNotMatch(shell, /<script>(?!<\/script>)/, 'no inline script blocks');
   const css = await readRaw('app.css'), js = await readRaw('app.js');
@@ -1250,8 +1250,8 @@ test('K2: index.html is a thin shell; styles and app code live in app.css and ap
   assert.doesNotMatch(js, /<\/?script/i);
   assert.doesNotThrow(() => new Function(js));
   const sw = await readRaw('sw.js');
-  assert.match(sw, /'\.\/app\.css',\n  '\.\/app\.js',/);
-  assert.match(sw, /if \(\/\\\/app\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
+  assert.match(sw, /'\.\/app\.css',\n  '\.\/lib\.js',\n  '\.\/app\.js',\n  '\.\/plus\.js',/);
+  assert.match(sw, /if \(\/\\\/\(app\|lib\|plus\)\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
 });
 
 test('Deluxe admin toggle: service-role only, keeps paid records, and the admin page uses listeners and escaping', async () => {
@@ -1394,7 +1394,7 @@ test('Q5/Q7: phone shows five tabs (Home, Training, Food, Friends, More); the ac
   const phone = buttons.filter(b => !b.cls.includes('nav-extra')).map(b => b.screen);
   assert.deepEqual(phone, ['dashboard', 'training', 'nutrition', 'friends', 'more']);
   const desktop = buttons.filter(b => !b.cls.includes('nav-more')).map(b => b.screen);
-  assert.deepEqual(desktop, ['dashboard', 'prs', 'training', 'nutrition', 'friends', 'deluxe', 'settings', 'account']);
+  assert.deepEqual(desktop, ['dashboard', 'prs', 'progress', 'training', 'nutrition', 'friends', 'deluxe', 'settings', 'account']);
   assert.match(css, /@media\(max-width:860px\)\{\n nav\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important\}\n nav button\.nav-extra\{display:none\}\n nav button\.nav-more\{display:flex\}/);
   assert.match(js, /b\.dataset\.screen==='more' && MORE_SCREENS\.includes\(screenId\)/, 'More stays highlighted on its sub-screens');
   // account panel lives on the Account screen, not Friends

@@ -225,6 +225,7 @@ test('JSON restore refuses histories above the explicit session limit', async ()
 // ---- Batch 1: fix-first (A1–A5, C2, I3, I4) ----
 const appScript = (html) => [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1]).join('\n');
 const count = (text, pattern) => (text.match(pattern) || []).length;
+const INLINE_HANDLER_BUDGET = 122;
 // Pull named top-level function declarations out of the app script so pure helpers can be executed.
 function extractFunctions(source, names) {
   return names.map(name => {
@@ -325,7 +326,7 @@ test('C2: water unit, goal and presets are sanitized and wired without inline ha
   assert.doesNotMatch(waterUi, /\son[a-z]+=/, 'water UI must use listeners, not inline handlers');
   assert.match(waterUi, /esc\(formatWaterAmount/);
   // Ratchet: the inline handler count may only go down (strict CSP work is tracked in K3).
-  assert.ok(count(html, / on[a-z]+=\\?["']/g) <= 136, 'do not add inline event handlers');
+  assert.ok(count(html, / on[a-z]+=\\?["']/g) <= INLINE_HANDLER_BUDGET, 'do not add inline event handlers');
 });
 
 function luminance(hex) {
@@ -358,7 +359,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
   const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
   assert.match(css, /\.btn,\.check-btn,nav button\{min-height:44px\}/);
   assert.match(css, /\.btn-icon-only,\.check-btn\{min-width:44px\}/);
-  assert.match(css, /\.setrow\{grid-template-columns:34px minmax\(0,1fr\) minmax\(0,1fr\) 44px 44px\}/);
+  assert.match(css, /\.setrow\{grid-template-columns:44px minmax\(0,1fr\) minmax\(0,1fr\) 44px 44px\}/);
   // No button may shrink itself below 44px with an inline size.
   for (const [tag] of html.matchAll(/<button\b[^>]*>/g)) {
     for (const [, px] of tag.matchAll(/(?:^|[;"\s])(?:min-)?(?:height|width):\s*(\d+)px/g)) assert.ok(Number(px) >= 44, 'undersized inline button: ' + tag.slice(0, 120));
@@ -368,5 +369,129 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 11);
+  assert.ok(version >= 13);
+});
+
+test('dark theme accent tint stays dark enough for body text on every accent', async () => {
+  const html = await read('index.html');
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  assert.match(css, /html:not\(\[data-theme=light\]\)\{--brand-light:color-mix\(in srgb,var\(--brand\) 18%,var\(--panel\)\)\}/);
+  const root = css.match(/:root \{([\s\S]*?)\}/)[1];
+  const pick = (block, name) => block.match(new RegExp(name + ':\\s*(#[0-9a-fA-F]{6})'))[1];
+  const panel = pick(root, '--panel'), ink = pick(root, '--ink'), muted = pick(root, '--muted');
+  const channels = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const mix = (a, b, share) => '#' + channels(a).map((v, i) => Math.round(v * share + channels(b)[i] * (1 - share)).toString(16).padStart(2, '0')).join('');
+  const accents = [...css.matchAll(/html\[data-color="([a-z]+)"\] \{ --brand: (#[0-9a-fA-F]{6});/g)];
+  assert.equal(accents.length, 7);
+  for (const [, name, brand] of accents) {
+    const tint = mix(brand, panel, 0.18);
+    assert.ok(contrast(ink, tint) >= 7, name + ' tint vs text ' + contrast(ink, tint).toFixed(2));
+    assert.ok(contrast(muted, tint) >= 4.5, name + ' tint vs muted text ' + contrast(muted, tint).toFixed(2));
+  }
+});
+
+// ---- Batch 2: workout flow (B1–B6, B21, B22, G1, G3) ----
+const batch2 = (js) => js.slice(js.indexOf('// ===== Batch 2: workout flow'), js.indexOf('// ===== Gymplified accounts + real friend connections ====='));
+function extractConst(source, name) {
+  const start = source.indexOf('const ' + name + '=');
+  assert.ok(start >= 0, 'missing const ' + name);
+  return source.slice(start, source.indexOf(';\n', start) + 1);
+}
+
+test('B21/B22: exercise search forgives typos and synonyms and ranks favourites and recents', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  const names = ['exNormalize', 'exStem', 'exEditDistance', 'exTokenScore', 'exIndexFor', 'exMatchScore', 'searchExercises'];
+  const search = new Function(
+    html.match(/const MC=\{[^}]*\};/)[0] + "const slug=n=>n.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');const mkEx=(n,eq,pm,sec,c)=>({id:(c?'c-':'')+slug(n),name:n,eq,pm,sec,custom:!!c});" +
+    html.match(/const LIB=\{[\s\S]*?\};/)[0] + html.match(/const EX=\[\];.*\n/)[0] +
+    extractConst(js, 'EX_SYNONYMS') + 'const exSearchIndex=new Map();' + extractFunctions(js, names) +
+    ';return (q,fav=[],recent=[])=>searchExercises(EX,q,id=>fav.includes(id),new Map(recent.map((n,i)=>[n,i]))).map(x=>x.name);')();
+  assert.equal(search('lat pull-down')[0], 'Lat Pulldown');
+  assert.equal(search('lat pulldown')[0], 'Lat Pulldown');
+  assert.equal(search('RDL')[0], 'Romanian Deadlift');
+  assert.equal(search('romanian deadlift')[0], 'Romanian Deadlift');
+  assert.equal(search('pullup')[0], 'Pull-Up');
+  assert.equal(search('leg pres')[0], 'Leg Press');
+  assert.ok(search('benhc pres').slice(0, 8).includes('Flat Bench Press'), 'typo should still find bench press');
+  assert.ok(search('skullcrusher').includes('Skull Crushers'));
+  assert.equal(search('db curl')[0], 'Dumbbell Curl');
+  assert.ok(search('db curl').includes('Hammer Curl'), 'equipment words match non-name fields too');
+  assert.deepEqual(search('zzzz'), []);
+  // exact match beats favourites/recents; among equal matches favourites and recents rise
+  assert.equal(search('leg press', ['leg-press-single-leg'], [])[0], 'Leg Press');
+  const plain = search('bench press'), boosted = search('bench press', ['incline-bench-press'], []);
+  assert.notEqual(plain[0], 'Incline Bench Press');
+  assert.equal(boosted[0], 'Incline Bench Press');
+  assert.equal(search('bench press', [], ['decline bench press'])[0], 'Decline Bench Press');
+  assert.match(js, /section\('★ Favourites'\)/);
+  assert.match(js, /section\('Recent'\)/);
+  // favourites are an id map so removal survives the server-side union merge of arrays
+  assert.match(js, /state\.exFav\[k\]=raw\.exFav\[k\]\?1:0/);
+});
+
+test('B4/G3: warm-up sets are excluded from volume and PR detection', async () => {
+  const js = appScript(await read('index.html'));
+  const names = ['setCountsForVolume', 'setTypeOf', 'calculate1RM', 'bestPreviousSet', 'exerciseRecordE1RM', 'detectSessionPRs'];
+  const make = state => new Function('state', "const SET_TYPES=['normal','warmup','drop','failure'];" + extractFunctions(js, names) + ';return {setCountsForVolume,detectSessionPRs};')(state);
+  const history = { prs: [], sessions: [{ exercises: [{ name: 'Leg Press', sets: [{ kg: 100, reps: 10, type: 'normal' }, { kg: 300, reps: 10, type: 'warmup' }] }] }] };
+  const api = make(history);
+  assert.equal(api.setCountsForVolume({ done: true, type: 'warmup' }), false);
+  assert.equal(api.setCountsForVolume({ done: true, type: 'drop' }), true);
+  assert.equal(api.setCountsForVolume({ done: false, type: 'normal' }), false);
+  // heavier working set is a PR; the historical warm-up at 300 kg is not a record to beat
+  assert.deepEqual(api.detectSessionPRs([{ name: 'leg press', sets: [{ kg: 110, reps: 10, type: 'normal' }] }]), [{ name: 'leg press', kg: 110, reps: 10 }]);
+  // a heavy warm-up today is not a PR, equal performance is not a PR, first-ever exercise is not a PR
+  assert.deepEqual(api.detectSessionPRs([{ name: 'Leg Press', sets: [{ kg: 200, reps: 10, type: 'warmup' }, { kg: 100, reps: 10, type: 'normal' }] }]), []);
+  assert.deepEqual(api.detectSessionPRs([{ name: 'New Lift', sets: [{ kg: 50, reps: 5, type: 'normal' }] }]), []);
+  assert.match(js, /const vol=w=>w\.setList\.filter\(setCountsForVolume\)/);
+  assert.match(js, /if\(setCountsForVolume\(x\)\)v\+=x\.kg\*x\.reps/);
+  assert.match(js, /type:SET_TYPES\.includes\(x\.type\)\?x\.type:'normal',auto:!!x\.auto&&!x\.done/);
+  assert.match(js, /type:SET_TYPES\.includes\(s\.type\)\?s\.type:'normal'/);
+});
+
+test('B1/B2: rest timer auto-starts, persists, and alerts with vibration, beep and optional notification', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  assert.match(js, /if\(restSetting\(\)>0\)startRest\(restSetting\(\)\)/);
+  assert.match(js, /localStorage\.setItem\(REST_TIMER_KEY/);
+  assert.match(js, /function restoreRestTimer/);
+  assert.match(js, /navigator\.vibrate&&navigator\.vibrate\(\[200,100,200\]\)/);
+  assert.match(js, /if\(state\.settings\.restBeep!==false\)restBeep\(\)/);
+  assert.match(js, /if\(state\.settings\.restNotify&&document\.hidden\)restNotification\(\)/);
+  assert.match(js, /Notification\.requestPermission\(\)/);
+  assert.match(html, /id="restBar" role="group" aria-label="Rest timer" hidden/);
+  assert.match(html, /id="restBarTime" role="timer"/);
+  for (const value of ['0', '60', '90', '120', 'custom']) assert.match(html, new RegExp('<option value="' + value + '">'));
+  assert.match(js, /restSeconds: 90/);
+  assert.match(js, /state\.settings\.restSeconds=Math\.round\(safeStateNumber\(settings\.restSeconds,0,REST_SECONDS_MAX,REST_DEFAULT_SECONDS\)\)/);
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  assert.match(css, /\.rest-bar\{position:fixed/);
+  assert.match(await read('sw.js'), /addEventListener\('notificationclick'/);
+  const timer = new Function('state', 'const REST_SECONDS_MAX=600,REST_DEFAULT_SECONDS=90;' + extractFunctions(js, ['restSetting', 'formatClockSeconds']) + ';return {restSetting,formatClockSeconds};');
+  assert.equal(timer({ settings: {} }).restSetting(), 90);
+  assert.equal(timer({ settings: { restSeconds: 0 } }).restSetting(), 0);
+  assert.equal(timer({ settings: { restSeconds: 9999 } }).restSetting(), 600);
+  assert.equal(timer({ settings: {} }).formatClockSeconds(95), '1:35');
+});
+
+test('B3/B5/B6/G1: prefill, crash recovery, header chip and dashboard hero are wired', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  assert.match(js, /function suggestedSetsFor/);
+  assert.match(js, /const suggested=suggestedSetsFor\(x\.name\)/);
+  assert.match(js, /addEventListener\('pagehide',flushDraftSave\)/);
+  assert.match(js, /resumeBannerOpen=!!state\.session/);
+  assert.match(html, /id="resumeBanner"[^>]*hidden/);
+  assert.match(html, /id="sessionChip"[^>]*hidden/);
+  assert.match(html, /id="workoutHero"/);
+  for (const action of ['start', 'resume', 'summary']) assert.match(js, new RegExp('data-hero-action="' + action + '"'));
+  assert.match(js, /xpStart:safeStateNumber\(raw\.session\.xpStart/);
+  for (const field of ['duration', 'total volume', 'sets', 'reps', 'XP earned', 'PRs hit', 'Muscles worked']) assert.ok(js.includes(field), 'summary shows ' + field);
+  assert.match(js, /data-summary-action="share"/);
+  assert.match(js, /navigator\.clipboard\.writeText\(text\)/);
+  const block = batch2(js);
+  assert.ok(block.length > 5000);
+  assert.doesNotMatch(block, /\son[a-z]+=/, 'Batch 2 UI must use listeners, not inline handlers');
+  assert.match(block, /behavior:reducedMotion\(\)\?'auto':'smooth'/);
 });

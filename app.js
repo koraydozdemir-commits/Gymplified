@@ -387,8 +387,8 @@ function renderDashboard() {
       <div class="item-row">
         <div class="row-idx">${String(i + 1).padStart(2, '0')}</div>
         <div>
-          <strong style="display:block; font-size:calc(14px * var(--text-scale, 1));">${esc(w.name)}</strong>
-          <span style="font-size:calc(12px * var(--text-scale, 1)); color:var(--muted);">${esc(w.muscle)} · ${esc(fmtWeight(w.weight))} · ${w.sets} sets × ${w.reps} reps</span>
+          <strong class="st-45">${esc(w.name)}</strong>
+          <span class="st-46">${esc(w.muscle)} · ${esc(fmtWeight(w.weight))} · ${w.sets} sets × ${w.reps} reps</span>
         </div>
         <button class="check-btn ${w.done ? 'done' : ''}" aria-pressed="${!!w.done}" aria-label="Mark ${esc(w.name)} done" data-action="toggleWorkoutDone" data-i="${i}">${w.done ? '✓' : ''}</button>
       </div>
@@ -412,9 +412,9 @@ function renderPRs() {
       <div class="pr-card">
         <div class="pr-card-badge">🏆 EST. 1RM: ${esc(fmtWeight(est1RM).toUpperCase())}</div>
         <div class="pr-title">${esc(pr.name)}</div>
-        <div class="pr-metric">${kgToDisplay(Number(pr.weight)||0)} <span style="font-size:calc(14px * var(--text-scale, 1)); color:var(--muted);">${weightUnit().toUpperCase()}</span> × ${Number(pr.reps)||1} <span style="font-size:calc(14px * var(--text-scale, 1)); color:var(--muted);">REPS</span></div>
+        <div class="pr-metric">${kgToDisplay(Number(pr.weight)||0)} <span class="st-47">${weightUnit().toUpperCase()}</span> × ${Number(pr.reps)||1} <span class="st-47">REPS</span></div>
         <div class="pr-subtext">Achieved: ${esc(pr.date || 'Today')}</div>
-        <button class="btn btn-icon-only" style="position:absolute; bottom:8px; right:8px; color:var(--danger);" data-action="deletePR" data-i="${i}" title="Delete PR" aria-label="Delete PR for ${esc(pr.name)}">✕</button>
+        <button class="st-48 btn btn-icon-only" data-action="deletePR" data-i="${i}" title="Delete PR" aria-label="Delete PR for ${esc(pr.name)}">✕</button>
       </div>
     `;
   }).join('') + `</div>`;
@@ -441,7 +441,7 @@ function renderNutrition() {
     const total=items.reduce((a,x)=>{a.cal+=Number(x.f.cal)||0;a.p+=Number(x.f.protein)||0;a.c+=Number(x.f.carbs)||0;a.f+=Number(x.f.fat)||0;return a;},{cal:0,p:0,c:0,f:0});
     const actions='<div class="meal-actions"><button type="button" class="btn" data-food-action="add-to-meal" data-meal="'+meal+'" aria-label="Add food to '+meal.toLowerCase()+'">+ Add</button>'+(hadYesterday?'<button type="button" class="btn" data-food-action="copy-yesterday" data-meal="'+meal+'" aria-label="Copy yesterday\'s '+meal.toLowerCase()+'">⧉ Yesterday</button>':'')+(items.length?'<button type="button" class="btn" data-food-action="save-recipe" data-meal="'+meal+'" aria-label="Save '+meal.toLowerCase()+' as a recipe">★ Save as recipe</button>':'')+'</div>';
     return '<div class="meal-group"><div class="meal-group-head"><div><strong>'+esc(meal)+'</strong><small>'+(items.length?Math.round(total.cal)+' kcal · P '+total.p.toFixed(1)+'g · C '+total.c.toFixed(1)+'g · F '+total.f.toFixed(1)+'g':'Nothing logged')+'</small></div>'+actions+'</div>'+
-      items.map(({f,i})=>'<div class="food-entry"><div><div class="food-entry-name">'+esc(f.name)+'</div><div class="food-entry-meta">'+(f.portion?esc(f.portion)+' · ':'')+(f.grams?Number(f.grams)+' g · ':'')+Math.round(f.cal)+' kcal</div><div class="food-entry-macros"><span><b>'+Number(f.protein||0).toFixed(1)+'g</b> protein</span><span><b>'+Number(f.carbs||0).toFixed(1)+'g</b> carbs</span><span><b>'+Number(f.fat||0).toFixed(1)+'g</b> fat</span></div></div><div class="food-entry-actions"><button type="button" class="btn" data-food-action="delete" data-index="'+i+'" style="color:var(--danger)" aria-label="Delete '+esc(f.name)+'">Delete</button></div></div>').join('')+'</div>';
+      items.map(({f,i})=>'<div class="food-entry"><div><div class="food-entry-name">'+esc(f.name)+'</div><div class="food-entry-meta">'+(f.portion?esc(f.portion)+' · ':'')+(f.grams?Number(f.grams)+' g · ':'')+Math.round(f.cal)+' kcal</div><div class="food-entry-macros"><span><b>'+Number(f.protein||0).toFixed(1)+'g</b> protein</span><span><b>'+Number(f.carbs||0).toFixed(1)+'g</b> carbs</span><span><b>'+Number(f.fat||0).toFixed(1)+'g</b> fat</span></div></div><div class="food-entry-actions"><button type="button" class="st-7 btn" data-food-action="delete" data-index="'+i+'" aria-label="Delete '+esc(f.name)+'">Delete</button></div></div>').join('')+'</div>';
   }).join('');
 }
 
@@ -1179,14 +1179,14 @@ function gamePanelMarkup(){
   '<div class="stat"><b>❄ '+g.streakFreezes+'/'+STREAK_FREEZE_MAX+'</b><span>streak freezes</span></div>'+
   '<div class="stat"><b>🗓 '+wi.n+'/'+wi.g+'</b><span>weekly goal · '+wi.st+'-week streak</span></div>'+
   '<div class="stat"><b>Lv '+L+'</b><span>'+esc(levelTitle(L))+' · '+g.xp.toLocaleString()+' XP</span></div></div>'+
-  '<div class="progress-bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+xp+'"><i style="width:'+xp+'%"></i></div>'+
+  '<div class="progress-bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+xp+'"><i data-w="'+xp+'"></i></div>'+
   '<div class="meta-row"><span>'+(hi-g.xp)+' XP to level '+(L+1)+' ('+esc(levelTitle(L+1))+')</span><span>'+xp+'%</span></div>'+
   '<p class="sub streak-help">Your day streak grows with any workout, logged meal or water goal. Every '+STREAK_FREEZE_EVERY+' days earns a freeze (up to '+STREAK_FREEZE_MAX+') that covers a missed day automatically. Rest days never break your weekly streak — it only needs your weekly goal.</p>'+
   weeklyRecapMarkup()+'<div class="sub-h">Last 7 days</div><div class="week">'+strip.join('')+'</div>'+
   '<div class="sub-h">Daily quests <span class="quest-reset">resets in '+formatCountdown(msToMidnight())+'</span></div>'+QUESTS.map(q=>quest(!!g.claimed[questKey('d',q.id)]||q.v()>=q.n,q.t,q.v(),q.n,DAILY_QUEST_XP)).join('')+
   '<div class="sub-h">Weekly quests <span class="quest-reset">resets in '+formatCountdown(msToWeekEnd())+'</span></div>'+weeklyQuests().map(q=>quest(!!g.claimed[questKey('w',q.id)]||q.v(week)>=q.n(),q.t(),q.v(week),q.n(),WEEKLY_QUEST_XP)).join('')+
   '<details class="game-details" id="badgeGallery"><summary>Badges · '+unlocked+' of '+BADGES.length+' unlocked</summary><div class="badge-grid">'+BADGES.map(b=>{const got=g.badges.includes(b.id),v=got?b.target:badgeProgress(b),pct=Math.round(v/b.target*100),show=x=>b.fmt?b.fmt(x):Number(x).toLocaleString();
-    return '<div class="badge-card'+(got?' got':'')+'"><div class="badge-icon" aria-hidden="true">'+b.icon+'</div><div class="badge-body"><strong>'+esc(b.name)+'</strong><span class="sub">'+esc(b.desc)+'</span><div class="progress-bar" role="progressbar" aria-label="'+esc(b.name)+' progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div><span class="badge-state">'+(got?'✓ Unlocked':'🔒 Locked · '+esc(show(v))+' / '+esc(show(b.target)))+'</span></div></div>';}).join('')+'</div></details>'+
+    return '<div class="badge-card'+(got?' got':'')+'"><div class="badge-icon" aria-hidden="true">'+b.icon+'</div><div class="badge-body"><strong>'+esc(b.name)+'</strong><span class="sub">'+esc(b.desc)+'</span><div class="progress-bar" role="progressbar" aria-label="'+esc(b.name)+' progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i data-w="'+pct+'"></i></div><span class="badge-state">'+(got?'✓ Unlocked':'🔒 Locked · '+esc(show(v))+' / '+esc(show(b.target)))+'</span></div></div>';}).join('')+'</div></details>'+
   '<details class="game-details" id="xpHistory"><summary>How XP is earned · recent history</summary><p class="sub">Exercise done 20 · meal 5 · PR 50 · water goal 30 · workout 40 · weekly goal 50 · daily quest '+DAILY_QUEST_XP+' · weekly quest '+WEEKLY_QUEST_XP+'. Each record earns XP once. Per day, XP is given for up to '+XP_DAILY_CAPS.ex+' exercises, '+XP_DAILY_CAPS.meal+' meals, '+XP_DAILY_CAPS.pr+' PRs and '+XP_DAILY_CAPS.session+' workouts. Level N needs 50 × (N−1)² XP.</p>'+
    (log.length?'<ul class="xp-log">'+log.slice(0,25).map(x=>'<li><strong>+'+Number(x.n)+' XP</strong> <span>'+esc(x.why)+'</span> <time class="sub">'+esc(new Date(Number(x.t)).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}))+'</time></li>').join('')+'</ul><p class="sub">History is kept on this device.</p>':'<p class="sub">No XP earned on this device yet.</p>')+'</details>';
 }
@@ -1242,13 +1242,13 @@ function weeklyRecapMarkup(){
  const comparison=delta>0?'↑ '+delta+' more than last week':delta<0?'↓ '+Math.abs(delta)+' fewer than last week':'Same number as last week';
  return '<div class="sub-h">Your weekly recap · this week (from '+(weekStartsSunday()?'Sunday':'Monday')+')</div>'+
  '<div class="stat-row"><div class="stat"><b>'+w.current.length+'</b><span>workouts</span></div><div class="stat"><b>'+w.sets+'</b><span>sets completed</span></div><div class="stat"><b>'+volumeNumber(w.volume)+'</b><span>'+weightUnit()+' volume</span></div><div class="stat"><b>'+w.minutes+'</b><span>minutes</span></div></div>'+
- '<div class="meta-row"><span>'+comparison+'</span><span>'+w.weekCount+'/'+w.goal+' weekly goal</span></div><div class="row-wrap" style="margin-top:10px"><button class="btn" type="button" data-action="shareWeeklyRecap">Share weekly recap</button></div>';
+ '<div class="meta-row"><span>'+comparison+'</span><span>'+w.weekCount+'/'+w.goal+' weekly goal</span></div><div class="st-11 row-wrap"><button class="btn" type="button" data-action="shareWeeklyRecap">Share weekly recap</button></div>';
 }
 function renderRoutineLibrary(){
  const host=$('routineLibrary');if(!host)return;
  state.routines=(Array.isArray(state.routines)?state.routines:[]).filter(r=>r&&typeof r==='object').map((r,i)=>({id:String(r.id||'legacy-routine-'+i),name:String(r.name||'Saved routine'),exercises:Array.isArray(r.exercises)?r.exercises:[]}));
  const routines=state.routines;
- host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="btn" style="padding:0 10px;margin-left:5px" data-action="loadSavedRoutine" data-i="'+i+'">Load</button> <button class="btn btn-icon-only" style="padding:0" aria-label="Delete '+esc(r.name)+'" data-action="deleteSavedRoutine" data-i="'+i+'">×</button></span>').join('')+'</div>':'<p class="sub" style="margin-top:8px">Save your favourite workout combinations here so you can reuse them anytime.</p>';
+ host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="st-49 btn" data-action="loadSavedRoutine" data-i="'+i+'">Load</button> <button class="st-50 btn btn-icon-only" aria-label="Delete '+esc(r.name)+'" data-action="deleteSavedRoutine" data-i="'+i+'">×</button></span>').join('')+'</div>':'<p class="st-12 sub">Save your favourite workout combinations here so you can reuse them anytime.</p>';
 }
 function saveCurrentRoutine(){
  if(!state.workouts.length)return showToast('Add exercises before saving a routine');
@@ -1303,13 +1303,13 @@ function initWaterSettings(focusSelector){
   panel.innerHTML='<h3>Water</h3><p>Set your daily goal and the quick-add amounts shown on the dashboard. Change the water unit under Units.</p>'+
    '<div class="form-grid">'+
    '<div class="field"><label for="waterGoalInput">Daily water goal ('+(floz?'fl oz':'litres')+')</label><input type="number" id="waterGoalInput" inputmode="decimal" step="'+(floz?'1':'0.1')+'" min="'+goalMin+'" max="'+goalMax+'" value="'+goal+'"></div>'+
-   '</div><div class="row-wrap" style="margin-bottom:16px"><button class="btn btn-primary" type="button" data-water-setting="save-goal">Save water goal</button></div>'+
+   '</div><div class="st-35 row-wrap"><button class="btn btn-primary" type="button" data-water-setting="save-goal">Save water goal</button></div>'+
    '<div class="sub-h" id="waterPresetHeading">Quick-add amounts ('+presets.length+' of '+WATER_PRESET_MAX+')</div>'+
    '<div role="list" aria-labelledby="waterPresetHeading">'+presets.map((p,i)=>{const label=esc(formatWaterAmount(p));return '<div class="water-preset-row" role="listitem"><strong>'+label+'</strong>'+
      '<button class="btn btn-icon-only" type="button" data-water-setting="up" data-index="'+i+'" aria-label="Move '+label+' up"'+(i===0?' disabled':'')+'>↑</button>'+
      '<button class="btn btn-icon-only" type="button" data-water-setting="down" data-index="'+i+'" aria-label="Move '+label+' down"'+(i===presets.length-1?' disabled':'')+'>↓</button>'+
-     '<button class="btn btn-icon-only" type="button" data-water-setting="remove" data-index="'+i+'" aria-label="Remove '+label+'"'+(presets.length<=1?' disabled':'')+' style="color:var(--danger)">✕</button></div>';}).join('')+'</div>'+
-   '<div class="row-wrap" style="margin-top:12px"><input type="number" id="waterPresetNew" inputmode="decimal" min="'+waterEntryMinDisplay()+'" max="'+waterEntryMaxDisplay()+'" step="'+(floz?'0.1':'1')+'" placeholder="'+waterUnitLabel()+'" aria-label="New quick-add amount in '+(floz?'US fluid ounces':'millilitres')+'" style="width:120px"'+(presets.length>=WATER_PRESET_MAX?' disabled':'')+'>'+
+     '<button class="st-7 btn btn-icon-only" type="button" data-water-setting="remove" data-index="'+i+'" aria-label="Remove '+label+'"'+(presets.length<=1?' disabled':'')+'>✕</button></div>';}).join('')+'</div>'+
+   '<div class="st-3 row-wrap"><input type="number" id="waterPresetNew" inputmode="decimal" min="'+waterEntryMinDisplay()+'" max="'+waterEntryMaxDisplay()+'" step="'+(floz?'0.1':'1')+'" placeholder="'+waterUnitLabel()+'" aria-label="New quick-add amount in '+(floz?'US fluid ounces':'millilitres')+'" class="st-51"'+(presets.length>=WATER_PRESET_MAX?' disabled':'')+'>'+
    '<button class="btn" type="button" data-water-setting="add-preset"'+(presets.length>=WATER_PRESET_MAX?' disabled':'')+'>+ Add amount</button></div>';
   if(focusSelector){const target=panel.querySelector(focusSelector);if(target&&!target.disabled)target.focus();else panel.querySelector('#waterPresetNew:not(:disabled),button[data-water-setting="up"]:not(:disabled),button[data-water-setting="down"]:not(:disabled)')?.focus();}
 }
@@ -1542,9 +1542,6 @@ async function renderMuscleMap(exercise){
    if(primary.has(raw)||primary.has(base))path.classList.add('active');
    else if(secondary.has(raw)||secondary.has(base))path.classList.add('secondary');
   });
-  const style=document.createElementNS('http://www.w3.org/2000/svg','style');
-  style.textContent='#layer2 path.active{fill:#e6b93f!important;fill-opacity:.96!important;stroke:#9a7019!important;stroke-opacity:1!important;stroke-width:.8!important}#layer2 path.secondary{fill:#c18d27!important;fill-opacity:.72!important;stroke:#9a7019!important;stroke-opacity:.9!important;stroke-width:.65!important}';
-  svg.insertBefore(style,svg.firstChild);
   mount.replaceChildren(svg);
  }catch(error){
   if(request!==muscleMapRenderVersion)return;
@@ -1556,7 +1553,7 @@ function previewEx(id){const x=id&&allEx().find(e=>e.id===id),b=$('exPreview');
   renderMuscleMap(x);
   if(!x){b.innerHTML='<p class="sub">Select an exercise to highlight its primary and supporting muscles.</p>';return;}
   const prev=previousExercisePerformance(x.name),last=prev&&prev.sets.length?prev.sets[prev.sets.length-1]:null;
-  b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+esc(x.eq)+(x.custom?' · custom':'')+'</span><div class="tag-list" style="margin-top:8px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="sub" style="margin-top:10px">Last time · '+esc(prev.date)+' · '+esc(fmtWeight(last.kg,2))+' × '+esc(last.reps)+' reps</p>':'<p class="sub" style="margin-top:10px">No previous performance logged yet.</p>')+'<button type="button" class="btn" style="margin-top:10px" data-ex-details="'+esc(x.name)+'">Details, history &amp; alternatives</button>';}
+  b.innerHTML='<strong>'+esc(x.name)+'</strong> <span class="sub">'+esc(x.eq)+(x.custom?' · custom':'')+'</span><div class="st-12 tag-list"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>'+(last?'<p class="st-11 sub">Last time · '+esc(prev.date)+' · '+esc(fmtWeight(last.kg,2))+' × '+esc(last.reps)+' reps</p>':'<p class="st-11 sub">No previous performance logged yet.</p>')+'<button type="button" class="st-11 btn" data-ex-details="'+esc(x.name)+'">Details, history &amp; alternatives</button>';}
 function initPicker(){const mo=Object.values(MC).map(m=>'<option value="'+m+'">'+cap(m)+'</option>').join(''),eo=Object.keys(LIB).map(e=>'<option>'+e+'</option>').join('');
   $('exMuscle').innerHTML='<option value="">All muscles</option>'+mo;$('exEquip').innerHTML='<option value="">All equipment</option>'+eo;$('cMuscle').innerHTML=mo;$('cEquip').innerHTML=eo+'<option>Other</option>';renderPicker();previewEx(null);}
 function renderTrainingLog(){
@@ -1564,7 +1561,7 @@ function renderTrainingLog(){
  state.workouts=state.workouts.filter(w=>w&&typeof w==='object').map(w=>ensureSets(w));
  if(!Array.isArray(state.sessions))state.sessions=[];
  renderRoutineLibrary();const wi=weekInfo(),sb=$('sessBar');
-  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="sub" style="display:grid;gap:5px">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" data-change="editSessionStart" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" data-action="endSession">■ Finish workout</button><button class="btn" data-action="cancelSession">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" data-action="startSession">▶ Start workout</button><label class="sub" style="display:grid;gap:5px">Set start date & time <input id="plannedSessionStart" type="datetime-local" value="'+localDateTimeValue(Date.now())+'" aria-label="Choose workout start date and time"></label><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
+  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="st-52 sub">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" data-change="editSessionStart" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" data-action="endSession">■ Finish workout</button><button class="btn" data-action="cancelSession">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" data-action="startSession">▶ Start workout</button><label class="st-52 sub">Set start date & time <input id="plannedSessionStart" type="datetime-local" value="'+localDateTimeValue(Date.now())+'" aria-label="Choose workout start date and time"></label><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
   $('liveStats').innerHTML=liveStatsMarkup();
   const listHost=$('trainingLogList'),focused=document.activeElement&&listHost.contains(document.activeElement)?document.activeElement:null;
   const focusKey=focused&&focused.dataset.i!==undefined?(focused.dataset.setAction?'[data-set-action="'+focused.dataset.setAction+'"]':focused.dataset.setField?'[data-set-field="'+focused.dataset.setField+'"]':focused.dataset.exCardAction?'[data-ex-card-action="'+focused.dataset.exCardAction+'"]':'')+'[data-i="'+focused.dataset.i+'"]'+(focused.dataset.j!==undefined?'[data-j="'+focused.dataset.j+'"]':''):'';
@@ -1572,7 +1569,7 @@ function renderTrainingLog(){
   if(focusKey&&focusKey[0]==='['&&!focusKey.startsWith('[data-i')){const again=listHost.querySelector(focusKey);if(again)again.focus({preventScroll:true});}
   $('sessionSummary').innerHTML=sessionSummaryMarkup();
   syncRestSettingsUI();renderSessionChrome();
-  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="history-session" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+fmtVolume(x.vol||0)+' · '+(x.sets||0)+' sets</span></summary><div style="margin-top:12px"><div class="row-wrap" style="padding:10px 0;border-bottom:1px solid var(--line)"><label class="sub" style="display:grid;gap:5px">Workout date & start time<input type="datetime-local" value="'+localDateTimeValue(x.startedAt?new Date(x.startedAt).getTime():new Date((x.date||dayKey())+'T12:00').getTime())+'" data-change="editHistoryTime" data-i="'+i+'"></label><label class="sub" style="display:grid;gap:5px">Duration (minutes)<input type="number" min="1" max="1440" value="'+(x.mins||1)+'" data-change="editHistoryDuration" data-i="'+i+'"></label></div>'+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(ex.name)+'</strong><button class="btn" data-action="viewExerciseHistoryForSession" data-i="'+i+'" data-j="'+exIndex+'">Exercise history</button></div><div class="sub" style="margin-top:5px">'+(ex.sets||[]).map(sessionSetSummary).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
+  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="st-53 history-session"><summary class="st-54"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+fmtVolume(x.vol||0)+' · '+(x.sets||0)+' sets</span></summary><div class="st-3"><div class="st-55 row-wrap"><label class="st-52 sub">Workout date & start time<input type="datetime-local" value="'+localDateTimeValue(x.startedAt?new Date(x.startedAt).getTime():new Date((x.date||dayKey())+'T12:00').getTime())+'" data-change="editHistoryTime" data-i="'+i+'"></label><label class="st-52 sub">Duration (minutes)<input type="number" min="1" max="1440" value="'+(x.mins||1)+'" data-change="editHistoryDuration" data-i="'+i+'"></label></div>'+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div class="st-56"><div class="st-57"><strong>'+esc(ex.name)+'</strong><button class="btn" data-action="viewExerciseHistoryForSession" data-i="'+i+'" data-j="'+exIndex+'">Exercise history</button></div><div class="st-58 sub">'+(ex.sets||[]).map(sessionSetSummary).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
 
 // ===== Batch 2: workout flow (rest timer, prefill, set types, recovery, search, hero, summary) =====
 function setCountsForVolume(x){return !!(x&&x.done&&x.type!=='warmup');}
@@ -1674,11 +1671,11 @@ function exerciseCardMarkup(w,i){
  const previous=previousExercisePerformance(w.name),best=previous?bestPreviousSet(previous.sets.filter(s=>setTypeOf(s)!=='warmup')):null;
  const lastLine=previous?'Last time · '+esc(previous.date)+': '+previous.sets.slice(0,8).map(s=>{const t=setTypeOf(s);return (t!=='normal'?SET_TYPE_INFO[t].short+' ':'')+esc(fmtWeight(s.kg,2))+' × '+esc(Number(s.reps));}).join(', ')+(best?' · best '+format1RM(best.kg,best.reps)+' e1RM':''):'No previous performance yet. Estimated 1RM updates as you enter weight and reps.';
  const pending=w.setList.some(x=>x.auto&&!x.done);
- return '<div class="panel" style="margin-bottom:12px"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="btn btn-icon-only" style="color:var(--danger)" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
+ return '<div class="st-14 panel"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="st-7 btn btn-icon-only" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
   '<div class="setrow sub" aria-hidden="true"><span>Set</span><span>'+weightUnit()+'</span><span>Reps</span><span>Done</span><span></span></div>'+
   planLineMarkup(w)+w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
   '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
-  '<div class="sub" style="margin-top:6px">Volume: <span id="exVolume-'+i+'">'+volumeNumber(vol(w))+'</span> '+weightUnit()+' <span class="sub">· warm-up sets (W) are not counted</span></div></div>';
+  '<div class="st-59 sub">Volume: <span id="exVolume-'+i+'">'+volumeNumber(vol(w))+'</span> '+weightUnit()+' <span class="sub">· warm-up sets (W) are not counted</span></div></div>';
 }
 function liveStatsMarkup(){const t=sessionTotals();return t.exercises?'<div class="stat-row"><div class="stat"><b>'+volumeNumber(t.volume)+'</b><span>'+weightUnit()+' volume</span></div><div class="stat"><b>'+t.setsDone+'/'+t.setsTotal+'</b><span>sets done</span></div><div class="stat"><b>'+t.reps+'</b><span>reps done</span></div><div class="stat"><b>'+t.exercises+'</b><span>exercises</span></div></div>':'';}
 // Targeted refresh used while typing: totals only, never the set inputs themselves.
@@ -1754,12 +1751,12 @@ function sessionSummaryMarkup(){
  const m=state.lastSummary;if(!m)return '';
  const wi=weekInfo(),i=(state.sessions||[]).findIndex(s=>s.id&&s.id===m.id),p=state.sessions[(i>=0?i:0)+1],prs=m.prs||[],muscles=m.muscles||[];
  const stat=(value,label)=>'<div class="stat"><b>'+value+'</b><span>'+label+'</span></div>';
- return '<div class="panel summary-panel" tabindex="-1" role="region" aria-label="Workout summary" style="margin-bottom:20px"><div class="section-title"><span>🎉 Workout complete</span><span class="row-wrap"><button type="button" class="btn btn-primary" data-summary-action="share">Share</button><button type="button" class="btn" data-summary-action="dismiss">Dismiss</button></span></div>'+
+ return '<div class="st-1 panel summary-panel" tabindex="-1" role="region" aria-label="Workout summary"><div class="section-title"><span>🎉 Workout complete</span><span class="row-wrap"><button type="button" class="btn btn-primary" data-summary-action="share">Share</button><button type="button" class="btn" data-summary-action="dismiss">Dismiss</button></span></div>'+
   '<div class="stat-row">'+stat(Number(m.mins)+' min','duration')+stat(fmtVolume(m.vol),'total volume')+stat(Number(m.sets),'sets')+stat(Number(m.reps),'reps')+stat(Number(m.ex),'exercises')+stat('+'+Number(m.xp||0),'XP earned')+'</div>'+
   '<div class="sub-h">PRs hit</div>'+(prs.length?'<div class="tag-list">'+prs.map(x=>'<span class="tag primary">🏆 '+esc(x.name)+' · '+esc(fmtWeight(x.kg,2))+' × '+esc(Number(x.reps))+'</span>').join('')+'</div>':'<p class="sub">No new PRs this time — beat a previous best set to earn one.</p>')+
   (m.plan&&m.plan.planned?'<div class="sub-h">Plan</div><p class="plan-result">📋 '+esc(m.plan.name||'Plan')+(m.plan.day?' · '+esc(m.plan.day):'')+': <strong>'+Number(m.plan.completed)+' of '+Number(m.plan.planned)+'</strong> exercise'+(m.plan.planned===1?'':'s')+' done as planned'+(m.plan.completed===m.plan.planned?' ✓':'')+'</p>':'')+
   '<div class="sub-h">Muscles worked</div>'+(muscles.length?'<div class="tag-list">'+muscles.map(x=>'<span class="tag">'+esc(x)+'</span>').join('')+'</div>':'<p class="sub">No muscle groups recorded.</p>')+
-  '<p class="sub" style="margin-top:12px">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc((m.names||[]).join(', '))+'</p></div>';
+  '<p class="st-3 sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc((m.names||[]).join(', '))+'</p></div>';
 }
 
 // --- B21/B22: forgiving exercise search, favourites and recents ---
@@ -2368,7 +2365,7 @@ function renderQuickAdd(){
  const host=$('foodQuickAdd');if(!host)return;
  const recent=(state.recent||[]).slice(0,8),y=yesterdayFoods();
  host.innerHTML=(recent.length?'<div class="sub-h">Add again</div><div class="row-wrap">'+recent.map((r,i)=>'<button type="button" class="btn quick-food" data-recent-index="'+i+'" aria-label="Add '+esc(r.name)+' again, '+Math.round(r.cal)+' kilocalories">+ '+esc(r.name)+' <small>'+Math.round(r.cal)+' kcal</small></button>').join('')+'</div>':'')+
-  (y.length?'<div class="row-wrap" style="margin-top:10px"><button type="button" class="btn" data-food-action="copy-yesterday">⧉ Copy all of yesterday ('+y.length+')</button></div>':'');
+  (y.length?'<div class="st-11 row-wrap"><button type="button" class="btn" data-food-action="copy-yesterday">⧉ Copy all of yesterday ('+y.length+')</button></div>':'');
 }
 
 // --- F5: saved meals become recipes (a custom food with a serving size) ---
@@ -2476,8 +2473,8 @@ function renderWaterPanel(){
  const label=d=>{const dt=new Date(d.day+'T12:00:00');return dt.toLocaleDateString(undefined,waterRange===7?{weekday:'short'}:{day:'numeric'});};
  host.innerHTML='<div class="section-title"><span>Water</span><span class="row-wrap" role="group" aria-label="Water history range"><button type="button" class="btn range-btn" data-water-range="7" aria-pressed="'+(waterRange===7)+'">7 days</button><button type="button" class="btn range-btn" data-water-range="30" aria-pressed="'+(waterRange===30)+'">30 days</button></span></div>'+
   '<p class="sub">Goal reached (✓) on '+hits+' of the last '+waterRange+' days. Dashed line: your '+formatWaterTotal(goal)+' '+unit+' goal.</p>'+
-  '<div class="water-chart'+(waterRange===30?' wide':'')+'" role="list" aria-label="Water per day, last '+waterRange+' days" style="--goal:'+Math.round(goal/max*100)+'%">'+data.map(d=>{const pct=Math.round(d.litres/max*100),hit=d.litres>=goal,when=new Date(d.day+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
-   return '<div class="water-col" role="listitem" aria-label="'+esc(when+': '+formatWaterTotal(d.litres)+' '+unit+(hit?', goal reached':''))+'">'+(hit?'<span class="water-hit" aria-hidden="true">✓</span>':'')+'<span class="water-bar'+(hit?' hit':'')+'" style="height:'+pct+'%"></span><small aria-hidden="true">'+esc(label(d))+'</small></div>';}).join('')+'</div>'+
+  '<div class="water-chart'+(waterRange===30?' wide':'')+'" role="list" aria-label="Water per day, last '+waterRange+' days" data-goal="'+Math.round(goal/max*100)+'">'+data.map(d=>{const pct=Math.round(d.litres/max*100),hit=d.litres>=goal,when=new Date(d.day+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+   return '<div class="water-col" role="listitem" aria-label="'+esc(when+': '+formatWaterTotal(d.litres)+' '+unit+(hit?', goal reached':''))+'">'+(hit?'<span class="water-hit" aria-hidden="true">✓</span>':'')+'<span class="water-bar'+(hit?' hit':'')+'" data-h="'+pct+'"></span><small aria-hidden="true">'+esc(label(d))+'</small></div>';}).join('')+'</div>'+
   '<div class="sub-h">Today\'s drinks</div>'+(entries.length?'<ul class="water-entries">'+entries.map(x=>'<li><span><strong>'+esc(formatWaterAmount(x.amount*1000))+'</strong> <span class="sub">'+(x.createdAt?esc(new Date(x.createdAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})):'earlier')+'</span></span><button type="button" class="btn" data-water-remove="'+esc(x.id)+'" aria-label="Remove '+esc(formatWaterAmount(x.amount*1000))+' logged '+(x.createdAt?esc(new Date(x.createdAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})):'earlier')+'">Remove</button></li>').join('')+'</ul>':'<p class="sub">No water logged yet today.</p>');
 }
 function removeWaterEntry(id){
@@ -2699,9 +2696,7 @@ async function renderMuscleMapInto(mountId,exercise){
   svg.setAttribute('role','img');svg.setAttribute('aria-label',(exercise?exercise.name+': ':'')+'muscles worked, front and back');
   const primary=new Set(muscleMapKeys(exercise&&exercise.pm)),secondary=new Set((exercise&&exercise.sec||[]).flatMap(muscleMapKeys));
   svg.querySelectorAll('[data-muscle]').forEach(path=>{const raw=path.getAttribute('data-muscle')||'',base=raw.replace(/_(left|right)$/,'');if(primary.has(raw)||primary.has(base))path.classList.add('active');else if(secondary.has(raw)||secondary.has(base))path.classList.add('secondary');});
-  const style=document.createElementNS('http://www.w3.org/2000/svg','style');
-  style.textContent='#layer2 path.active{fill:#e6b93f!important;fill-opacity:.96!important;stroke:#9a7019!important;stroke-width:.8!important}#layer2 path.secondary{fill:#c18d27!important;fill-opacity:.72!important;stroke:#9a7019!important;stroke-width:.65!important}';
-  svg.insertBefore(style,svg.firstChild);mount.replaceChildren(svg);
+  mount.replaceChildren(svg);
  }catch(e){mount.innerHTML='<p class="sub">The muscle illustration could not be loaded.</p>';}
 }
 function openExerciseSheet(name,opts){
@@ -2720,7 +2715,7 @@ function renderExerciseSheet(){
  const prE1rm=exerciseRecordE1RM(name),tip=x&&FORM_TIPS[x.id.replace(/^c-/,'')]||'',swap=sheetState.swapIndex!==null&&state.workouts[sheetState.swapIndex]&&!state.workouts[sheetState.swapIndex].setList.some(s=>s.done);
  const alts=x?suggestAlternatives(x,allEx()):[];
  body.innerHTML='<p class="sub">'+(x?esc(x.eq)+(x.custom?' · your custom exercise'+(x.type?' · '+esc(EX_TYPES[x.type]||''):''):''):'Not in the exercise library')+'</p>'+
-  (x?'<div class="tag-list" style="margin:8px 0 12px"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>':'')+
+  (x?'<div class="st-60 tag-list"><span class="tag primary">'+esc(x.pm)+'</span>'+x.sec.map(m=>'<span class="tag">'+esc(m)+'</span>').join('')+'</div>':'')+
   '<div class="sheet-grid"><div class="sheet-map" id="sheetMuscleMap"></div><div>'+
    (tip?'<div class="form-tip"><strong>Form tip</strong><p>'+esc(tip)+'</p><small class="sub">General guidance, not personal coaching.</small></div>':'')+
    '<div class="stat-row">'+'<div class="stat"><b>'+(prE1rm?esc(fmtWeight(prE1rm)):'—')+'</b><span>best estimated 1RM</span></div><div class="stat"><b>'+(heaviest&&heaviest.kg?esc(fmtWeight(heaviest.kg,2))+' × '+heaviest.reps:'—')+'</b><span>heaviest set</span></div><div class="stat"><b>'+rows.length+'</b><span>workouts logged</span></div></div>'+
@@ -2745,7 +2740,7 @@ function customExerciseFormMarkup(x){
   '<div class="sub-h">Merge into a library exercise</div><p class="sub">Use this if your custom exercise is the same as one in the library. Your history moves to the library exercise and the custom one is removed.</p>'+
   '<div class="row-wrap"><label class="sr" for="cxMergeTarget">Library exercise to merge into</label><select id="cxMergeTarget"><option value="">Choose an exercise…</option><optgroup label="Same main muscle">'+same.map(e=>opt(e.name,e.name+' ('+e.eq+')',false)).join('')+'</optgroup><optgroup label="Other exercises">'+others.map(e=>opt(e.name,e.name+' ('+e.eq+')',false)).join('')+'</optgroup></select><button type="button" class="btn" data-sheet-action="merge">Merge</button></div>'+
   '<div class="sub-h">Delete</div><p class="sub">Deleting removes it from the library. Workouts you already logged keep their history.</p>'+
-  '<button type="button" class="btn" data-sheet-action="delete" style="color:var(--danger);border-color:var(--danger)">'+(sheetState.confirmDelete?'Tap again to delete permanently':'Delete exercise')+'</button></form>';
+  '<button type="button" class="st-33 btn" data-sheet-action="delete">'+(sheetState.confirmDelete?'Tap again to delete permanently':'Delete exercise')+'</button></form>';
 }
 
 // --- B24: custom exercise management ---
@@ -2953,7 +2948,7 @@ async function loadSupportTickets(){
  host.innerHTML='<p class="sub">Loading your requests…</p>';
  try{const r=await sb.from('support_tickets').select('id,subject,category,status,created_at,updated_at').eq('user_id',currentUser.id).order('updated_at',{ascending:false}).limit(20);if(r.error)throw r.error;
  if(!r.data.length){host.innerHTML='<p class="sub">No support requests yet. If something is wrong, send us a message above.</p>';return;}
- host.innerHTML=r.data.map(t=>'<div class="item-row" style="align-items:center;gap:12px"><div style="flex:1;min-width:0"><strong>'+esc(t.subject)+'</strong><div class="sub">'+esc(supportStatusLabel(t.status))+' · '+new Date(t.updated_at).toLocaleDateString()+'</div></div><button class="btn" type="button" data-action="openSupportTicket" data-id="'+esc(t.id)+'">View</button></div>').join('');
+ host.innerHTML=r.data.map(t=>'<div class="st-61 item-row"><div class="st-41"><strong>'+esc(t.subject)+'</strong><div class="sub">'+esc(supportStatusLabel(t.status))+' · '+new Date(t.updated_at).toLocaleDateString()+'</div></div><button class="btn" type="button" data-action="openSupportTicket" data-id="'+esc(t.id)+'">View</button></div>').join('');
  }catch(e){host.innerHTML='<p class="sub">Could not load your requests. Please try again.</p>';console.warn('Support tickets:',e);}
 }
 async function submitSupportTicket(event){
@@ -2970,7 +2965,7 @@ async function openSupportTicket(id){
  const host=$('supportConversation');supportCurrentTicketId=id;host.innerHTML='<p class="sub">Loading conversation…</p>';
  try{const t=await sb.from('support_tickets').select('id,subject,status,created_at').eq('id',id).eq('user_id',currentUser.id).single();if(t.error)throw t.error;
  const m=await sb.from('support_ticket_messages').select('id,author_role,message,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(m.error)throw m.error;
- host.innerHTML='<div class="panel" style="margin-top:12px"><div class="section-title">'+esc(t.data.subject)+' <span class="sub">'+esc(supportStatusLabel(t.data.status))+'</span></div>'+m.data.map(x=>'<div style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:8px 0"><div class="sub">'+(x.author_role==='admin'?'Gymplified Support':'You')+' · '+new Date(x.created_at).toLocaleString()+'</div><div style="white-space:pre-wrap;margin-top:6px;font-size:calc(13px * var(--text-scale, 1))">'+esc(x.message)+'</div></div>').join('')+(t.data.status==='resolved'?'<p class="sub">This request is marked resolved. Create a new request if you need more help.</p>':'<div class="field"><label for="supportReplyText">Reply</label><textarea id="supportReplyText" rows="3" maxlength="5000" placeholder="Add more information…"></textarea></div><button class="btn btn-primary" type="button" data-action="replyToSupportTicket">Send reply</button>')+'</div>';
+ host.innerHTML='<div class="st-3 panel"><div class="section-title">'+esc(t.data.subject)+' <span class="sub">'+esc(supportStatusLabel(t.data.status))+'</span></div>'+m.data.map(x=>'<div class="st-62"><div class="sub">'+(x.author_role==='admin'?'Gymplified Support':'You')+' · '+new Date(x.created_at).toLocaleString()+'</div><div class="st-63">'+esc(x.message)+'</div></div>').join('')+(t.data.status==='resolved'?'<p class="sub">This request is marked resolved. Create a new request if you need more help.</p>':'<div class="field"><label for="supportReplyText">Reply</label><textarea id="supportReplyText" rows="3" maxlength="5000" placeholder="Add more information…"></textarea></div><button class="btn btn-primary" type="button" data-action="replyToSupportTicket">Send reply</button>')+'</div>';
  }catch(e){host.innerHTML='<p class="sub">Could not open this support request.</p>';console.warn(e);}
 }
 async function replyToSupportTicket(){
@@ -2987,7 +2982,7 @@ function renderAuthPanel(message){
  '<form class="account-form" data-submit="handleAuthSubmit">'+
  (up?'<div class="field"><label for="authUsername">Username</label><input id="authUsername" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="e.g. johnny_fitness"><div class="account-hint">3–20 characters. Letters, numbers and underscores only.</div></div><div class="field"><label for="authDisplayName">Display name</label><input id="authDisplayName" name="displayName" maxlength="32" placeholder="How should friends see you?"></div>':'')+
  '<div class="field"><label for="authEmail">Email address</label><input id="authEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div><div class="field"><label for="authPassword">Password</label><input id="authPassword" name="password" type="password" required minlength="8" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 8 characters"></div>'+
- '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p><button class="btn" id="resendVerification" type="button" data-action="resendSignupConfirmation" style="display:none;margin-top:8px">Resend verification email</button></form>'+
+ '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p><button class="st-64 btn" id="resendVerification" type="button" data-action="resendSignupConfirmation">Resend verification email</button></form>'+
  '<p class="account-hint">When you sign in, your workouts, nutrition, personal records and goals sync securely across your devices.</p>';
 }
 function switchAuthMode(mode){authMode=mode==='login'?'login':'signup';renderAuthPanel('');}
@@ -3022,11 +3017,11 @@ async function resendSignupConfirmation(){
 function renderAccountPanel(){
  const p=currentProfile||{username:currentUser.email?currentUser.email.split('@')[0]:'member',display_name:'Gymplified member'};
  $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+
- '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong>'+(deluxeEnabled()&&state.deluxe&&state.deluxe.profileFlair?'<span class="deluxe-pill" style="margin-left:6px">DELUXE</span>':'')+'<div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
+ '<div class="st-65"><strong class="st-66">'+esc(p.display_name||p.username)+'</strong>'+(deluxeEnabled()&&state.deluxe&&state.deluxe.profileFlair?'<span class="st-67 deluxe-pill">DELUXE</span>':'')+'<div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
  '<div class="account-actions"><button class="btn" data-action="pickAvatarFile">Change picture</button><button class="btn" data-action="signOutAccount">Sign out</button></div></div>'+
  '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp" hidden data-change="uploadAvatar">'+
  '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" data-action="saveProfile">Save profile</button></div>'+
- '<div class="account-card"><strong>Profile picture</strong><p class="account-hint" style="margin:8px 0">Upload a JPG, PNG or WebP image. Maximum file size: 3 MB.</p><p class="account-hint">Your username is how other people can find you. Your email address is never shown in search results.</p></div></div>';
+ '<div class="account-card"><strong>Profile picture</strong><p class="st-10 account-hint">Upload a JPG, PNG or WebP image. Maximum file size: 3 MB.</p><p class="account-hint">Your username is how other people can find you. Your email address is never shown in search results.</p></div></div>';
 }
 async function saveProfile(){
  if(!currentUser||socialBusy)return;const username=$('profileUsername').value.trim().toLowerCase(),displayName=$('profileDisplayName').value.trim();
@@ -3078,7 +3073,7 @@ function renderFriends(){
   const accepted=friendRequests.filter(function(x){return x.status==='accepted';});acceptedFriendCount=accepted.length;
   const row=function(p,actions,note){if(!p)return '';return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name||p.username)+'</strong><small>@'+esc(p.username)+(note?' · '+esc(note):'')+'</small></div>'+(actions||'')+'</div>';};
   let html='<div class="section-title">Your connections</div><div class="account-section-title">Friends ('+accepted.length+')</div>';
-  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" data-action="removeFriend" data-id="'+esc(x.id)+'">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
+  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="st-7 btn" data-action="removeFriend" data-id="'+esc(x.id)+'">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
   html+='<div class="account-section-title">Incoming requests ('+incoming.length+')</div>';
   html+=incoming.length?incoming.map(function(x){return row(friendProfiles[x.requester_id],'<button class="btn btn-primary" data-action="respondFriendRequest" data-id="'+esc(x.id)+'" data-arg="true">Accept</button><button class="btn" data-action="respondFriendRequest" data-id="'+esc(x.id)+'" data-arg="false">Decline</button>');}).join(''):'<p class="account-hint">No new friend requests.</p>';
   html+='<div class="account-section-title">Sent requests ('+outgoing.length+')</div>';
@@ -3236,11 +3231,11 @@ function renderDeluxeAnalytics(){
  $('deluxeStrengthMetric').textContent=bests.length?fmtWeight(Math.max(...bests)):'—';
  $('deluxeStrengthCompare').textContent=bests.length?'Highest saved estimated 1RM':'Add a PR or complete a workout';
  const max=Math.max(1,...weeks.map(w=>w.volume));
- $('deluxeVolumeChart').innerHTML=weeks.map(w=>'<span class="deluxe-bar" style="height:'+Math.max(3,w.volume/max*100)+'%" title="'+esc(w.label)+': '+esc(fmtVolume(w.volume))+'"></span>').join('');
+ $('deluxeVolumeChart').innerHTML=weeks.map(w=>'<span class="deluxe-bar" data-h="'+Math.max(3,w.volume/max*100)+'" title="'+esc(w.label)+': '+esc(fmtVolume(w.volume))+'"></span>').join('');
  $('deluxeVolumeLabels').innerHTML='<span>'+esc(weeks[0].label)+'</span><span>'+esc(weeks[weeks.length-1].label)+'</span>';
  const muscles={};month.forEach(s=>(s.exercises||[]).forEach(e=>{const k=String(e.muscle||'Other').trim()||'Other';muscles[k]=(muscles[k]||0)+(e.sets||[]).length;}));
  const muscleRows=Object.entries(muscles).sort((a,b)=>b[1]-a[1]).slice(0,8),muscleMax=Math.max(1,...muscleRows.map(x=>x[1]));
- $('deluxeMuscleBreakdown').innerHTML=muscleRows.length?muscleRows.map(([name,n])=>'<div style="margin:10px 0"><div class="meta-row"><strong>'+esc(name)+'</strong><span>'+n+' sets</span></div><div class="progress-bar"><i style="width:'+(n/muscleMax*100)+'%"></i></div></div>').join(''):'<p class="sub">Finish workouts with exercises to see your muscle-group workload.</p>';
+ $('deluxeMuscleBreakdown').innerHTML=muscleRows.length?muscleRows.map(([name,n])=>'<div class="st-68"><div class="meta-row"><strong>'+esc(name)+'</strong><span>'+n+' sets</span></div><div class="progress-bar"><i data-w="'+(n/muscleMax*100)+'"></i></div></div>').join(''):'<p class="sub">Finish workouts with exercises to see your muscle-group workload.</p>';
  const insights=[];
  if(sessions.length<3)insights.push('Log at least three completed workouts to unlock more useful trend comparisons.');
  else{
@@ -3284,7 +3279,7 @@ function addDeluxePlanExercise(){
 }
 function renderDeluxePlanDraft(){
  const host=$('deluxePlanDraft');if(!host)return;
- host.innerHTML=deluxePlanDraft.length?deluxePlanDraft.map((d,i)=>'<div class="deluxe-plan-row"><div class="plan-day-head"><strong>'+esc(d.day)+'</strong><span class="row-wrap"><button type="button" class="btn btn-icon-only" data-plan-action="up" data-i="'+i+'" aria-label="Move '+esc(d.day)+' earlier"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="btn btn-icon-only" data-plan-action="down" data-i="'+i+'" aria-label="Move '+esc(d.day)+' later"'+(i===deluxePlanDraft.length-1?' disabled':'')+'>↓</button></span></div>'+d.exercises.map((e,j)=>'<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>'+esc(e.name)+' · '+e.sets+' × '+e.reps+' · '+esc(fmtWeight(e.kg,2))+'</span><button class="btn" data-action="removeDeluxeDraftExercise" data-i="'+i+'" data-j="'+j+'">Remove</button></div>').join('')+'</div>').join(''):'<p class="sub">Your plan is empty. Add exercises to start building it.</p>';
+ host.innerHTML=deluxePlanDraft.length?deluxePlanDraft.map((d,i)=>'<div class="deluxe-plan-row"><div class="plan-day-head"><strong>'+esc(d.day)+'</strong><span class="row-wrap"><button type="button" class="btn btn-icon-only" data-plan-action="up" data-i="'+i+'" aria-label="Move '+esc(d.day)+' earlier"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="btn btn-icon-only" data-plan-action="down" data-i="'+i+'" aria-label="Move '+esc(d.day)+' later"'+(i===deluxePlanDraft.length-1?' disabled':'')+'>↓</button></span></div>'+d.exercises.map((e,j)=>'<div class="st-69"><span>'+esc(e.name)+' · '+e.sets+' × '+e.reps+' · '+esc(fmtWeight(e.kg,2))+'</span><button class="btn" data-action="removeDeluxeDraftExercise" data-i="'+i+'" data-j="'+j+'">Remove</button></div>').join('')+'</div>').join(''):'<p class="sub">Your plan is empty. Add exercises to start building it.</p>';
 }
 function removeDeluxeDraftExercise(i,j){if(deluxePlanDraft[i]){deluxePlanDraft[i].exercises.splice(j,1);if(!deluxePlanDraft[i].exercises.length)deluxePlanDraft.splice(i,1);renderDeluxePlanDraft();}}
 function saveDeluxePlan(){
@@ -3298,7 +3293,7 @@ function saveDeluxePlan(){
 }
 function renderDeluxePlanLibrary(){
  const host=$('deluxePlanLibrary');if(!host)return;const plans=state.deluxe&&Array.isArray(state.deluxe.plans)?state.deluxe.plans:[];
- host.innerHTML=plans.length?'<div class="sub-h">Saved plans</div>'+plans.map((p,i)=>'<div class="deluxe-plan-row"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(p.name)+'</strong><span class="sub">'+p.days.reduce((n,d)=>n+d.exercises.length,0)+' planned exercises</span></div><div class="row-wrap" style="margin-top:9px"><button class="btn btn-primary" data-action="loadDeluxePlan" data-i="'+i+'">Load a day</button><button type="button" class="btn" data-plan-edit="'+i+'">Edit</button><button class="btn" data-action="deleteDeluxePlan" data-i="'+i+'">Delete</button></div></div>').join(''):'<p class="sub">Your saved training plans will appear here.</p>';
+ host.innerHTML=plans.length?'<div class="sub-h">Saved plans</div>'+plans.map((p,i)=>'<div class="deluxe-plan-row"><div class="st-57"><strong>'+esc(p.name)+'</strong><span class="sub">'+p.days.reduce((n,d)=>n+d.exercises.length,0)+' planned exercises</span></div><div class="st-70 row-wrap"><button class="btn btn-primary" data-action="loadDeluxePlan" data-i="'+i+'">Load a day</button><button type="button" class="btn" data-plan-edit="'+i+'">Edit</button><button class="btn" data-action="deleteDeluxePlan" data-i="'+i+'">Delete</button></div></div>').join(''):'<p class="sub">Your saved training plans will appear here.</p>';
  renderDeluxePlanDraft();
 }
 let deluxePendingPlanIndex=null;
@@ -3416,5 +3411,16 @@ function bindUiActions(){
  $('legacyLocalDataDialog')?.addEventListener('cancel',e=>e.preventDefault());
 }
 bindUiActions();
+// K3: sizes computed at render time (progress bars, chart bars, the water goal line) arrive as
+// data-w / data-h / data-goal percentages and are applied through the CSSOM, which a strict
+// style-src allows. The observer runs before the next paint, so nothing renders unsized.
+function applyComputedSizes(root){
+ const pct=v=>{const n=Number(v);return Number.isFinite(n)?Math.max(0,Math.min(100,n))+'%':'0%';};
+ const nodes=root.querySelectorAll?root.querySelectorAll('[data-w],[data-h],[data-goal]'):[];
+ const all=root.matches&&root.matches('[data-w],[data-h],[data-goal]')?[root,...nodes]:nodes;
+ all.forEach(el=>{if(el.dataset.w!==undefined)el.style.width=pct(el.dataset.w);if(el.dataset.h!==undefined)el.style.height=pct(el.dataset.h);if(el.dataset.goal!==undefined)el.style.setProperty('--goal',pct(el.dataset.goal));});
+}
+new MutationObserver(list=>list.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType===1)applyComputedSizes(n);}))).observe(document.body,{childList:true,subtree:true});
+applyComputedSizes(document.body);
 if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();

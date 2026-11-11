@@ -688,3 +688,81 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
 .deluxe-table{width:100%;border-collapse:collapse;font-size:calc(12px * var(--text-scale, 1))}.deluxe-table th,.deluxe-table td{text-align:left;padding:8px;border-bottom:1px solid var(--line)}
 .deluxe-table th{color:var(--muted);font-size:calc(10px * var(--text-scale, 1));text-transform:uppercase}
 .deluxe-chart span{flex:1;background:linear-gradient(180deg,#d6b15e,#8c6825);border-radius:4px 4px 0 0;min-width:8px}
+
+/* ===== Batch 10 (K3): former inline style attributes. The doubled class keeps them ahead of component rules, as inline styles were. ===== */
+.st-1.st-1{margin-bottom:20px}
+.st-2.st-2{width:0%}
+.st-3.st-3{margin-top:12px}
+.st-4.st-4{margin-top:22px;padding-top:14px;border-top:1px solid var(--line)}
+.st-5.st-5{font-size:calc(22px * var(--text-scale, 1));font-weight:700;font-family:var(--font-heading)}
+.st-6.st-6{color:var(--brand-text)}
+.st-7.st-7{color:var(--danger)}
+.st-8.st-8{font:700 22px var(--font-heading);min-width:70px}
+.st-9.st-9{width:100%}
+.st-10.st-10{margin:8px 0}
+.st-11.st-11{margin-top:10px}
+.st-12.st-12{margin-top:8px}
+.st-13.st-13{display:block;text-align:center;padding:14px}
+.st-14.st-14{margin-bottom:12px}
+.st-15.st-15{margin-bottom:18px}
+.st-16.st-16{margin-top:14px}
+.st-17.st-17{margin-bottom:20px;display:none}
+.st-18.st-18{display:none}
+.st-19.st-19{width:170px}
+.st-20.st-20{font-size:calc(11px * var(--text-scale, 1));font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:0.08em}
+.st-21.st-21{background:#2563eb}
+.st-22.st-22{background:#059669}
+.st-23.st-23{background:#475569}
+.st-24.st-24{background:#dc2626}
+.st-25.st-25{background:#d97706}
+.st-26.st-26{background:linear-gradient(135deg,#f5df9b,#c9a24e 55%,#8d682b)}
+.st-27.st-27{background:#7c3aed}
+.st-28.st-28{width:190px}
+.st-29.st-29{width:110px}
+.st-30.st-30{width:130px}
+.st-31.st-31{margin:0}
+.st-32.st-32{display:flex;gap:10px;flex-wrap:wrap}
+.st-33.st-33{color:var(--danger);border-color:var(--danger)}
+.st-34.st-34{height:1px;background:var(--line);margin:18px 0}
+.st-35.st-35{margin-bottom:16px}
+.st-36.st-36{margin:6px 0 0}
+.st-37.st-37{margin:6px 0 10px}
+.st-38.st-38{margin:16px 0}
+.st-39.st-39{margin-top:16px}
+.st-40.st-40{display:flex;gap:9px;align-items:center;font-size:calc(13px * var(--text-scale, 1))}
+.st-41.st-41{flex:1;min-width:0}
+.st-42.st-42{justify-content:center}
+.st-43.st-43{justify-content:space-between}
+.st-44.st-44{display:flex;gap:8px;flex-wrap:wrap}
+.st-45.st-45{display:block;font-size:calc(14px * var(--text-scale, 1))}
+.st-46.st-46{font-size:calc(12px * var(--text-scale, 1));color:var(--muted)}
+.st-47.st-47{font-size:calc(14px * var(--text-scale, 1));color:var(--muted)}
+.st-48.st-48{position:absolute;bottom:8px;right:8px;color:var(--danger)}
+.st-49.st-49{padding:0 10px;margin-left:5px}
+.st-50.st-50{padding:0}
+.st-51.st-51{width:120px}
+.st-52.st-52{display:grid;gap:5px}
+.st-53.st-53{border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0}
+.st-54.st-54{cursor:pointer;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.st-55.st-55{padding:10px 0;border-bottom:1px solid var(--line)}
+.st-56.st-56{padding:10px 0;border-top:1px solid var(--line)}
+.st-57.st-57{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.st-58.st-58{margin-top:5px}
+.st-59.st-59{margin-top:6px}
+.st-60.st-60{margin:8px 0 12px}
+.st-61.st-61{align-items:center;gap:12px}
+.st-62.st-62{padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:8px 0}
+.st-63.st-63{white-space:pre-wrap;margin-top:6px;font-size:calc(13px * var(--text-scale, 1))}
+.st-64.st-64{display:none;margin-top:8px}
+.st-65.st-65{flex:1;min-width:180px}
+.st-66.st-66{font:700 19px var(--font-heading)}
+.st-67.st-67{margin-left:6px}
+.st-68.st-68{margin:10px 0}
+.st-69.st-69{display:flex;justify-content:space-between;gap:8px;margin-top:6px}
+.st-70.st-70{margin-top:9px}
+
+/* Muscle map highlights (moved from style blocks in the SVG and ones the app injected; a strict style-src blocks those).
+   These reproduce exactly what rendered before: the drawing's own orange rule won for primary muscles, while the
+   stroke width came from the app's rule. TODO(owner): the legend dot for primary muscles is gold (#e6b93f), not orange. */
+#layer2 path.active{fill:#d9531e!important;fill-opacity:.9!important;stroke:#a8390f!important;stroke-opacity:1!important;stroke-width:.8!important}
+#layer2 path.secondary{fill:#c18d27!important;fill-opacity:.72!important;stroke:#9a7019!important;stroke-opacity:.9!important;stroke-width:.65!important}

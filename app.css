@@ -706,8 +706,8 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
 .st-14.st-14{margin-bottom:12px}
 .st-15.st-15{margin-bottom:18px}
 .st-16.st-16{margin-top:14px}
-.st-17.st-17{margin-bottom:20px;display:none}
-.st-18.st-18{display:none}
+.st-17.st-17{margin-bottom:20px}
+.st-18.st-18{}
 .st-19.st-19{width:170px}
 .st-20.st-20{font-size:calc(11px * var(--text-scale, 1));font-weight:700;text-transform:uppercase;color:var(--muted);letter-spacing:0.08em}
 .st-21.st-21{background:#2563eb}
@@ -766,3 +766,47 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
    stroke width came from the app's rule. TODO(owner): the legend dot for primary muscles is gold (#e6b93f), not orange. */
 #layer2 path.active{fill:#d9531e!important;fill-opacity:.9!important;stroke:#a8390f!important;stroke-opacity:1!important;stroke-width:.8!important}
 #layer2 path.secondary{fill:#c18d27!important;fill-opacity:.72!important;stroke:#9a7019!important;stroke-opacity:.9!important;stroke-width:.65!important}
+
+/* ===== Batch 11: account, More menu, nav, steppers, per-exercise rest, undo toasts ===== */
+.panel[hidden],.account-nudge[hidden]{display:none}
+.account-trigger{display:inline-flex;align-items:center;gap:8px;min-height:40px;padding:0 12px 0 6px;border-radius:999px}
+.account-trigger-avatar{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;background:var(--panel-hover);color:var(--ink);font-weight:800;font-size:calc(13px * var(--text-scale, 1))}
+.account-trigger.signed-in .account-trigger-avatar{background:var(--brand);color:var(--brand-ink)}
+.account-trigger-label{max-width:12ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.account-nudge{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border-color:var(--brand);background:linear-gradient(135deg,var(--brand-light),var(--panel) 70%);margin-bottom:18px}
+.account-nudge-text{display:grid;gap:3px;min-width:0;flex:1 1 240px}
+.account-nudge-text span{color:var(--muted);font-size:calc(13px * var(--text-scale, 1))}
+.account-nudge-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.account-benefit-list{margin:0;padding-left:18px;display:grid;gap:8px;color:var(--muted)}
+.account-benefit-list strong{color:var(--ink)}
+.more-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.more-tile{display:flex;align-items:center;gap:14px;text-align:left;min-height:72px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);font:inherit;cursor:pointer}
+.more-tile:hover{border-color:var(--brand)}
+.more-tile:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.more-tile>span:last-child{display:grid;gap:2px;min-width:0}
+.more-tile small{color:var(--muted)}
+.more-tile-icon{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:10px;background:var(--panel-hover);font-size:calc(20px * var(--text-scale, 1));flex-shrink:0}
+nav button.nav-more{display:none}
+@media(max-width:860px){
+ nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+ nav button.nav-extra{display:none}
+ nav button.nav-more{display:flex}
+ .account-trigger{padding:0 6px}
+ .account-trigger-label{display:none}
+}
+.toast-container{pointer-events:none}
+.toast{display:flex;align-items:center;gap:12px}
+.toast.toast-action{pointer-events:auto}
+.toast-btn{min-height:36px;padding:0 12px;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;font:inherit;font-weight:800;cursor:pointer}
+.toast-btn:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.set-steps{display:none;grid-column:1/-1;gap:6px;flex-wrap:wrap;padding:2px 0 6px}
+.setrow.is-editing .set-steps{display:flex}
+.set-steps .btn{flex:1 1 0;min-width:64px;min-height:40px;padding:0 6px;font-variant-numeric:tabular-nums}
+.ex-rest{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:calc(12px * var(--text-scale, 1))}
+.ex-rest select{min-height:36px;border-radius:8px;border:1px solid var(--field-line, var(--line));background:var(--panel);color:var(--ink);padding:0 8px;font:inherit}
+.account-trigger-icon{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.account-trigger-avatar [hidden]{display:none}
+/* The top bar gets tight on phones: the quick theme switch moves out (it stays in Settings → Appearance). */
+@media(max-width:480px){.top-actions [data-action="toggleQuickTheme"]{display:none}}
+/* Pop-up messages sit above the phone tab bar (and the rest bar), so an Undo message never covers navigation. */
+@media(max-width:860px){.toast-container{left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));align-items:center}html.session-active .toast-container{bottom:calc(132px + env(safe-area-inset-bottom))}}

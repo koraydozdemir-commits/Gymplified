@@ -383,7 +383,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 24);
+  assert.ok(version >= 25);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -467,7 +467,7 @@ test('B4/G3: warm-up sets are excluded from volume and PR detection', async () =
 test('B1/B2: rest timer auto-starts, persists, and alerts with vibration, beep and optional notification', async () => {
   const html = await read('index.html');
   const js = appScript(html);
-  assert.match(js, /if\(restSetting\(\)>0\)startRest\(restSetting\(\)\)/);
+  assert.match(js, /const r=restFor\(w\.name\);if\(r>0\)startRest\(r\);/, 'ticking a set starts the rest for that exercise (or the default)');
   assert.match(js, /localStorage\.setItem\(REST_TIMER_KEY/);
   assert.match(js, /function restoreRestTimer/);
   assert.match(js, /navigator\.vibrate&&navigator\.vibrate\(\[200,100,200\]\)/);
@@ -623,7 +623,7 @@ test('page markup inside <main> has balanced container tags', async () => {
   }
   // every screen is a direct child of <main>, so one screen can never swallow the next
   const screens = [...main.matchAll(/\n( *)<section id="([a-z]+)" class="screen/g)];
-  assert.equal(screens.length, 7);
+  assert.equal(screens.length, 9, 'seven screens plus Account and More');
   assert.equal(new Set(screens.map(m => m[1].length)).size, 1);
 });
 
@@ -1027,8 +1027,8 @@ test('I8/I9/I10: motion settings, non-colour cues and narrow-screen layout', asy
   // bottom navigation: seven columns, short labels on phones (it was six, pushing Settings off-screen)
   assert.doesNotMatch(css, /nav\{grid-template-columns:repeat\(6,/);
   assert.match(css, / nav\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);gap:2px\}/);
-  assert.equal(count(html, /<span class="nav-text nav-long">/g), 7);
-  assert.equal(count(html, /<span class="nav-text nav-short">/g), 7);
+  assert.equal(count(html, /<span class="nav-text nav-long">/g), 9);
+  assert.equal(count(html, /<span class="nav-text nav-short">/g), 9);
   assert.match(css, /@media\(max-width:480px\)\{\.top-label-long\{display:none\}\.top-label-short\{display:inline\}/);
   assert.match(css, /\.pick-grid\{display:grid;grid-template-columns:minmax\(0,1\.2fr\) minmax\(0,\.8fr\)/);
 });
@@ -1326,4 +1326,91 @@ test('K3 follow-up: functions run by delegated actions never rely on event.curre
   const bodies = extractFunctions(js, [...new Set(names)].filter(n => js.includes('function ' + n + '(')));
   assert.doesNotMatch(bodies, /currentTarget/, 'delegated handlers see the document as currentTarget');
   assert.match(js, /const form=event\.target&&event\.target\.closest\?event\.target\.closest\('form'\):null;if\(!form\|\|!form\.email\)return;/);
+});
+
+// ===== Batch 11: workout QoL, undo, phone navigation, account =====
+test('Q1: − / + buttons step weight by 2.5 kg or 5 lb and reps by 1, never below the minimum', async () => {
+  const js = await readRaw('app.js');
+  const make = unit => new Function('state', extractFunctions(js, ['weightUnit', 'weightStep', 'stepSetValue']) + ';return stepSetValue;')({ settings: { weightUnit: unit } });
+  const kg = make('kg'), lb = make('lb');
+  assert.equal(kg(60, 'kg', 1), 62.5); assert.equal(kg(60, 'kg', -1), 57.5); assert.equal(kg(1, 'kg', -1), 0, 'weight never goes negative');
+  assert.equal(lb(135, 'kg', 1), 140, 'pounds step by 5');
+  assert.equal(kg(8, 'reps', 1), 9); assert.equal(kg(1, 'reps', -1), 1, 'at least one rep');
+  assert.match(js, /data-set-action="step" data-field="kg" data-delta="-1"/);
+  assert.match(js, /else if\(b\.dataset\.setAction==='step'\)stepSet\(/);
+  assert.match(js, /list\.addEventListener\('focusin',e=>\{if\(e\.target\.matches&&e\.target\.matches\('input\[data-set-field\]'\)\)markStepRow/);
+});
+
+test('Q2: rest time per exercise, sanitized when synced', async () => {
+  const js = await readRaw('app.js');
+  const api = settings => new Function('state', 'const REST_SECONDS_MAX=600,REST_DEFAULT_SECONDS=90;' + extractFunctions(js, ['restSetting', 'restKey', 'restFor']) + ';return {restKey,restFor};')({ settings });
+  const { restKey, restFor } = api({ restSeconds: 90, restByExercise: { 'barbell-back-squat': 180, 'plank': 0 } });
+  assert.equal(restKey('Barbell Back Squat'), 'barbell-back-squat');
+  assert.equal(restFor('Barbell Back Squat'), 180);
+  assert.equal(restFor('Plank'), 0, '0 means no timer for that exercise');
+  assert.equal(restFor('Leg Press'), 90, 'others use the default');
+  assert.equal(api({ restSeconds: 90, restByExercise: {} }).restFor('constructor'), 90, 'built-in object properties are never read as rest values');
+  assert.match(js, /if\(settings\.restByExercise&&typeof settings\.restByExercise==='object'&&!Array\.isArray\(settings\.restByExercise\)\)\{const m=\{\};Object\.keys\(settings\.restByExercise\)\.filter\(k=>\/\^\[a-z0-9-\]\{1,60\}\$\/\.test\(k\)\)\.slice\(0,300\)/);
+  assert.match(js, /if\(typeof settings\.keepAwake==='boolean'\)state\.settings\.keepAwake=settings\.keepAwake;/);
+  assert.match(js, /<select data-ex-rest data-i="'\+i\+'" aria-label="Rest after each set of '\+esc\(w\.name\)\+'">/);
+});
+
+test('Q3: the screen stays on only during a workout, while visible, and can be turned off', async () => {
+  const js = await readRaw('app.js'), html = await readRaw('index.html');
+  assert.match(js, /function wantWakeLock\(\)\{return !!state\.session&&state\.settings\.keepAwake!==false&&document\.visibilityState==='visible'&&!!\(navigator\.wakeLock&&navigator\.wakeLock\.request\);\}/);
+  assert.match(js, /document\.addEventListener\('visibilitychange',syncWakeLock\);/);
+  assert.match(js, /classList\.toggle\('session-active',active\);syncWakeLock\(\);/);
+  assert.match(html, /<input type="checkbox" id="keepAwakeToggle"> Keep the screen on during a workout/);
+});
+
+test('Q4: deletes are instant with Undo; restored records get fresh ids so synced tombstones cannot remove them', async () => {
+  const js = await readRaw('app.js');
+  for (const fn of ['deletePR', 'clearAllPRs', 'deleteWorkout', 'clearAllWorkouts', 'deleteFood', 'clearFoodLogs', 'removeWaterEntry', 'removeSet', 'deleteSavedRoutine', 'deleteDeluxePlan']) {
+    const body = extractFunctions(js, [fn]);
+    assert.doesNotMatch(body, /confirm\(/, fn + ' no longer asks first');
+    assert.match(body, /offerUndo\(/, fn + ' offers Undo');
+  }
+  let n = 0;
+  const freshCopy = new Function('newRecordId', 'syncW', 'const UNDO_ID_PREFIX={prs:\'pr\',workouts:\'workout\',foods:\'food\',waterEntries:\'water\',routines:\'routine\'};' + extractFunctions(js, ['freshCopy']) + ';return freshCopy;')(p => p + '-new' + (++n), w => { w.setList.forEach(x => { x.id = x.id || 'set-new' + (++n); }); return w; });
+  const food = { id: 'food-1', name: 'Oats', cal: 300 };
+  const copy = freshCopy('foods', food);
+  assert.notEqual(copy.id, food.id); assert.equal(copy.name, 'Oats'); assert.equal(food.id, 'food-1', 'the original is not changed');
+  const w = freshCopy('workouts', { id: 'workout-1', name: 'Squat', setList: [{ id: 'set-1', kg: 100 }] });
+  assert.notEqual(w.id, 'workout-1'); assert.notEqual(w.setList[0].id, 'set-1', 'sets get new ids too');
+  // the Undo button is a real button with a listener, and the toast stays long enough to use it
+  assert.match(js, /button\.addEventListener\('click', \(\) => \{ if \(closed\) return; close\(\); action\.onAction\(\); \}\);/);
+  assert.match(js, /setTimeout\(close, action \? 6500 : 2200\);/);
+  assert.match(js, /text\.textContent = message;/, 'toast text is never parsed as HTML');
+  // imports, restores and cancelling a session still ask first
+  for (const fn of ['cancelSession']) assert.match(extractFunctions(js, [fn]), /confirm\(/);
+});
+
+test('Q5/Q7: phone shows five tabs (Home, Training, Food, Friends, More); the account has its own screen and top-bar button', async () => {
+  const html = await readRaw('index.html'), js = await readRaw('app.js'), css = await readRaw('app.css');
+  const nav = html.slice(html.indexOf('<nav aria-label="Main">'), html.indexOf('</nav>'));
+  const buttons = [...nav.matchAll(/<button( class="([^"]*)")? data-screen="([a-z]+)"/g)].map(m => ({ cls: m[2] || '', screen: m[3] }));
+  const phone = buttons.filter(b => !b.cls.includes('nav-extra')).map(b => b.screen);
+  assert.deepEqual(phone, ['dashboard', 'training', 'nutrition', 'friends', 'more']);
+  const desktop = buttons.filter(b => !b.cls.includes('nav-more')).map(b => b.screen);
+  assert.deepEqual(desktop, ['dashboard', 'prs', 'training', 'nutrition', 'friends', 'deluxe', 'settings', 'account']);
+  assert.match(css, /@media\(max-width:860px\)\{\n nav\{grid-template-columns:repeat\(5,minmax\(0,1fr\)\)!important\}\n nav button\.nav-extra\{display:none\}\n nav button\.nav-more\{display:flex\}/);
+  assert.match(js, /b\.dataset\.screen==='more' && MORE_SCREENS\.includes\(screenId\)/, 'More stays highlighted on its sub-screens');
+  // account panel lives on the Account screen, not Friends
+  const account = html.slice(html.indexOf('<section id="account"'), html.indexOf('<!-- MORE'));
+  const friends = html.slice(html.indexOf('<section id="friends"'), html.indexOf('<!-- ACCOUNT'));
+  assert.match(account, /id="friendStatus"/); assert.doesNotMatch(friends, /id="friendStatus"/);
+  assert.match(friends, /id="friendsSignedOut" hidden/);
+  assert.match(html, /<button class="btn account-trigger" id="accountButton" type="button" data-action="showScreen" data-arg="account"/);
+  assert.match(html, /id="accountNudge" hidden/);
+  assert.match(js, /openAccount:el=>openAccount\(el\.dataset\.arg\),dismissAccountNudge:\(\)=>dismissAccountNudge\(\)/);
+  assert.match(js, /nudge\.hidden=signedIn\|\|!sb\|\|accountNudgeHidden\(\)\|\|!state\.onboarded\|\|\(typeof onboardingNeeded==='function'&&onboardingNeeded\(\)\)\|\|!!onboardingDraft;/, 'the sign-in card waits for first-run setup');
+  assert.match(js, /\$\('accountButtonLabel'\)\.textContent=signedIn\?name:'Sign in';/, 'names are set as text, never HTML');
+});
+
+test('Q7: every "sign in" route opens the Account screen, never Friends', async () => {
+  const js = await readRaw('app.js'), html = await readRaw('index.html');
+  assert.doesNotMatch(js, /showScreen\('friends'/, 'nothing sends people to Friends to sign in');
+  assert.match(js, /else if\(a==='open-account'\)openAccount\(authMode\);/);
+  assert.match(js, /Deluxe is linked to your account'\);openAccount\('signup'\);return;/);
+  assert.match(html, /are on the Account screen \(the person button at the top\)/);
 });

@@ -369,7 +369,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 14);
+  assert.ok(version >= 15);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -609,4 +609,101 @@ test('page markup inside <main> has balanced container tags', async () => {
   const screens = [...main.matchAll(/\n( *)<section id="([a-z]+)" class="screen/g)];
   assert.equal(screens.length, 7);
   assert.equal(new Set(screens.map(m => m[1].length)).size, 1);
+});
+
+// ---- Batch 4: gamification (D1–D9) ----
+const STREAK_CONSTS = 'const STREAK_FREEZE_MAX=2,STREAK_FREEZE_EVERY=7,STREAK_NUDGE_HOUR=18,XP_LOG_MAX=60;';
+function streakApi(js) {
+  return new Function(STREAK_CONSTS + extractFunctions(js, ['dayKey', 'shiftDay', 'computeDailyStreak', 'planFreezeUse']) + ';return {shiftDay,computeDailyStreak,planFreezeUse};')();
+}
+
+test('D1/D2: daily streak counts active days and freezes bridge missed days', async () => {
+  const js = appScript(await read('index.html'));
+  const { shiftDay, computeDailyStreak, planFreezeUse } = streakApi(js);
+  const today = '2026-11-11', back = n => shiftDay(today, -n);
+  assert.equal(shiftDay('2026-03-01', -1), '2026-02-28');
+  assert.equal(shiftDay('2026-12-31', 1), '2027-01-01');
+  const days = (...ns) => { const set = new Set(ns.map(back)); return k => set.has(k); };
+  const none = () => false;
+  assert.equal(computeDailyStreak(none, none, today, false), 0);
+  assert.equal(computeDailyStreak(none, none, today, true), 1);
+  // today not logged yet does not break yesterday's streak
+  assert.equal(computeDailyStreak(days(1, 2, 3), none, today, false), 3);
+  assert.equal(computeDailyStreak(days(1, 2, 3), none, today, true), 4);
+  assert.equal(computeDailyStreak(days(2, 3), none, today, true), 1, 'a missed day breaks the streak');
+  // a frozen day bridges the gap but is not counted
+  assert.equal(computeDailyStreak(days(2, 3), days(1), today, true), 3);
+  assert.equal(computeDailyStreak(none, days(1, 2), today, false), 0, 'frozen days alone are not a streak');
+  // freeze use: one missed day with one freeze
+  assert.deepEqual(planFreezeUse(days(2, 3, 4), none, today, 1), [back(1)]);
+  assert.deepEqual(planFreezeUse(days(2, 3, 4), none, today, 0), [], 'no freeze, nothing covered');
+  assert.deepEqual(planFreezeUse(days(3, 4), none, today, 2), [back(1), back(2)]);
+  assert.deepEqual(planFreezeUse(days(3, 4), none, today, 1), [], 'two missed days need two freezes');
+  assert.deepEqual(planFreezeUse(days(4, 5), none, today, 2), [], 'three missed days are never covered');
+  assert.deepEqual(planFreezeUse(days(1, 2), none, today, 2), [], 'nothing missed');
+  assert.deepEqual(planFreezeUse(none, none, today, 2), [], 'no streak to protect');
+  assert.deepEqual(planFreezeUse(days(2), days(1), today, 2), [], 'already frozen');
+  assert.match(js, /if\(tier<g\.freezeTier\)g\.freezeTier=tier;\n else if\(tier>g\.freezeTier\)\{g\.freezeTier=tier;if\(g\.streakFreezes<STREAK_FREEZE_MAX\)/);
+  assert.match(js, /streakFreezes:Math\.round\(safeStateNumber\(rawGame\.streakFreezes,0,STREAK_FREEZE_MAX,0\)\)/);
+});
+
+test('D4/D5: streak nudge is in-app only and celebrations use a dialog that never interrupts a workout', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  assert.match(html, /id="streakNudge"[^>]*hidden/);
+  assert.match(js, /now\.getHours\(\)>=STREAK_NUDGE_HOUR&&!todayIsActive\(\)&&dailyStreak\(\)>0/);
+  assert.match(html, /<dialog id="celebrationDialog" class="app-dialog celebration-dialog" aria-labelledby="celebrationTitle"/);
+  assert.match(js, /!celebrationQueue\.length\|\|state\.session\|\|dialog\.open\|\|document\.querySelector\('dialog\[open\]'\)/);
+  assert.match(js, /dialog\.showModal\(\)/);
+  assert.match(js, /function confetti\(\)\{if\(reducedMotion\(\)\)return;/);
+});
+
+test('D6: badge gallery has progress for every badge and keeps the original ids', async () => {
+  const js = appScript(await read('index.html'));
+  const block = js.slice(js.indexOf('const BADGES=['), js.indexOf('function badgeProgress'));
+  const ids = [...block.matchAll(/\{id:'([a-z0-9]+)',icon:'[^']+',name:'[^']+',desc:'[^']+',target:(\d+),value:/g)];
+  assert.ok(ids.length >= 30, 'expected a much larger badge set, got ' + ids.length);
+  assert.equal(count(block, /\{id:'/g), ids.length, 'every badge has icon, name, desc, target and value');
+  assert.equal(new Set(ids.map(m => m[1])).size, ids.length, 'badge ids are unique');
+  for (const legacy of ['first', 'pr', 'w2', 'w4', 'w8', 'w12', 'h2o', 'l5', 'fr', 'ws']) assert.ok(ids.some(m => m[1] === legacy), 'kept badge ' + legacy);
+  for (const added of ['vol10', 'vol50', 'vol100', 'ws50', 'ws100', 'ws250', 'pr10', 'pr5m', 'h2o7', 'h2o30', 'h2o100', 'food30', 'early', 'night', 'explore']) assert.ok(ids.some(m => m[1] === added), 'added badge ' + added);
+  assert.match(js, /role="progressbar" aria-label="'\+esc\(b\.name\)\+' progress"/);
+  assert.match(js, /'✓ Unlocked':'🔒 Locked · '/, 'locked state is text, not colour alone');
+});
+
+test('D7: weekly quests rotate, daily and weekly claims are date-stamped and stale claims are dropped', async () => {
+  const js = appScript(await read('index.html'));
+  const api = new Function(extractFunctions(js, ['pickWeeklyQuests', 'formatCountdown']) + ';return {pickWeeklyQuests,formatCountdown};')();
+  const pool = ['a', 'b', 'c', 'd', 'e'];
+  const w1 = api.pickWeeklyQuests(pool, '2026-11-09', 2), w2 = api.pickWeeklyQuests(pool, '2026-11-16', 2);
+  assert.equal(w1.length, 2);
+  assert.notEqual(w1[0], w1[1]);
+  assert.notDeepEqual(w1, w2, 'quests change from week to week');
+  assert.deepEqual(api.pickWeeklyQuests(pool, '2026-11-09', 2), w1, 'stable within a week');
+  assert.equal(api.pickWeeklyQuests(['only'], '2026-11-09', 2).length, 1);
+  assert.equal(api.formatCountdown(3 * 864e5 + 5 * 36e5), '3d 5h');
+  assert.equal(api.formatCountdown(6 * 36e5 + 12 * 6e4), '6h 12m');
+  assert.equal(api.formatCountdown(59e3), '0m');
+  assert.match(js, /function questKey\(scope,id\)\{return scope\+'_'\+\(scope==='w'\?wkKey\(new Date\(\)\):dayKey\(\)\)\+'_'\+id;\}/);
+  assert.match(js, /return !m\|\|m\[1\]>=claimCutoff;/);
+  assert.match(js, /resets in '\+formatCountdown\(msToMidnight\(\)\)/);
+  assert.match(js, /resets in '\+formatCountdown\(msToWeekEnd\(\)\)/);
+});
+
+test('D8/D9: level titles, XP log and daily XP limits', async () => {
+  const js = appScript(await read('index.html'));
+  const levelTitle = new Function(extractConst(js, 'LEVEL_TITLES') + extractFunctions(js, ['levelTitle']) + ';return levelTitle;')();
+  assert.equal(levelTitle(1), 'Rookie');
+  assert.equal(levelTitle(5), 'Lifter');
+  assert.equal(levelTitle(7), 'Lifter');
+  assert.equal(levelTitle(99), 'Legend');
+  const caps = new Function(extractConst(js, 'XP_DAILY_CAPS') + extractFunctions(js, ['xpAllowance']) + ';return (state,normalizeGame,kind)=>xpAllowance.call(null,kind);');
+  assert.match(js, /const XP_DAILY_CAPS=\{ex:15,meal:8,pr:5,session:3\}/);
+  assert.match(js, /if\(w\.done&&!w\.xp\)\{w\.xp=1;if\(xpAllowance\('ex'\)\)/);
+  assert.match(js, /if\(!f\.xp\)\{f\.xp=1;if\(xpAllowance\('meal'\)\)/);
+  assert.match(js, /if\(!p\.xp\)\{p\.xp=1;if\(xpAllowance\('pr'\)\)/);
+  assert.match(js, /if\(xpAllowance\('session'\)\)gainXP\(40,'Workout complete'\)/);
+  assert.match(js, /function xpLogAdd\(n,why\)/);
+  assert.match(js, /History is kept on this device/);
+  assert.ok(caps);
 });

@@ -550,6 +550,28 @@ html.session-active .topbar .install-trigger{display:none}
 .onboarding-choice[aria-pressed=true]::before{content:"✓ "}
 .onboarding-units{display:grid;gap:10px}.onboarding-units .sub{min-width:70px}
 .onboarding-nav{margin-top:18px}.onboarding-skip{margin-left:auto}
+/* Batch 4: gamification */
+.wd.frozen{border-color:var(--brand);border-style:dashed;color:var(--brand-text)}
+.streak-help{margin:10px 0 4px}
+.quest-reset{float:right;font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted)}
+.game-details{margin-top:14px;border-top:1px solid var(--line)}
+.game-details summary{font-weight:700;font-size:calc(14px * var(--text-scale, 1))}
+.badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin:6px 0 10px}
+.badge-card{display:flex;gap:10px;align-items:flex-start;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+.badge-card.got{border-color:var(--brand);background:var(--brand-light)}
+.badge-icon{font-size:calc(26px * var(--text-scale, 1));line-height:1;filter:grayscale(1);opacity:.55}
+.badge-card.got .badge-icon{filter:none;opacity:1}
+.badge-body{display:grid;gap:4px;flex:1;min-width:0;font-size:calc(13px * var(--text-scale, 1))}
+.badge-body .progress-bar{margin:4px 0 0}
+.badge-state{font-size:calc(12px * var(--text-scale, 1));font-weight:700;color:var(--muted)}
+.badge-card.got .badge-state{color:var(--ink)}
+.xp-log{list-style:none;margin:8px 0;padding:0;font-size:calc(13px * var(--text-scale, 1))}
+.xp-log li{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line)}
+.xp-log li span{flex:1;min-width:120px}
+.celebration-dialog{text-align:center;border-color:var(--brand)}
+.celebration-icon{font-size:calc(56px * var(--text-scale, 1));line-height:1.1;margin-bottom:6px}
+.celebration-list{list-style:none;margin:12px 0 0;padding:0;text-align:left;display:grid;gap:10px;max-height:46vh;overflow:auto;font-size:calc(14px * var(--text-scale, 1))}
+.celebration-list:empty{display:none}
 .app-dialog{width:min(92vw,480px);border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:22px;box-shadow:0 24px 90px #0009}
 .app-dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
 .app-dialog h2{margin:0 0 8px;font:700 20px var(--font-heading)}
@@ -633,6 +655,10 @@ html.session-active .topbar .install-trigger{display:none}
         <div class="resume-banner" id="backupReminder" role="region" aria-label="Backup reminder" hidden>
           <div><strong>Time for a backup</strong><p class="sub" id="backupReminderText"></p></div>
           <div class="row-wrap"><button class="btn btn-primary" type="button" data-backup-action="export">⬇ Export backup</button><button class="btn" type="button" data-backup-action="snooze">Remind me in a week</button></div>
+        </div>
+        <div class="resume-banner" id="streakNudge" role="region" aria-label="Streak reminder" hidden>
+          <div><strong>🔥 Keep your streak</strong><p class="sub" id="streakNudgeText"></p></div>
+          <div class="row-wrap"><button class="btn btn-primary" type="button" data-nudge-action="train">Log a workout</button><button class="btn" type="button" data-nudge-action="dismiss">Not today</button></div>
         </div>
 
         <div class="panel" id="gamePanel" style="margin-bottom:20px" aria-label="Progress and streaks"></div>
@@ -1173,6 +1199,13 @@ html.session-active .topbar .install-trigger{display:none}
 </div>
 
 <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="false"></div>
+<dialog id="celebrationDialog" class="app-dialog celebration-dialog" aria-labelledby="celebrationTitle" aria-describedby="celebrationText">
+  <div class="celebration-icon" id="celebrationIcon" aria-hidden="true">🎉</div>
+  <h2 id="celebrationTitle">Well done</h2>
+  <p id="celebrationText"></p>
+  <ul class="celebration-list" id="celebrationList"></ul>
+  <div class="app-dialog-actions" style="justify-content:center"><button class="btn btn-primary" id="celebrationClose" type="button" autofocus>Nice!</button></div>
+</dialog>
 <dialog id="deleteAccountDialog" class="app-dialog" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountDescription">
   <h2 id="deleteAccountTitle">Permanently delete your account?</h2>
   <p id="deleteAccountDescription">This removes your account, profile, synced progress, support requests and avatar. This cannot be undone. Type DELETE to confirm.</p>
@@ -1325,6 +1358,8 @@ const EX_FAV_MAX = 100;
 // Display units. Stored values stay canonical: kg, km and cm.
 const KG_PER_LB = 0.45359237, KM_PER_MI = 1.609344, CM_PER_IN = 2.54;
 const BACKUP_REMINDER_DAYS = 30;
+// Gamification
+const STREAK_FREEZE_MAX = 2, STREAK_FREEZE_EVERY = 7, STREAK_NUDGE_HOUR = 18, XP_LOG_MAX = 60;
 const EMPTY_PROFILE = { heightCm: 0, weightKg: 0, age: 0, sex: '', goal: '', activity: '' };
 
 const cleanState = {
@@ -2123,8 +2158,10 @@ function sanitizeStateSnapshot(raw){
  if(raw.history&&typeof raw.history==='object'&&!Array.isArray(raw.history))Object.keys(raw.history).filter(k=>safeStateDay(k,'')===k).sort().slice(-365).forEach(k=>{const x=raw.history[k]||{};history[k]={cal:safeStateNumber(x.cal,0,100000,0),water:safeStateNumber(x.water,0,20,0),done:safeStateNumber(x.done,0,1000,0)};});
  if(raw.dailyHistory&&typeof raw.dailyHistory==='object'&&!Array.isArray(raw.dailyHistory))Object.keys(raw.dailyHistory).filter(k=>safeStateDay(k,'')===k).sort().slice(-365).forEach(k=>{const x=raw.dailyHistory[k]||{};dailyHistory[k]={cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),water:safeStateNumber(x.water,0,20,0),workouts:list(x.workouts,1000).map((w,i)=>cleanWorkout(w,i,k)).filter(Boolean),foods:list(x.foods,5000).map((f,i)=>cleanFood(f,i,k)).filter(Boolean),waterEntries:list(x.waterEntries,10000).map((w,i)=>cleanWater(w,i,k)).filter(Boolean)};});
  const settings=raw.settings&&typeof raw.settings==='object'?raw.settings:{};
- const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:list(rawGame.badges,100).map(x=>safeStateText(x,'',40)).filter(Boolean),day:gameDay};
- if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
+ const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:[...new Set(list(rawGame.badges,200).map(x=>safeStateText(x,'',40)).filter(Boolean))].slice(0,100),day:gameDay,streakFreezes:Math.round(safeStateNumber(rawGame.streakFreezes,0,STREAK_FREEZE_MAX,0)),frozenDays:[...new Set(list(rawGame.frozenDays,2000).filter(k=>safeStateDay(k,'')===k))].sort().slice(-90),freezeTier:Math.round(safeStateNumber(rawGame.freezeTier,0,10000,0)),bestDaily:Math.round(safeStateNumber(rawGame.bestDaily,0,100000,0)),daily:rawGame.daily&&typeof rawGame.daily==='object'&&safeStateDay(rawGame.daily.day,'')===today?{day:today,ex:Math.round(safeStateNumber(rawGame.daily.ex,0,1000,0)),meal:Math.round(safeStateNumber(rawGame.daily.meal,0,1000,0)),pr:Math.round(safeStateNumber(rawGame.daily.pr,0,1000,0)),session:Math.round(safeStateNumber(rawGame.daily.session,0,1000,0))}:{day:today,ex:0,meal:0,pr:0,session:0}};
+ // Quest claims are date-stamped (d_YYYY-MM-DD_id / w_YYYY-MM-DD_id). Old ones are dropped before the size cap so current claims always survive.
+ const claimCutoff=(()=>{const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-8);return dayKey(d);})();
+ if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).filter(k=>{const m=/^[dw]_(\d{4}-\d{2}-\d{2})_/.exec(k);return !m||m[1]>=claimCutoff;}).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
  const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,5000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:[...new Set(list(raw.presets,10).map(x=>Math.round(safeStateNumber(x,1,WATER_ENTRY_MAX_ML,250))).filter(x=>x>0))].slice(0,WATER_PRESET_MAX),lastWaterMl:Math.round(safeStateNumber(raw.lastWaterMl,0,WATER_ENTRY_MAX_ML,0)),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,WATER_GOAL_MIN_L,WATER_GOAL_MAX_L,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now()),xpStart:safeStateNumber(raw.session.xpStart,0,1000000000,safeStateNumber(rawGame.xp,0,1000000000,0))}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{id:safeStateText(raw.lastSummary.id,'',120),prs:cleanPrList(raw.lastSummary.prs),muscles:list(raw.lastSummary.muscles,20).map(n=>safeStateText(n,'',40)).filter(Boolean),xp:safeStateNumber(raw.lastSummary.xp,0,100000,0),date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,accountOwnerId:safeStateText(raw.accountOwnerId,'',80),resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
  // Favourite exercises are an id -> 0/1 map (not an array) so un-favouriting survives the server-side merge.
  state.exFav={};
@@ -2196,7 +2233,7 @@ function bootState(){
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
   t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:DEFAULT_WATER_PRESETS.slice();t.lastWaterMl=Number(t.lastWaterMl)||0;
   t.history=t.history||{};t.dailyHistory=t.dailyHistory||{};t.exFav=t.exFav&&typeof t.exFav==='object'&&!Array.isArray(t.exFav)?t.exFav:{};t.profile=Object.assign({},EMPTY_PROFILE,t.profile&&typeof t.profile==='object'?t.profile:{});t.onboarded=!!t.onboarded;
-  t.game=Object.assign({xp:0,total:0,waterWon:'',claimed:{},badges:[],day:''},t.game||{}); delete t.game.streak;delete t.game.best;delete t.game.lastDay;delete t.game.freezes;
+  t.game=Object.assign({xp:0,total:0,waterWon:'',claimed:{},badges:[],day:'',streakFreezes:0,frozenDays:[],freezeTier:0,bestDaily:0},t.game||{}); delete t.game.streak;delete t.game.best;delete t.game.lastDay;delete t.game.freezes;
   const d=dayKey();
   if(t.game.day&&t.game.day!==d){
     const oldDay=t.game.day,previous=t.dailyHistory[oldDay]||{workouts:[],foods:[],waterEntries:[]};
@@ -2210,26 +2247,222 @@ function bootState(){
   }
   t.game.day=d;t.workouts.forEach(ensureSets);t.lastSession.forEach(ensureSets);["sessions","customEx"].forEach(k=>{if(!Array.isArray(t[k]))t[k]=[];});t.weeklyGoal=t.weeklyGoal>0?t.weeklyGoal:3;t.lastKg=t.lastKg||{};t.session=t.session||null;t.lastSummary=t.lastSummary||null;t.friends=Array.isArray(t.friends)?t.friends.filter(x=>typeof x==="string").slice(0,100):[];t.lbOn=!!t.lbOn;return t;
 }
+// ===== Batch 4: gamification — daily streak, freezes, quests, badges, levels, XP log =====
 const lvl=x=>Math.floor(Math.sqrt(x/50))+1;
+const LEVEL_TITLES=[[1,'Rookie'],[3,'Regular'],[5,'Lifter'],[8,'Athlete'],[12,'Veteran'],[16,'Elite'],[20,'Champion'],[30,'Legend']];
+function levelTitle(level){let title=LEVEL_TITLES[0][1];LEVEL_TITLES.forEach(([from,name])=>{if(level>=from)title=name;});return title;}
 const dBetween=(a,b)=>Math.round((new Date(b)-new Date(a))/864e5);
-const isActive=()=>state.workouts.some(w=>w.done||(w.setList||[]).some(x=>x.done))||state.foods.length>0||state.water>0;
-function gainXP(n,why){const g=state.game,l=lvl(g.xp);g.xp+=n;showToast('+'+n+' XP · '+why);if(lvl(g.xp)>l){showToast('🎉 Level '+lvl(g.xp)+'!');confetti();}}
+function shiftDay(key,delta){const d=new Date(key+'T12:00:00');d.setDate(d.getDate()+delta);return dayKey(d);}
+function normalizeGame(g){
+ if(!g.claimed||typeof g.claimed!=='object')g.claimed={};if(!Array.isArray(g.badges))g.badges=[];
+ if(!Array.isArray(g.frozenDays))g.frozenDays=[];g.streakFreezes=Math.max(0,Math.min(STREAK_FREEZE_MAX,Math.round(Number(g.streakFreezes)||0)));g.freezeTier=Math.max(0,Math.round(Number(g.freezeTier)||0));g.bestDaily=Math.max(0,Math.round(Number(g.bestDaily)||0));
+ const today=dayKey();if(!g.daily||g.daily.day!==today)g.daily={day:today,ex:0,meal:0,pr:0,session:0};
+ return g;
+}
+
+// --- D1/D3: activity days and streaks ---
+// A day counts when there was a completed exercise or workout, a logged meal, or the water goal was reached.
+function sessionDaySet(){return new Set((state.sessions||[]).map(s=>s&&s.date).filter(Boolean));}
+function todayIsActive(){const today=dayKey();return state.workouts.some(w=>w.done||(w.setList||[]).some(x=>x.done))||state.foods.length>0||(state.water>0&&state.water>=state.waterGoal)||(state.sessions||[]).some(s=>s.date===today);}
+const isActive=todayIsActive;
+function historyDayIsActive(key,sessionDays){const h=state.history&&state.history[key];return !!(h&&(h.done>0||h.cal>0||(h.water>0&&h.water>=state.waterGoal)))||(sessionDays||sessionDaySet()).has(key);}
+// Pure: counts active days back from today; frozen days bridge a gap without adding to the count.
+function computeDailyStreak(isActiveDay,isFrozenDay,todayKey,todayActive){
+ let streak=todayActive?1:0,day=shiftDay(todayKey,-1);
+ for(let guard=0;guard<3700;guard++){if(isActiveDay(day))streak++;else if(!isFrozenDay(day))break;day=shiftDay(day,-1);}
+ return streak;
+}
+// Pure: which missed days (at most the freezes owned) should be frozen to keep a live streak. [] when nothing to do.
+function planFreezeUse(isActiveDay,isFrozenDay,todayKey,freezes){
+ const gap=[];let day=shiftDay(todayKey,-1);
+ while(gap.length<=STREAK_FREEZE_MAX&&!isActiveDay(day)&&!isFrozenDay(day)){gap.push(day);day=shiftDay(day,-1);}
+ if(!gap.length||gap.length>freezes)return [];
+ return computeDailyStreak(isActiveDay,isFrozenDay,shiftDay(day,1),false)>0?gap:[];
+}
+function dailyStreak(){const days=sessionDaySet(),frozen=new Set(state.game.frozenDays||[]);return computeDailyStreak(k=>historyDayIsActive(k,days),k=>frozen.has(k),dayKey(),todayIsActive());}
+function waterStreak(){const today=dayKey(),hit=k=>{const h=state.history&&state.history[k];return !!(h&&h.water>0&&h.water>=state.waterGoal);};return computeDailyStreak(hit,()=>false,today,state.water>0&&state.water>=state.waterGoal);}
+function settleStreak(){
+ const g=normalizeGame(state.game),today=dayKey(),days=sessionDaySet(),active=k=>historyDayIsActive(k,days),frozen=k=>g.frozenDays.includes(k);
+ const use=planFreezeUse(active,frozen,today,g.streakFreezes);
+ if(use.length){g.streakFreezes-=use.length;g.frozenDays=g.frozenDays.concat(use).sort().slice(-90);showToast('❄ Streak freeze used for '+use.length+' missed day'+(use.length===1?'':'s'));}
+ const streak=dailyStreak(),tier=Math.floor(streak/STREAK_FREEZE_EVERY);
+ if(streak>g.bestDaily)g.bestDaily=streak;
+ if(tier<g.freezeTier)g.freezeTier=tier;
+ else if(tier>g.freezeTier){g.freezeTier=tier;if(g.streakFreezes<STREAK_FREEZE_MAX){g.streakFreezes++;celebrate({icon:'❄',title:'Streak freeze earned',text:'A '+streak+'-day streak earned you a freeze. It is used automatically if you miss a day. You can hold '+STREAK_FREEZE_MAX+'.'});}}
+ return streak;
+}
+
+// --- D8/D9: XP, daily limits and a transparent XP log (kept on this device) ---
+const XP_DAILY_CAPS={ex:15,meal:8,pr:5,session:3};
+function xpAllowance(kind){const g=normalizeGame(state.game);if(g.daily[kind]>=XP_DAILY_CAPS[kind])return false;g.daily[kind]=(g.daily[kind]||0)+1;return true;}
+function xpLogKey(){return 'gymplified_xp_log_v1:'+(state.accountOwnerId||'local');}
+function readXpLog(){try{const a=JSON.parse(localStorage.getItem(xpLogKey())||'[]');return Array.isArray(a)?a.filter(x=>x&&Number.isFinite(Number(x.t))&&Number.isFinite(Number(x.n))).slice(0,XP_LOG_MAX):[];}catch(e){return [];}}
+function xpLogAdd(n,why){try{const log=readXpLog();log.unshift({t:Date.now(),n:Number(n)||0,why:String(why||'').slice(0,80)});localStorage.setItem(xpLogKey(),JSON.stringify(log.slice(0,XP_LOG_MAX)));}catch(e){}}
+function gainXP(n,why){
+ const g=state.game,before=lvl(g.xp);g.xp+=n;xpLogAdd(n,why);showToast('+'+n+' XP · '+why);
+ const after=lvl(g.xp);if(after>before){celebrate({icon:'🎉',title:'Level '+after+' — '+levelTitle(after),text:'You reached level '+after+'. '+(50*after*after-g.xp)+' XP to level '+(after+1)+'.'});confetti();}
+}
+
+// --- D5: celebration dialog (native <dialog>: focus is trapped, Esc closes, focus returns) ---
+let celebrationQueue=[];
+function celebrate(item){celebrationQueue.push(item);if(celebrationQueue.length<=2)showToast(item.icon+' '+item.title);scheduleCelebration();}
+let celebrationTimer=null;
+function scheduleCelebration(){clearTimeout(celebrationTimer);celebrationTimer=setTimeout(showCelebration,350);}
+function showCelebration(){
+ const dialog=$('celebrationDialog');
+ // Never interrupt a workout in progress or another open dialog: the queue is shown afterwards.
+ if(!dialog||!celebrationQueue.length||state.session||dialog.open||document.querySelector('dialog[open]')||typeof dialog.showModal!=='function')return;
+ const items=celebrationQueue.splice(0,celebrationQueue.length),one=items.length===1;
+ $('celebrationIcon').textContent=one?items[0].icon:'🎉';
+ $('celebrationTitle').textContent=one?items[0].title:items.length+' new achievements';
+ $('celebrationText').textContent=one?items[0].text:'';
+ $('celebrationList').innerHTML=one?'':items.map(x=>'<li><span aria-hidden="true">'+esc(x.icon)+'</span> <strong>'+esc(x.title)+'</strong><br><span class="sub">'+esc(x.text)+'</span></li>').join('');
+ try{dialog.showModal();}catch(e){return;}
+ confetti();
+}
+
+// --- D7: daily and weekly quests ---
 const QUESTS=[
  {id:'ex3',t:'Complete 3 exercises',n:3,v:()=>state.workouts.filter(w=>w.done).length},
  {id:'h2o',t:'Reach your water goal',n:1,v:()=>state.water>=state.waterGoal?1:0},
  {id:'meal2',t:'Log 2 meals',n:2,v:()=>state.foods.length}];
-const BADGES=[['first','🏁','First exercise',()=>state.game.total>=1],['pr','🏆','First PR',()=>state.prs.length>=1],
- ['w2','🗓','2-week training streak',()=>weekInfo().st>=2],['w4','🔥','4-week training streak',()=>weekInfo().st>=4],['w8','🏅','8-week training streak',()=>weekInfo().st>=8],['w12','👑','12-week training streak',()=>weekInfo().st>=12],
- ['h2o','💧','Hydrated',()=>!!state.game.waterWon],['l5','⭐','Level 5',()=>lvl(state.game.xp)>=5],['fr','🤝','First friend',()=>state.friends.length>=1],['ws','🏋️','First workout session',()=>state.sessions.length>=1]];
-function rewards(){
-  const g=state.game;
-  state.workouts.forEach(w=>{if(w.done&&!w.xp){w.xp=1;g.total++;gainXP(20,'Exercise done');}});
-  state.foods.forEach(f=>{if(!f.xp){f.xp=1;gainXP(5,'Meal logged');state.recent=[f].concat(state.recent.filter(r=>r.name!==f.name)).slice(0,12).map(r=>({name:r.name,cal:r.cal,protein:r.protein,carbs:r.carbs,fat:r.fat}));}});
-  state.prs.forEach(p=>{if(!p.xp){p.xp=1;gainXP(50,'New PR 🏆');confetti();}});
-  if(state.water>=state.waterGoal&&g.waterWon!==dayKey()){g.waterWon=dayKey();gainXP(30,'Water goal');}
-  QUESTS.forEach(q=>{if(q.v()>=q.n&&!g.claimed[q.id]){g.claimed[q.id]=1;gainXP(25,'Quest: '+q.t);}});
-  BADGES.forEach(b=>{if(b[3]()&&!g.badges.includes(b[0])){g.badges.push(b[0]);showToast(b[1]+' Badge unlocked: '+b[2]);confetti();}});
+const DAILY_QUEST_XP=25,WEEKLY_QUEST_XP=60;
+function weekStats(){
+ const today=dayKey(),start=wkKey(new Date()),days=sessionDaySet(),stats={trainDays:0,sets:0,waterDays:0,foodDays:0,proteinDays:0,activeDays:0,prs:0};
+ const proteinTarget=Number(state.nutritionTargets&&state.nutritionTargets.protein)||0;
+ for(let key=start;key<=today;key=shiftDay(key,1)){
+  const live=key===today,h=live?{cal:state.cal,water:state.water}:(state.history&&state.history[key])||{},protein=live?state.protein:Number(((state.dailyHistory||{})[key]||{}).protein)||0;
+  if(days.has(key))stats.trainDays++;
+  if(h.water>0&&h.water>=state.waterGoal)stats.waterDays++;
+  if(h.cal>0||(live&&state.foods.length>0))stats.foodDays++;
+  if(proteinTarget>0&&protein>=proteinTarget)stats.proteinDays++;
+  if(live?todayIsActive():historyDayIsActive(key,days))stats.activeDays++;
+ }
+ (state.sessions||[]).forEach(s=>{if(s.date>=start&&s.date<=today)stats.sets+=Number(s.sets)||0;});
+ (state.prs||[]).forEach(p=>{if(p.date>=start&&p.date<=today)stats.prs++;});
+ return stats;
 }
+const WEEKLY_QUEST_POOL=[
+ {id:'sets',t:()=>'Complete 40 sets',n:()=>40,v:w=>w.sets},
+ {id:'water4',t:()=>'Reach your water goal on 4 days',n:()=>4,v:w=>w.waterDays},
+ {id:'food5',t:()=>'Log food on 5 days',n:()=>5,v:w=>w.foodDays},
+ {id:'protein5',t:()=>'Hit your protein target on 5 days',n:()=>5,v:w=>w.proteinDays,when:()=>Number(state.nutritionTargets&&state.nutritionTargets.protein)>0},
+ {id:'active6',t:()=>'Be active on 6 days',n:()=>6,v:w=>w.activeDays},
+ {id:'pr1',t:()=>'Set a new personal record',n:()=>1,v:w=>w.prs}];
+const WEEKLY_TRAIN_QUEST={id:'train',t:()=>'Train on '+state.weeklyGoal+' day'+(state.weeklyGoal===1?'':'s'),n:()=>state.weeklyGoal,v:w=>w.trainDays};
+// Pure: the weekly goal quest plus two that rotate with the week.
+function pickWeeklyQuests(pool,weekKey,count){
+ const index=Math.floor(new Date(weekKey+'T12:00:00').getTime()/(7*864e5)),out=[];
+ for(let i=0;i<pool.length&&out.length<count;i++)out.push(pool[(index+i)%pool.length]);
+ return out;
+}
+function weeklyQuests(){return [WEEKLY_TRAIN_QUEST].concat(pickWeeklyQuests(WEEKLY_QUEST_POOL.filter(q=>!q.when||q.when()),wkKey(new Date()),2));}
+function questKey(scope,id){return scope+'_'+(scope==='w'?wkKey(new Date()):dayKey())+'_'+id;}
+function pruneQuestClaims(g){const today=dayKey(),week=wkKey(new Date());Object.keys(g.claimed).forEach(k=>{const m=/^([dw])_(\d{4}-\d{2}-\d{2})_/.exec(k);if(!m||(m[1]==='d'&&m[2]!==today)||(m[1]==='w'&&m[2]!==week))delete g.claimed[k];});}
+function formatCountdown(ms){const mins=Math.max(0,Math.floor(ms/6e4)),d=Math.floor(mins/1440),h=Math.floor(mins%1440/60),m=mins%60;return d?d+'d '+h+'h':h?h+'h '+m+'m':m+'m';}
+function msToMidnight(now=new Date()){const end=new Date(now);end.setHours(24,0,0,0);return end-now;}
+function msToWeekEnd(now=new Date()){const end=new Date(now);end.setHours(0,0,0,0);end.setDate(end.getDate()-daysSinceWeekStart(end)+7);return end-now;}
+
+// --- D6: badges with progress ---
+function lifetimeVolume(){return (state.sessions||[]).reduce((n,s)=>n+(Number(s.vol)||0),0);}
+function sessionsStartedBetween(fromHour,toHour){return (state.sessions||[]).filter(s=>{if(!s.startedAt)return false;const h=new Date(s.startedAt).getHours();return Number.isFinite(h)&&h>=fromHour&&h<toHour;}).length;}
+function bestPrMonth(){const c={};(state.prs||[]).forEach(p=>{const k=String(p.date||'').slice(0,7);if(k)c[k]=(c[k]||0)+1;});return Math.max(0,...Object.values(c));}
+function distinctExercises(){const names=new Set();(state.sessions||[]).forEach(s=>(s.exercises||[]).forEach(e=>names.add(String(e.name||'').trim().toLowerCase())));names.delete('');return names.size;}
+function foodDaysLogged(){return Object.values(state.history||{}).filter(h=>h&&h.cal>0).length+(state.foods.length>0?1:0);}
+const tonnes=kg=>fmtVolume(kg);
+const BADGES=[
+ {id:'first',icon:'🏁',name:'First exercise',desc:'Complete an exercise',target:1,value:()=>state.game.total},
+ {id:'ws',icon:'🏋️',name:'First workout session',desc:'Finish a workout',target:1,value:()=>state.sessions.length},
+ {id:'ws10',icon:'🔟',name:'10 workouts',desc:'Finish 10 workouts',target:10,value:()=>state.sessions.length},
+ {id:'ws50',icon:'🥉',name:'50 workouts',desc:'Finish 50 workouts',target:50,value:()=>state.sessions.length},
+ {id:'ws100',icon:'🥈',name:'100 workouts',desc:'Finish 100 workouts',target:100,value:()=>state.sessions.length},
+ {id:'ws250',icon:'🥇',name:'250 workouts',desc:'Finish 250 workouts',target:250,value:()=>state.sessions.length},
+ {id:'pr',icon:'🏆',name:'First PR',desc:'Set a personal record',target:1,value:()=>state.prs.length},
+ {id:'pr10',icon:'📈',name:'10 PRs',desc:'Set 10 personal records',target:10,value:()=>state.prs.length},
+ {id:'pr25',icon:'🚀',name:'25 PRs',desc:'Set 25 personal records',target:25,value:()=>state.prs.length},
+ {id:'pr5m',icon:'⚡',name:'PR spree',desc:'Set 5 PRs in one calendar month',target:5,value:bestPrMonth},
+ {id:'vol10',icon:'🪨',name:'10 tonnes lifted',desc:'Lift 10,000 kg in total',target:10000,value:lifetimeVolume,fmt:tonnes},
+ {id:'vol50',icon:'⛰️',name:'50 tonnes lifted',desc:'Lift 50,000 kg in total',target:50000,value:lifetimeVolume,fmt:tonnes},
+ {id:'vol100',icon:'🏔️',name:'100 tonnes lifted',desc:'Lift 100,000 kg in total',target:100000,value:lifetimeVolume,fmt:tonnes},
+ {id:'w2',icon:'🗓',name:'2-week training streak',desc:'Hit your weekly goal 2 weeks running',target:2,value:()=>weekInfo().st},
+ {id:'w4',icon:'🔥',name:'4-week training streak',desc:'Hit your weekly goal 4 weeks running',target:4,value:()=>weekInfo().st},
+ {id:'w8',icon:'🏅',name:'8-week training streak',desc:'Hit your weekly goal 8 weeks running',target:8,value:()=>weekInfo().st},
+ {id:'w12',icon:'👑',name:'12-week training streak',desc:'Hit your weekly goal 12 weeks running',target:12,value:()=>weekInfo().st},
+ {id:'d7',icon:'📆',name:'7-day activity streak',desc:'Be active 7 days in a row',target:7,value:()=>Math.max(state.game.bestDaily||0,dailyStreak())},
+ {id:'d30',icon:'🗻',name:'30-day activity streak',desc:'Be active 30 days in a row',target:30,value:()=>Math.max(state.game.bestDaily||0,dailyStreak())},
+ {id:'d100',icon:'💯',name:'100-day activity streak',desc:'Be active 100 days in a row',target:100,value:()=>Math.max(state.game.bestDaily||0,dailyStreak())},
+ {id:'h2o',icon:'💧',name:'Hydrated',desc:'Reach your water goal',target:1,value:()=>state.game.waterWon?1:0},
+ {id:'h2o7',icon:'🚰',name:'7-day water streak',desc:'Reach your water goal 7 days in a row',target:7,value:waterStreak},
+ {id:'h2o30',icon:'🌊',name:'30-day water streak',desc:'Reach your water goal 30 days in a row',target:30,value:waterStreak},
+ {id:'h2o100',icon:'🐳',name:'100-day water streak',desc:'Reach your water goal 100 days in a row',target:100,value:waterStreak},
+ {id:'food30',icon:'🥗',name:'Food logger',desc:'Log food on 30 days',target:30,value:foodDaysLogged},
+ {id:'early',icon:'🌅',name:'Early bird',desc:'Finish 5 workouts started before 7 am',target:5,value:()=>sessionsStartedBetween(0,7)},
+ {id:'night',icon:'🌙',name:'Night owl',desc:'Finish 5 workouts started after 9 pm',target:5,value:()=>sessionsStartedBetween(21,24)},
+ {id:'explore',icon:'🧭',name:'Explorer',desc:'Log 25 different exercises',target:25,value:distinctExercises},
+ {id:'l5',icon:'⭐',name:'Level 5',desc:'Reach level 5',target:5,value:()=>lvl(state.game.xp)},
+ {id:'l10',icon:'🌟',name:'Level 10',desc:'Reach level 10',target:10,value:()=>lvl(state.game.xp)},
+ {id:'l20',icon:'✨',name:'Level 20',desc:'Reach level 20',target:20,value:()=>lvl(state.game.xp)},
+ {id:'fr',icon:'🤝',name:'First friend',desc:'Add a friend',target:1,value:()=>state.friends.length}];
+function badgeProgress(b){let v=0;try{v=Number(b.value())||0;}catch(e){}return Math.max(0,Math.min(b.target,v));}
+
+function rewards(){
+  const g=normalizeGame(state.game);
+  // Claims are date-stamped so a stale claim synced from another day can never block today's quest.
+  QUESTS.forEach(q=>{if(g.claimed[q.id])g.claimed[questKey('d',q.id)]=1;});pruneQuestClaims(g);
+  state.workouts.forEach(w=>{if(w.done&&!w.xp){w.xp=1;if(xpAllowance('ex')){g.total++;gainXP(20,'Exercise done');}}});
+  state.foods.forEach(f=>{if(!f.xp){f.xp=1;if(xpAllowance('meal'))gainXP(5,'Meal logged');state.recent=[f].concat(state.recent.filter(r=>r.name!==f.name)).slice(0,12).map(r=>({name:r.name,cal:r.cal,protein:r.protein,carbs:r.carbs,fat:r.fat}));}});
+  state.prs.forEach(p=>{if(!p.xp){p.xp=1;if(xpAllowance('pr')){gainXP(50,'New PR 🏆');confetti();}}});
+  if(state.water>=state.waterGoal&&g.waterWon!==dayKey()){g.waterWon=dayKey();gainXP(30,'Water goal');}
+  QUESTS.forEach(q=>{const k=questKey('d',q.id);if(q.v()>=q.n&&!g.claimed[k]){g.claimed[k]=1;gainXP(DAILY_QUEST_XP,'Daily quest: '+q.t);}});
+  const week=weekStats();
+  weeklyQuests().forEach(q=>{const k=questKey('w',q.id);if(q.v(week)>=q.n()&&!g.claimed[k]){g.claimed[k]=1;gainXP(WEEKLY_QUEST_XP,'Weekly quest: '+q.t());}});
+  settleStreak();
+  BADGES.forEach(b=>{if(!g.badges.includes(b.id)&&badgeProgress(b)>=b.target){g.badges.push(b.id);celebrate({icon:b.icon,title:'Badge unlocked: '+b.name,text:b.desc+'.'});}});
+}
+
+// --- D1/D2/D4/D6/D7/D8 rendering ---
+let streakNudgeDismissedDay='';
+function streakAtRisk(now=new Date()){return now.getHours()>=STREAK_NUDGE_HOUR&&!todayIsActive()&&dailyStreak()>0&&streakNudgeDismissedDay!==dayKey(now);}
+function renderStreakNudge(){
+ const el=$('streakNudge');if(!el)return;const due=streakAtRisk();el.hidden=!due;
+ if(due){const s=dailyStreak(),f=state.game.streakFreezes||0;$('streakNudgeText').textContent='Your '+s+'-day streak ends at midnight. Log a workout, a meal or reach your water goal to keep it.'+(f?' You have '+f+' streak freeze'+(f===1?'':'s')+', so one missed day is covered.':'');}
+}
+function gamePanelMarkup(){
+ const g=normalizeGame(state.game),L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),wi=weekInfo(),streak=dailyStreak(),frozen=new Set(g.frozenDays),days=sessionDaySet();
+ const strip=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dayKey(d),on=i===0?todayIsActive():historyDayIsActive(k,days),ice=!on&&frozen.has(k),label=d.toLocaleDateString(undefined,{weekday:'long'})+(on?': active':ice?': streak freeze used':': no activity');
+  strip.push('<span class="wd '+(on?'on':ice?'frozen':'')+'" aria-label="'+label+'" title="'+label+'">'+(ice?'❄':on?'✓':d.toLocaleDateString(undefined,{weekday:'narrow'}))+'</span>');}
+ const quest=(done,text,value,target,xp)=>'<div class="quest '+(done?'ok':'')+'"><span>'+(done?'✅ ':'⬜ ')+esc(text)+'</span><span>'+Math.min(value,target)+'/'+target+' · '+(done?'earned':'+'+xp+' XP')+'</span></div>';
+ const week=weekStats(),unlocked=BADGES.filter(b=>g.badges.includes(b.id)).length,log=readXpLog();
+ return '<div class="section-title"><span>Your Progress</span></div><div class="stat-row">'+
+  '<div class="stat"><b>🔥 '+streak+'</b><span>day streak'+(g.bestDaily>streak?' · best '+g.bestDaily:'')+'</span></div>'+
+  '<div class="stat"><b>❄ '+g.streakFreezes+'/'+STREAK_FREEZE_MAX+'</b><span>streak freezes</span></div>'+
+  '<div class="stat"><b>🗓 '+wi.n+'/'+wi.g+'</b><span>weekly goal · '+wi.st+'-week streak</span></div>'+
+  '<div class="stat"><b>Lv '+L+'</b><span>'+esc(levelTitle(L))+' · '+g.xp.toLocaleString()+' XP</span></div></div>'+
+  '<div class="progress-bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+xp+'"><i style="width:'+xp+'%"></i></div>'+
+  '<div class="meta-row"><span>'+(hi-g.xp)+' XP to level '+(L+1)+' ('+esc(levelTitle(L+1))+')</span><span>'+xp+'%</span></div>'+
+  '<p class="sub streak-help">Your day streak grows with any workout, logged meal or water goal. Every '+STREAK_FREEZE_EVERY+' days earns a freeze (up to '+STREAK_FREEZE_MAX+') that covers a missed day automatically. Rest days never break your weekly streak — it only needs your weekly goal.</p>'+
+  weeklyRecapMarkup()+'<div class="sub-h">Last 7 days</div><div class="week">'+strip.join('')+'</div>'+
+  '<div class="sub-h">Daily quests <span class="quest-reset">resets in '+formatCountdown(msToMidnight())+'</span></div>'+QUESTS.map(q=>quest(!!g.claimed[questKey('d',q.id)]||q.v()>=q.n,q.t,q.v(),q.n,DAILY_QUEST_XP)).join('')+
+  '<div class="sub-h">Weekly quests <span class="quest-reset">resets in '+formatCountdown(msToWeekEnd())+'</span></div>'+weeklyQuests().map(q=>quest(!!g.claimed[questKey('w',q.id)]||q.v(week)>=q.n(),q.t(),q.v(week),q.n(),WEEKLY_QUEST_XP)).join('')+
+  '<details class="game-details" id="badgeGallery"><summary>Badges · '+unlocked+' of '+BADGES.length+' unlocked</summary><div class="badge-grid">'+BADGES.map(b=>{const got=g.badges.includes(b.id),v=got?b.target:badgeProgress(b),pct=Math.round(v/b.target*100),show=x=>b.fmt?b.fmt(x):Number(x).toLocaleString();
+    return '<div class="badge-card'+(got?' got':'')+'"><div class="badge-icon" aria-hidden="true">'+b.icon+'</div><div class="badge-body"><strong>'+esc(b.name)+'</strong><span class="sub">'+esc(b.desc)+'</span><div class="progress-bar" role="progressbar" aria-label="'+esc(b.name)+' progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i style="width:'+pct+'%"></i></div><span class="badge-state">'+(got?'✓ Unlocked':'🔒 Locked · '+esc(show(v))+' / '+esc(show(b.target)))+'</span></div></div>';}).join('')+'</div></details>'+
+  '<details class="game-details" id="xpHistory"><summary>How XP is earned · recent history</summary><p class="sub">Exercise done 20 · meal 5 · PR 50 · water goal 30 · workout 40 · weekly goal 50 · daily quest '+DAILY_QUEST_XP+' · weekly quest '+WEEKLY_QUEST_XP+'. Each record earns XP once. Per day, XP is given for up to '+XP_DAILY_CAPS.ex+' exercises, '+XP_DAILY_CAPS.meal+' meals, '+XP_DAILY_CAPS.pr+' PRs and '+XP_DAILY_CAPS.session+' workouts. Level N needs 50 × (N−1)² XP.</p>'+
+   (log.length?'<ul class="xp-log">'+log.slice(0,25).map(x=>'<li><strong>+'+Number(x.n)+' XP</strong> <span>'+esc(x.why)+'</span> <time class="sub">'+esc(new Date(Number(x.t)).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}))+'</time></li>').join('')+'</ul><p class="sub">History is kept on this device.</p>':'<p class="sub">No XP earned on this device yet.</p>')+'</details>';
+}
+function renderGamePanel(){
+ const host=$('gamePanel');if(!host)return;
+ const open=['badgeGallery','xpHistory'].filter(id=>$(id)&&$(id).open),focusId=document.activeElement&&host.contains(document.activeElement)?document.activeElement.closest('details')?.id:'';
+ host.innerHTML=gamePanelMarkup();
+ open.forEach(id=>{if($(id))$(id).open=true;});
+ if(focusId&&$(focusId))$(focusId).querySelector('summary')?.focus({preventScroll:true});
+ renderStreakNudge();
+}
+function initGameControls(){
+ $('celebrationDialog')?.addEventListener('close',()=>{if(celebrationQueue.length)scheduleCelebration();});
+ $('celebrationClose')?.addEventListener('click',()=>$('celebrationDialog').close());
+ $('streakNudge')?.addEventListener('click',e=>{const a=e.target.closest('button')?.dataset.nudgeAction;if(!a)return;if(a==='train')goToTraining();else{streakNudgeDismissedDay=dayKey();renderStreakNudge();}});
+}
+
 function reducedMotion(){return !!(state.settings&&state.settings.motion==='reduced')||matchMedia('(prefers-reduced-motion:reduce)').matches;}
 function confetti(){if(reducedMotion())return;
   for(let i=0;i<36;i++){const e=document.createElement('i');e.className='cf';e.textContent=['🎉','✨','💪','🔥'][i%4];e.setAttribute('aria-hidden','true');e.style.cssText='left:'+Math.random()*100+'vw;animation-delay:'+Math.random()*.4+'s';document.body.appendChild(e);setTimeout(()=>e.remove(),2500);}}
@@ -2361,18 +2594,9 @@ function moveWaterPreset(index,delta){
   initWaterSettings('button[data-water-setting="'+(delta<0?'up':'down')+'"][data-index="'+to+'"]');
 }
 function renderExtras(){
-  const g=state.game,L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),wi=weekInfo();
   renderWaterSummary();setBar('dashCalBar',Math.min(100,Math.round(state.cal/state.calTarget*100)),'Calorie progress');
   renderWaterButtons();
-  const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dayKey(d),h=state.history[k];
-    const on=i===0?isActive():!!(h&&(h.done>0||h.cal>0||h.water>0));days.push('<span class="wd '+(on?'on':'')+'" aria-label="'+d.toLocaleDateString(undefined,{weekday:'long'})+(on?': active':': no activity')+'">'+d.toLocaleDateString(undefined,{weekday:'narrow'})+'</span>');}
-  $('gamePanel').innerHTML='<div class="section-title"><span>Your Progress</span></div><div class="stat-row">'+
-   '<div class="stat"><b>🔥 '+wi.st+'</b><span>week streak</span></div><div class="stat"><b>🗓 '+wi.n+'/'+wi.g+'</b><span>weekly workout goal</span></div><div class="stat"><b>Lv '+L+'</b><span>'+g.xp+' XP total</span></div></div>'+
-   '<div class="progress-bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+xp+'"><i style="width:'+xp+'%"></i></div>'+
-   '<div class="meta-row"><span>'+(hi-g.xp)+' XP to level '+(L+1)+'</span><span>'+xp+'%</span></div>'+
-   weeklyRecapMarkup()+'<div class="sub-h">Last 7 days</div><div class="week">'+days.join('')+'</div>'+
-   '<div class="sub-h">Daily quests</div>'+QUESTS.map(q=>{const v=Math.min(q.n,q.v()),ok=v>=q.n;return '<div class="quest '+(ok?'ok':'')+'"><span>'+(ok?'✅ ':'⬜ ')+q.t+'</span><span>'+v+'/'+q.n+' · +25 XP</span></div>';}).join('')+
-   '<div class="sub-h">Badges</div><div class="badges">'+BADGES.map(b=>'<span class="badge '+(g.badges.includes(b[0])?'':'off')+'" title="'+b[2]+'">'+b[1]+' '+b[2]+(g.badges.includes(b[0])?'':' (locked)')+'</span>').join('')+'</div>';
+  renderGamePanel();
   const c=state.settings.color;document.querySelectorAll('.color-dot').forEach(d=>{const on=(d.getAttribute('onclick')||'').includes("'"+c+"'");d.classList.toggle('active',on);d.setAttribute('aria-pressed',on);});
   document.documentElement.setAttribute('data-spacing',state.settings.spacing||'normal');
   const dl=$('recentFoods');if(dl)dl.innerHTML=state.recent.map(r=>'<option value="'+esc(r.name)+'">').join('');
@@ -2454,7 +2678,7 @@ setInterval(()=>{if(!state.session)return;const text=clock();['sessClock','sessi
 function localDateTimeValue(timestamp){const d=new Date(Number(timestamp)||Date.now());const offset=d.getTimezoneOffset()*60000;return new Date(d.getTime()-offset).toISOString().slice(0,16);}
 function editSessionStart(value){if(!state.session||!value)return;const parsed=new Date(value).getTime();if(!Number.isFinite(parsed)||parsed>Date.now()+60000){showToast('Choose a valid start time');renderTrainingLog();return;}state.session.start=parsed;saveState();showToast('Workout start time updated');}
 function startSession(){if(state.session)return;const field=$('plannedSessionStart'),chosen=field&&field.value?new Date(field.value).getTime():Date.now();if(!Number.isFinite(chosen)||chosen>Date.now()+60000){showToast('Choose a valid start date and time');return;}state.session={start:chosen,xpStart:Number(state.game.xp)||0};saveState();showToast('Workout started — good luck! 💪');}
-function cancelSession(){if(confirm('Cancel this workout without saving stats?')){state.session=null;saveState();}}
+function cancelSession(){if(confirm('Cancel this workout without saving stats?')){state.session=null;saveState();scheduleCelebration();}}
 function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names=[];
   state.workouts.forEach(w=>{const d=w.setList.filter(x=>x.done);if(d.length){ex++;names.push(w.name);}d.forEach(x=>{st++;r+=x.reps;if(setCountsForVolume(x))v+=x.kg*x.reps;});});
   if(!st){if(confirm('No sets are ticked off yet. End without saving?')){state.session=null;saveState();}return;}
@@ -2467,8 +2691,8 @@ function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names
   const xpStart=Number.isFinite(Number(state.session.xpStart))?Number(state.session.xpStart):Number(state.game.xp)||0;
   sum.prs.forEach(pr=>state.prs.push({id:newRecordId('pr'),name:pr.name,weight:pr.kg,reps:pr.reps,date:sum.date}));
   state.sessions.unshift(sum);state.lastSummary=sum;state.session=null;state.lastSession=state.workouts.map(w=>Object.assign({},w,{done:false,xp:0,setList:w.setList.map(x=>Object.assign({},x,{done:false}))}));state.workouts.forEach(w=>{w.done=false;(w.setList||[]).forEach(x=>{x.done=false;});});
-  gainXP(40,'Workout complete');if(weekInfo().n===state.weeklyGoal)gainXP(50,'Weekly goal hit! 🗓');
-  rewards();sum.xp=Math.max(0,(Number(state.game.xp)||0)-xpStart);stopRest();confetti();saveState();showSessionSummary();}
+  if(xpAllowance('session'))gainXP(40,'Workout complete');if(weekInfo().n===state.weeklyGoal)gainXP(50,'Weekly goal hit! 🗓');
+  rewards();sum.xp=Math.max(0,(Number(state.game.xp)||0)-xpStart);stopRest();confetti();saveState();showSessionSummary();scheduleCelebration();}
 function editHistoryTime(index,value){const session=state.sessions[index];if(!session||!value)return;const timestamp=new Date(value).getTime();if(!Number.isFinite(timestamp)){showToast('Enter a valid workout date and time');return;}session.startedAt=new Date(timestamp).toISOString();session.date=dayKey(new Date(timestamp));if(session.finishedAt){const elapsed=Math.max(1,Math.round((new Date(session.finishedAt).getTime()-timestamp)/60000));session.mins=elapsed;}saveState();showToast('Workout date and time updated');}
 function editHistoryDuration(index,value){const session=state.sessions[index];if(!session)return;const mins=Math.max(1,Math.min(1440,parseInt(value,10)||1));session.mins=mins;if(session.startedAt)session.finishedAt=new Date(new Date(session.startedAt).getTime()+mins*60000).toISOString();saveState();showToast('Workout duration updated');}
 function sessionSetSummary(set,index){const parts=[],type=setTypeOf(set);if(Number(set.kg)>0||Number(set.reps)>0)parts.push(esc(fmtWeight(set.kg,2))+' × '+esc(set.reps));if(Number(set.duration)>0){const seconds=Math.round(Number(set.duration));parts.push(seconds>=60?Math.floor(seconds/60)+'m '+(seconds%60)+'s':seconds+'s');}if(Number(set.distance)>0)parts.push(fmtDistance(set.distance));if(set.notes)parts.push('Note: '+esc(set.notes));return 'Set '+(index+1)+(type!=='normal'?' ('+esc(SET_TYPE_INFO[type].label.replace(/ set$/,'').toLowerCase())+')':'')+': '+(parts.join(' · ')||'Recorded');}
@@ -3490,6 +3714,7 @@ initSocial();
 initWaterControls();
 initWorkoutControls();
 initSettingsControls();
+initGameControls();
 initGoals();
 if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();

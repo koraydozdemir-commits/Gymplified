@@ -12,7 +12,7 @@
 <meta property="og:site_name" content="Gymplified">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://ouwvujtsrnotnwtbvqhc.supabase.co; font-src 'self' data:; connect-src 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co wss://ouwvujtsrnotnwtbvqhc.supabase.co https://world.openfoodfacts.org; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b0f17">
+<meta name="theme-color" content="#15120f">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Gymplified">
@@ -98,9 +98,9 @@
       </div>
       <!-- 1. DASHBOARD SCREEN -->
       <section id="dashboard" class="screen active">
-        <div class="eyebrow">Overview</div>
-        <h1>Daily Dashboard</h1>
-        <p class="subtitle">Your training, nutrition and daily progress at a glance.</p>
+        <div class="eyebrow">Your day</div>
+        <h1 class="greeting-title"><span id="dashGreetingTitle">Welcome to Gymplified</span> <span class="greeting-icon" id="dashGreetingIcon" aria-hidden="true">👋</span></h1>
+        <p class="subtitle greeting-line" id="dashGreetingLine">Your training, nutrition and daily progress at a glance.</p>
         <div class="panel account-nudge" id="accountNudge" hidden>
           <div class="account-nudge-text"><strong>Back up your progress</strong><span>Create a free account to keep your workouts safe and use Gymplified on all your devices.</span></div>
           <div class="account-nudge-actions"><button class="btn btn-primary" type="button" data-action="openAccount" data-arg="signup">Create free account</button><button class="btn" type="button" data-action="openAccount" data-arg="login">Log in</button><button class="btn btn-icon-only" type="button" data-action="dismissAccountNudge" aria-label="Hide this for a week">✕</button></div>

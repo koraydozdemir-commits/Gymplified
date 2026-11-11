@@ -572,6 +572,33 @@ html.session-active .topbar .install-trigger{display:none}
 .celebration-icon{font-size:calc(56px * var(--text-scale, 1));line-height:1.1;margin-bottom:6px}
 .celebration-list{list-style:none;margin:12px 0 0;padding:0;text-align:left;display:grid;gap:10px;max-height:46vh;overflow:auto;font-size:calc(14px * var(--text-scale, 1))}
 .celebration-list:empty{display:none}
+/* Batch 5: friends leaderboard, feed, profile, privacy */
+.lb-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 12px}
+.lb-tab{min-height:44px;padding:0 16px;border:1px solid var(--line);border-radius:99px;background:var(--panel);color:var(--ink);font:600 calc(13px * var(--text-scale, 1)) var(--font-base);cursor:pointer}
+.lb-tab[aria-selected=true]{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+.lb-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+button.lb-row{width:100%;font:inherit;color:var(--ink);background:transparent;text-align:left;cursor:pointer;border:1px solid transparent;gap:12px}
+button.lb-row:hover{border-color:var(--line);background:var(--panel-hover)}
+.lb-rank{width:32px;text-align:center;font:700 calc(16px * var(--text-scale, 1)) var(--font-heading);flex-shrink:0}
+.lb-name{flex:1;min-width:0;display:grid}.lb-name strong{overflow-wrap:anywhere}.lb-name small{color:var(--muted);font-size:calc(12px * var(--text-scale, 1))}
+.lb-value{font:700 calc(15px * var(--text-scale, 1)) var(--font-heading);white-space:nowrap}
+.lb-privacy-link{margin-top:8px}.lb-privacy-link a{color:var(--brand-text);display:inline-flex;align-items:center;min-height:44px}
+.feed-list{list-style:none;margin:0;padding:0}
+.feed-item{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.feed-item:last-child{border-bottom:0}
+.feed-avatar{border:0;background:transparent;padding:0;border-radius:50%;cursor:pointer;min-width:44px;min-height:44px}
+.feed-body{flex:1;min-width:180px}.feed-body p{margin:0 0 2px;overflow-wrap:anywhere;font-size:calc(14px * var(--text-scale, 1))}
+.feed-reactions{display:flex;gap:6px;align-items:center}
+.feed-react{min-width:64px}.feed-react.on{border-color:var(--brand);background:var(--brand-light)}
+.feed-count{font-size:calc(13px * var(--text-scale, 1));color:var(--muted);padding:0 4px}
+.friend-profile-dialog{width:min(94vw,560px)}
+.friend-profile-head{display:flex;gap:14px;align-items:center;margin:6px 0 14px}
+.friend-badges{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0}
+.friend-badges li{padding:6px 10px;border:1px solid var(--brand);border-radius:99px;background:var(--brand-light);font-size:calc(13px * var(--text-scale, 1))}
+.friend-prs{list-style:none;margin:0;padding:0}.friend-prs li{padding:8px 0;border-bottom:1px solid var(--line);font-size:calc(14px * var(--text-scale, 1))}
+.privacy-row{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.privacy-row:last-child{border-bottom:0}.privacy-row input{margin:2px 0 0;flex-shrink:0}
+.privacy-row span{display:grid;gap:2px}.privacy-row small{font-size:calc(12px * var(--text-scale, 1))}
 .app-dialog{width:min(92vw,480px);border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:22px;box-shadow:0 24px 90px #0009}
 .app-dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
 .app-dialog h2{margin:0 0 8px;font:700 20px var(--font-heading)}
@@ -864,6 +891,8 @@ html.session-active .topbar .install-trigger{display:none}
         <div class="eyebrow">Community</div><h1>Friends & Community</h1>
         <p class="subtitle">Create your Gymplified identity, add friends by username and customise your profile.</p>
         <div class="panel account-panel" id="friendStatus" style="margin-bottom:20px"></div>
+        <div class="panel" id="friendLeaderboard" style="margin-bottom:20px" hidden></div>
+        <div class="panel" id="friendFeed" style="margin-bottom:20px" hidden></div>
         <div id="friendConnections" class="panel" style="margin-bottom:20px;display:none"></div>
         <div class="panel" id="friendSearchPanel" style="display:none">
           <div class="section-title">Find people</div>
@@ -1028,6 +1057,7 @@ html.session-active .topbar .install-trigger{display:none}
           <p id="analyticsConsentStatus" role="status" aria-live="polite" style="margin-top:8px">Analytics preference not yet set.</p>
         </div>
 
+        <div class="settings-group" id="friendPrivacy"></div>
         <div class="settings-group">
           <h3>Legal</h3>
           <p class="sub" style="margin:0"><a href="./privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="./terms.html" target="_blank" rel="noopener">Terms of service</a></p>
@@ -1199,6 +1229,11 @@ html.session-active .topbar .install-trigger{display:none}
 </div>
 
 <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="false"></div>
+<dialog id="friendProfileDialog" class="app-dialog friend-profile-dialog" aria-labelledby="friendProfileTitle">
+  <h2 id="friendProfileTitle">Profile</h2>
+  <div id="friendProfileBody" aria-live="polite"></div>
+  <div class="app-dialog-actions"><button class="btn" id="friendProfileClose" type="button">Close</button></div>
+</dialog>
 <dialog id="celebrationDialog" class="app-dialog celebration-dialog" aria-labelledby="celebrationTitle" aria-describedby="celebrationText">
   <div class="celebration-icon" id="celebrationIcon" aria-hidden="true">🎉</div>
   <h2 id="celebrationTitle">Well done</h2>
@@ -1361,6 +1396,8 @@ const BACKUP_REMINDER_DAYS = 30;
 // Gamification
 const STREAK_FREEZE_MAX = 2, STREAK_FREEZE_EVERY = 7, STREAK_NUDGE_HOUR = 18, XP_LOG_MAX = 60;
 const EMPTY_PROFILE = { heightCm: 0, weightKg: 0, age: 0, sex: '', goal: '', activity: '' };
+// What accepted friends may see. Everything is shared unless switched off; 'leaderboard: false' is private mode.
+const DEFAULT_PRIVACY = { leaderboard: true, workouts: true, volume: true, streak: true, level: true, prs: true };
 
 const cleanState = {
   cal: 0,
@@ -2158,7 +2195,7 @@ function sanitizeStateSnapshot(raw){
  if(raw.history&&typeof raw.history==='object'&&!Array.isArray(raw.history))Object.keys(raw.history).filter(k=>safeStateDay(k,'')===k).sort().slice(-365).forEach(k=>{const x=raw.history[k]||{};history[k]={cal:safeStateNumber(x.cal,0,100000,0),water:safeStateNumber(x.water,0,20,0),done:safeStateNumber(x.done,0,1000,0)};});
  if(raw.dailyHistory&&typeof raw.dailyHistory==='object'&&!Array.isArray(raw.dailyHistory))Object.keys(raw.dailyHistory).filter(k=>safeStateDay(k,'')===k).sort().slice(-365).forEach(k=>{const x=raw.dailyHistory[k]||{};dailyHistory[k]={cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),water:safeStateNumber(x.water,0,20,0),workouts:list(x.workouts,1000).map((w,i)=>cleanWorkout(w,i,k)).filter(Boolean),foods:list(x.foods,5000).map((f,i)=>cleanFood(f,i,k)).filter(Boolean),waterEntries:list(x.waterEntries,10000).map((w,i)=>cleanWater(w,i,k)).filter(Boolean)};});
  const settings=raw.settings&&typeof raw.settings==='object'?raw.settings:{};
- const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:[...new Set(list(rawGame.badges,200).map(x=>safeStateText(x,'',40)).filter(Boolean))].slice(0,100),day:gameDay,streakFreezes:Math.round(safeStateNumber(rawGame.streakFreezes,0,STREAK_FREEZE_MAX,0)),frozenDays:[...new Set(list(rawGame.frozenDays,2000).filter(k=>safeStateDay(k,'')===k))].sort().slice(-90),freezeTier:Math.round(safeStateNumber(rawGame.freezeTier,0,10000,0)),bestDaily:Math.round(safeStateNumber(rawGame.bestDaily,0,100000,0)),daily:rawGame.daily&&typeof rawGame.daily==='object'&&safeStateDay(rawGame.daily.day,'')===today?{day:today,ex:Math.round(safeStateNumber(rawGame.daily.ex,0,1000,0)),meal:Math.round(safeStateNumber(rawGame.daily.meal,0,1000,0)),pr:Math.round(safeStateNumber(rawGame.daily.pr,0,1000,0)),session:Math.round(safeStateNumber(rawGame.daily.session,0,1000,0))}:{day:today,ex:0,meal:0,pr:0,session:0}};
+ const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:[...new Set(list(rawGame.badges,200).map(x=>safeStateText(x,'',40)).filter(Boolean))].slice(0,100),day:gameDay,streakFreezes:Math.round(safeStateNumber(rawGame.streakFreezes,0,STREAK_FREEZE_MAX,0)),frozenDays:[...new Set(list(rawGame.frozenDays,2000).filter(k=>safeStateDay(k,'')===k))].sort().slice(-90),freezeTier:Math.round(safeStateNumber(rawGame.freezeTier,0,10000,0)),bestDaily:Math.round(safeStateNumber(rawGame.bestDaily,0,100000,0)),weekXp:rawGame.weekXp&&typeof rawGame.weekXp==='object'&&safeStateDay(rawGame.weekXp.week,'')?{week:rawGame.weekXp.week,xp:Math.round(safeStateNumber(rawGame.weekXp.xp,0,100000,0))}:null,streakNow:rawGame.streakNow&&typeof rawGame.streakNow==='object'&&safeStateDay(rawGame.streakNow.day,'')?{day:rawGame.streakNow.day,n:Math.round(safeStateNumber(rawGame.streakNow.n,0,100000,0))}:null,daily:rawGame.daily&&typeof rawGame.daily==='object'&&safeStateDay(rawGame.daily.day,'')===today?{day:today,ex:Math.round(safeStateNumber(rawGame.daily.ex,0,1000,0)),meal:Math.round(safeStateNumber(rawGame.daily.meal,0,1000,0)),pr:Math.round(safeStateNumber(rawGame.daily.pr,0,1000,0)),session:Math.round(safeStateNumber(rawGame.daily.session,0,1000,0))}:{day:today,ex:0,meal:0,pr:0,session:0}};
  // Quest claims are date-stamped (d_YYYY-MM-DD_id / w_YYYY-MM-DD_id). Old ones are dropped before the size cap so current claims always survive.
  const claimCutoff=(()=>{const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-8);return dayKey(d);})();
  if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).filter(k=>{const m=/^[dw]_(\d{4}-\d{2}-\d{2})_/.exec(k);return !m||m[1]>=claimCutoff;}).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
@@ -2202,6 +2239,8 @@ function sanitizeStateSnapshot(raw){
  const profileRange=(value,min,max)=>{const n=Number(value);return Number.isFinite(n)&&n>=min&&n<=max?n:0;};
  state.profile={heightCm:profileRange(rawProfile.heightCm,50,260),weightKg:profileRange(rawProfile.weightKg,20,400),age:Math.round(profileRange(rawProfile.age,13,100)),sex:['male','female'].includes(rawProfile.sex)?rawProfile.sex:'',goal:['cut','maintain','bulk'].includes(rawProfile.goal)?rawProfile.goal:'',activity:['sedentary','light','moderate','active','very'].includes(rawProfile.activity)?rawProfile.activity:''};
  state.onboarded=!!raw.onboarded;
+ const rawPrivacy=raw.privacy&&typeof raw.privacy==='object'&&!Array.isArray(raw.privacy)?raw.privacy:{};
+ state.privacy={};Object.keys(DEFAULT_PRIVACY).forEach(k=>{state.privacy[k]=rawPrivacy[k]!==false;});
  if(foods.some(x=>x.day===today)){const a=foods.filter(x=>x.day===today);state.cal=a.reduce((n,x)=>n+x.cal,0);state.protein=a.reduce((n,x)=>n+x.protein,0);state.carbs=a.reduce((n,x)=>n+x.carbs,0);state.fat=a.reduce((n,x)=>n+x.fat,0);}
  if(waterEntries.some(x=>x.day===today))state.water=waterEntries.filter(x=>x.day===today).reduce((n,x)=>n+x.amount,0);
  return state;
@@ -2232,7 +2271,7 @@ function bootState(){
   t.nutritionTargets=Object.assign({protein:0,carbs:0,fat:0},t.nutritionTargets||{});
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
   t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:DEFAULT_WATER_PRESETS.slice();t.lastWaterMl=Number(t.lastWaterMl)||0;
-  t.history=t.history||{};t.dailyHistory=t.dailyHistory||{};t.exFav=t.exFav&&typeof t.exFav==='object'&&!Array.isArray(t.exFav)?t.exFav:{};t.profile=Object.assign({},EMPTY_PROFILE,t.profile&&typeof t.profile==='object'?t.profile:{});t.onboarded=!!t.onboarded;
+  t.history=t.history||{};t.dailyHistory=t.dailyHistory||{};t.exFav=t.exFav&&typeof t.exFav==='object'&&!Array.isArray(t.exFav)?t.exFav:{};t.profile=Object.assign({},EMPTY_PROFILE,t.profile&&typeof t.profile==='object'?t.profile:{});t.onboarded=!!t.onboarded;t.privacy=Object.assign({},DEFAULT_PRIVACY,t.privacy&&typeof t.privacy==='object'?t.privacy:{});
   t.game=Object.assign({xp:0,total:0,waterWon:'',claimed:{},badges:[],day:'',streakFreezes:0,frozenDays:[],freezeTier:0,bestDaily:0},t.game||{}); delete t.game.streak;delete t.game.best;delete t.game.lastDay;delete t.game.freezes;
   const d=dayKey();
   if(t.game.day&&t.game.day!==d){
@@ -2287,6 +2326,8 @@ function settleStreak(){
  if(use.length){g.streakFreezes-=use.length;g.frozenDays=g.frozenDays.concat(use).sort().slice(-90);showToast('❄ Streak freeze used for '+use.length+' missed day'+(use.length===1?'':'s'));}
  const streak=dailyStreak(),tier=Math.floor(streak/STREAK_FREEZE_EVERY);
  if(streak>g.bestDaily)g.bestDaily=streak;
+ // The friends leaderboard reads this; the server treats it as lapsed after two days without an update.
+ if(!g.streakNow||g.streakNow.day!==today||g.streakNow.n!==streak)g.streakNow={day:today,n:streak};
  if(tier<g.freezeTier)g.freezeTier=tier;
  else if(tier>g.freezeTier){g.freezeTier=tier;if(g.streakFreezes<STREAK_FREEZE_MAX){g.streakFreezes++;celebrate({icon:'❄',title:'Streak freeze earned',text:'A '+streak+'-day streak earned you a freeze. It is used automatically if you miss a day. You can hold '+STREAK_FREEZE_MAX+'.'});}}
  return streak;
@@ -2299,7 +2340,9 @@ function xpLogKey(){return 'gymplified_xp_log_v1:'+(state.accountOwnerId||'local
 function readXpLog(){try{const a=JSON.parse(localStorage.getItem(xpLogKey())||'[]');return Array.isArray(a)?a.filter(x=>x&&Number.isFinite(Number(x.t))&&Number.isFinite(Number(x.n))).slice(0,XP_LOG_MAX):[];}catch(e){return [];}}
 function xpLogAdd(n,why){try{const log=readXpLog();log.unshift({t:Date.now(),n:Number(n)||0,why:String(why||'').slice(0,80)});localStorage.setItem(xpLogKey(),JSON.stringify(log.slice(0,XP_LOG_MAX)));}catch(e){}}
 function gainXP(n,why){
- const g=state.game,before=lvl(g.xp);g.xp+=n;xpLogAdd(n,why);showToast('+'+n+' XP · '+why);
+ const g=state.game,before=lvl(g.xp);g.xp+=n;xpLogAdd(n,why);
+ // XP earned this leaderboard week (Monday start), read by the friends leaderboard.
+ const week=leaderboardWeekKey();if(!g.weekXp||g.weekXp.week!==week)g.weekXp={week,xp:0};g.weekXp.xp=Math.min(100000,g.weekXp.xp+n);showToast('+'+n+' XP · '+why);
  const after=lvl(g.xp);if(after>before){celebrate({icon:'🎉',title:'Level '+after+' — '+levelTitle(after),text:'You reached level '+after+'. '+(50*after*after-g.xp)+' XP to level '+(after+1)+'.'});confetti();}
 }
 
@@ -2402,7 +2445,7 @@ const BADGES=[
  {id:'l5',icon:'⭐',name:'Level 5',desc:'Reach level 5',target:5,value:()=>lvl(state.game.xp)},
  {id:'l10',icon:'🌟',name:'Level 10',desc:'Reach level 10',target:10,value:()=>lvl(state.game.xp)},
  {id:'l20',icon:'✨',name:'Level 20',desc:'Reach level 20',target:20,value:()=>lvl(state.game.xp)},
- {id:'fr',icon:'🤝',name:'First friend',desc:'Add a friend',target:1,value:()=>state.friends.length}];
+ {id:'fr',icon:'🤝',name:'First friend',desc:'Add a friend',target:1,value:()=>Math.max(state.friends.length,acceptedFriendCount)}];
 function badgeProgress(b){let v=0;try{v=Number(b.value())||0;}catch(e){}return Math.max(0,Math.min(b.target,v));}
 
 function rewards(){
@@ -2602,7 +2645,7 @@ function renderExtras(){
   const dl=$('recentFoods');if(dl)dl.innerHTML=state.recent.map(r=>'<option value="'+esc(r.name)+'">').join('');
   markNav();
 }
-function initGoals(){syncSettingsControls();renderProfilePanel();renderBackupReminder();renderOnboarding();initWaterSettings();}
+function initGoals(){renderPrivacySettings();syncSettingsControls();renderProfilePanel();renderBackupReminder();renderOnboarding();initWaterSettings();}
 function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='gymplified-backup-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);markBackupDone();showToast('Backup exported');}
 function importData(file){
  if(!file)return;if(file.size>10*1024*1024)return showToast('Backup is larger than 10 MB.');
@@ -3290,6 +3333,142 @@ function initSettingsControls(){
  });
 }
 
+// ===== Batch 5: friends leaderboard, privacy, friend profiles, activity feed =====
+// All numbers about friends come from Supabase functions that return aggregates only
+// (supabase/migrations/20261111090000_...). Friends' raw progress is never downloaded.
+const PRIVACY_FIELDS=[
+ {key:'leaderboard',label:'Show me on friends\' leaderboards',hint:'Off = private mode. Your activity feed and profile still follow the settings below.'},
+ {key:'workouts',label:'Workouts',hint:'How many workouts you finish, and workout posts in the feed.'},
+ {key:'volume',label:'Training volume',hint:'Total weight lifted.'},
+ {key:'streak',label:'Day streak',hint:''},
+ {key:'level',label:'Level, XP and badges',hint:''},
+ {key:'prs',label:'Personal records',hint:'Your recent PRs on your profile and in the feed.'}];
+function privacyShares(key){return !(state.privacy&&state.privacy[key]===false);}
+// The leaderboard week always starts on Monday so that friends compare the same week.
+function leaderboardWeekKey(d=new Date()){const x=new Date(d);x.setHours(12,0,0,0);x.setDate(x.getDate()-(x.getDay()+6)%7);return dayKey(x);}
+function msToLeaderboardReset(now=new Date()){const end=new Date(now);end.setHours(0,0,0,0);end.setDate(end.getDate()-(end.getDay()+6)%7+7);return end-now;}
+const LEADERBOARD_TABS=[
+ {key:'workouts',label:'Workouts',field:'workouts',show:v=>v+' workout'+(v===1?'':'s')},
+ {key:'volume',label:'Volume',field:'volume_kg',show:v=>fmtVolume(v)},
+ {key:'xp',label:'XP',field:'week_xp',show:v=>Number(v).toLocaleString()+' XP'},
+ {key:'streak',label:'Streak',field:'streak',show:v=>v+' day'+(v===1?'':'s')}];
+// Pure: highest first; ties share a rank; people hiding the metric go last without a rank.
+function rankLeaderboard(rows,field){
+ const shown=rows.filter(r=>r[field]!==null&&r[field]!==undefined).sort((a,b)=>Number(b[field])-Number(a[field])||String(a.display_name||a.username||'').localeCompare(String(b.display_name||b.username||'')));
+ let rank=0,prev=null;
+ const ranked=shown.map((r,i)=>{if(Number(r[field])!==prev){rank=i+1;prev=Number(r[field]);}return Object.assign({},r,{rank});});
+ return ranked.concat(rows.filter(r=>r[field]===null||r[field]===undefined).map(r=>Object.assign({},r,{rank:null})));
+}
+let leaderboardRows=null,leaderboardTab='workouts',leaderboardError='',feedItems=null,feedError='',acceptedFriendCount=0,friendProfileTrigger=null;
+function personName(p){return p.display_name||p.username||'Friend';}
+async function loadFriendsCircle(){
+ if(!currentUser||!sb)return;
+ try{await flushCloudStateSave();}catch(e){}
+ const [board,feed]=await Promise.all([
+  sb.rpc('gymplified_friend_leaderboard',{p_week_start:leaderboardWeekKey()}),
+  sb.rpc('gymplified_friend_feed',{p_since:shiftDay(dayKey(),-14)})]);
+ leaderboardError=board.error?socialError(board.error):'';leaderboardRows=board.error?[]:(board.data||[]);
+ feedError=feed.error?socialError(feed.error):'';feedItems=feed.error?[]:(feed.data||[]);
+ renderLeaderboard();renderFeed();
+}
+function renderLeaderboard(){
+ const host=$('friendLeaderboard');if(!host)return;
+ if(!currentUser){host.hidden=true;return;}host.hidden=false;
+ const tab=LEADERBOARD_TABS.find(t=>t.key===leaderboardTab)||LEADERBOARD_TABS[0];
+ const tabs='<div class="lb-tabs" role="tablist" aria-label="Rank by">'+LEADERBOARD_TABS.map(t=>'<button type="button" role="tab" class="lb-tab" id="lbTab-'+t.key+'" data-lb-tab="'+t.key+'" aria-selected="'+(t.key===tab.key)+'" aria-controls="lbList" tabindex="'+(t.key===tab.key?0:-1)+'">'+t.label+'</button>').join('')+'</div>';
+ let body;
+ if(leaderboardRows===null)body='<p class="sub">Loading this week\'s leaderboard…</p>';
+ else if(leaderboardError)body='<p class="account-message">'+esc(leaderboardError)+'</p><button class="btn" type="button" data-friends-action="reload">Try again</button>';
+ else{
+  const ranked=rankLeaderboard(leaderboardRows,tab.field),me=leaderboardRows.find(r=>r.is_self);
+  body=(leaderboardRows.length<2?'<p class="sub">Add friends to compete. Only you and your accepted friends appear here — never strangers.</p>':'')+
+   '<ol class="lb-list" id="lbList" role="tabpanel" aria-labelledby="lbTab-'+tab.key+'">'+ranked.map(r=>{const value=r[tab.field],hidden=value===null||value===undefined;
+    return '<li><button type="button" class="lb-row'+(r.is_self?' me':'')+'" data-friend-profile="'+esc(r.user_id)+'" aria-label="'+esc((r.rank?'Rank '+r.rank+': ':'')+personName(r)+(r.is_self?' (you)':'')+', '+(hidden?'not shared':tab.show(value))+'. Open profile')+'">'+
+     '<span class="lb-rank" aria-hidden="true">'+(r.rank?(r.rank<=3?['🥇','🥈','🥉'][r.rank-1]:r.rank):'–')+'</span>'+avatarMarkup(r,true)+
+     '<span class="lb-name"><strong>'+esc(personName(r))+(r.is_self?' (you)':'')+'</strong><small>@'+esc(r.username||'')+(r.is_self&&r.is_private?' · hidden from friends':'')+'</small></span>'+
+     '<span class="lb-value'+(hidden?' sub':'')+'" aria-hidden="true">'+(hidden?'Not shared':esc(tab.show(value)))+'</span></button></li>';}).join('')+'</ol>'+
+   (me&&me.is_private?'<p class="sub">You are in private mode, so friends do not see you here. Change this in Settings → Privacy.</p>':'');
+ }
+ host.innerHTML='<div class="section-title"><span>This week\'s leaderboard</span><span class="sub">Resets Monday · '+formatCountdown(msToLeaderboardReset())+'</span></div>'+tabs+body+
+  '<p class="sub lb-privacy-link"><a href="#set-privacy" data-settings-jump="set-privacy">What friends can see about you</a></p>';
+}
+function relativeDay(key){const today=dayKey();if(key===today)return 'Today';if(key===shiftDay(today,-1))return 'Yesterday';const d=new Date(key+'T12:00:00');return Number.isFinite(d.getTime())?d.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}):'';}
+function feedText(item){
+ const d=item.detail||{};
+ if(item.kind==='pr')return 'set a PR: '+String(d.name||'Exercise')+' '+fmtWeight(Number(d.weight_kg)||0,2)+' × '+(Number(d.reps)||0);
+ const parts=[];if(Number(d.mins)>0)parts.push(d.mins+' min');if(Number(d.exercises)>0)parts.push(d.exercises+' exercise'+(d.exercises===1?'':'s'));if(d.volume_kg!==null&&d.volume_kg!==undefined)parts.push(fmtVolume(d.volume_kg));
+ return 'completed a workout'+(parts.length?' · '+parts.join(' · '):'');
+}
+const REACTIONS=[{key:'fire',emoji:'🔥',name:'Fire'},{key:'muscle',emoji:'💪',name:'Strong'}];
+function renderFeed(){
+ const host=$('friendFeed');if(!host)return;
+ if(!currentUser){host.hidden=true;return;}host.hidden=false;
+ let body;
+ if(feedItems===null)body='<p class="sub">Loading activity…</p>';
+ else if(feedError)body='<p class="account-message">'+esc(feedError)+'</p>';
+ else if(!feedItems.length)body='<p class="sub">No activity in the last two weeks yet. Finished workouts and new PRs from you and your friends appear here.</p>';
+ else body='<ul class="feed-list">'+feedItems.map(item=>{
+  const owner=esc(item.owner_id),key=esc(item.activity_key),who=item.is_self?'You':personName(item);
+  const reactions=REACTIONS.map(r=>{const n=Number(item[r.key+'_count'])||0,mine=!!item['my_'+r.key];
+   return item.is_self?(n?'<span class="feed-count" aria-label="'+n+' '+r.name+' reaction'+(n===1?'':'s')+'">'+r.emoji+' '+n+'</span>':''):'<button type="button" class="btn feed-react'+(mine?' on':'')+'" data-react="'+r.key+'" data-owner="'+owner+'" data-key="'+key+'" aria-pressed="'+mine+'" aria-label="'+r.name+' reaction'+(mine?' (yours)':'')+', '+n+'">'+r.emoji+' '+n+'</button>';}).join('');
+  return '<li class="feed-item"><button type="button" class="feed-avatar" data-friend-profile="'+owner+'" aria-label="Open '+esc(who)+'\'s profile">'+avatarMarkup(item,true)+'</button><div class="feed-body"><p><strong>'+esc(who)+'</strong> '+(item.kind==='pr'?'🏆 ':'')+esc(feedText(item))+'</p><small class="sub">'+esc(relativeDay(item.occurred_on))+'</small></div><div class="feed-reactions">'+reactions+'</div></li>';}).join('')+'</ul>';
+ host.innerHTML='<div class="section-title"><span>Friend activity</span><span class="sub">Last 14 days</span></div>'+body;
+}
+async function toggleReaction(button){
+ if(!sb||!currentUser||button.disabled)return;button.disabled=true;
+ const owner=button.dataset.owner,key=button.dataset.key,kind=button.dataset.react;
+ try{
+  const r=await sb.rpc('gymplified_toggle_reaction',{p_owner:owner,p_activity_key:key,p_reaction:kind});if(r.error)throw r.error;
+  const item=(feedItems||[]).find(x=>x.owner_id===owner&&x.activity_key===key);
+  if(item){const was=!!item['my_'+kind];item['my_'+kind]=!!r.data;item[kind+'_count']=Math.max(0,(Number(item[kind+'_count'])||0)+(r.data===was?0:r.data?1:-1));}
+  renderFeed();$('friendFeed').querySelector('[data-react="'+kind+'"][data-owner="'+CSS.escape(owner)+'"][data-key="'+CSS.escape(key)+'"]')?.focus();
+ }catch(e){showToast(socialError(e));button.disabled=false;}
+}
+function badgeById(id){return BADGES.find(b=>b.id===id);}
+async function openFriendProfile(userId,trigger){
+ const dialog=$('friendProfileDialog');if(!dialog||!sb||!currentUser)return;
+ friendProfileTrigger=trigger||null;
+ $('friendProfileBody').innerHTML='<p class="sub">Loading profile…</p>';$('friendProfileTitle').textContent='Profile';
+ try{if(!dialog.open)dialog.showModal();}catch(e){return;}
+ const r=await sb.rpc('gymplified_friend_profile',{p_friend:userId,p_week_start:leaderboardWeekKey()});
+ if(!dialog.open)return;
+ if(r.error){$('friendProfileBody').innerHTML='<p class="account-message">'+esc(socialError(r.error))+'</p>';return;}
+ const p=r.data||{},has=k=>Object.prototype.hasOwnProperty.call(p,k),hidden='<span class="sub">Not shared</span>';
+ $('friendProfileTitle').textContent=personName(p)+(p.is_self?' (you)':'');
+ const stat=(label,value)=>'<div class="stat"><b>'+value+'</b><span>'+label+'</span></div>';
+ const badges=(has('badges')?(p.badges||[]):[]).map(badgeById).filter(Boolean);
+ $('friendProfileBody').innerHTML='<div class="friend-profile-head">'+avatarMarkup(p,false)+'<div><div class="sub">@'+esc(p.username||'')+'</div>'+(has('level')?'<strong>Level '+Number(p.level)+' · '+esc(levelTitle(Number(p.level)))+'</strong>':'')+'</div></div>'+
+  '<div class="stat-row">'+stat('day streak',has('streak')?'🔥 '+Number(p.streak):hidden)+stat('workouts this week',has('workouts_week')?Number(p.workouts_week):hidden)+stat('volume this week',has('volume_week_kg')?esc(fmtVolume(p.volume_week_kg)):hidden)+stat('workouts in total',has('workouts_total')?Number(p.workouts_total):hidden)+'</div>'+
+  '<div class="sub-h">Badges</div>'+(has('badges')?(badges.length?'<ul class="friend-badges">'+badges.map(b=>'<li><span aria-hidden="true">'+b.icon+'</span> '+esc(b.name)+'</li>').join('')+'</ul>':'<p class="sub">No badges yet.</p>'):'<p class="sub">Not shared.</p>')+
+  '<div class="sub-h">Recent personal records</div>'+(has('recent_prs')?((p.recent_prs||[]).length?'<ul class="friend-prs">'+p.recent_prs.map(x=>'<li><strong>'+esc(x.name||'Exercise')+'</strong> '+esc(fmtWeight(Number(x.weight_kg)||0,2))+' × '+Number(x.reps||0)+' <span class="sub">'+esc(relativeDay(String(x.date||'')))+'</span></li>').join('')+'</ul>':'<p class="sub">No PRs yet.</p>'):'<p class="sub">Not shared.</p>');
+}
+function renderPrivacySettings(){
+ const host=$('friendPrivacy');if(!host)return;
+ host.innerHTML='<h3>What friends can see</h3><p>Only accepted friends ever see these, and only as totals — never your detailed logs. Strangers see nothing.</p>'+
+  PRIVACY_FIELDS.map(f=>'<label class="privacy-row" for="privacy-'+f.key+'"><input type="checkbox" id="privacy-'+f.key+'" data-privacy-key="'+f.key+'"'+(privacyShares(f.key)?' checked':'')+'><span><strong>'+esc(f.label)+'</strong>'+(f.hint?'<small class="sub">'+esc(f.hint)+'</small>':'')+'</span></label>').join('');
+}
+function initFriendsControls(){
+ const screen=$('friends');
+ if(screen){
+  screen.addEventListener('click',e=>{
+   const tab=e.target.closest('[data-lb-tab]');if(tab){leaderboardTab=tab.dataset.lbTab;renderLeaderboard();$('lbTab-'+leaderboardTab)?.focus();return;}
+   const react=e.target.closest('button[data-react]');if(react){toggleReaction(react);return;}
+   const profile=e.target.closest('[data-friend-profile]');if(profile){openFriendProfile(profile.dataset.friendProfile,profile);return;}
+   const jump=e.target.closest('a[data-settings-jump]');if(jump){e.preventDefault();openSettingsSection(jump.dataset.settingsJump);return;}
+   if(e.target.closest('[data-friends-action="reload"]'))loadFriendsCircle();
+  });
+  screen.addEventListener('keydown',e=>{
+   const tab=e.target.closest&&e.target.closest('[data-lb-tab]');if(!tab||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;
+   e.preventDefault();const i=LEADERBOARD_TABS.findIndex(t=>t.key===tab.dataset.lbTab),n=LEADERBOARD_TABS.length;
+   leaderboardTab=LEADERBOARD_TABS[e.key==='Home'?0:e.key==='End'?n-1:(i+(e.key==='ArrowRight'?1:-1)+n)%n].key;renderLeaderboard();$('lbTab-'+leaderboardTab)?.focus();
+  });
+ }
+ $('friendPrivacy')?.addEventListener('change',e=>{const key=e.target.dataset&&e.target.dataset.privacyKey;if(!key)return;state.privacy=Object.assign({},state.privacy,{[key]:e.target.checked});saveState();showToast(e.target.checked?'Shared with friends':'Hidden from friends');});
+ const dialog=$('friendProfileDialog');
+ $('friendProfileClose')?.addEventListener('click',()=>dialog.close());
+ dialog?.addEventListener('close',()=>{const t=friendProfileTrigger;friendProfileTrigger=null;if(t&&document.contains(t))t.focus();});
+}
+
 // ===== Gymplified accounts + real friend connections =====
 const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3iqgTv1xyZgxhnD8iV1uMQ_DcrlHxPj';
@@ -3439,12 +3618,13 @@ async function fetchSocialData(){
  const p=await sb.from('profiles').select('id,username,display_name,avatar_url').in('id',ids);if(p.error)throw p.error;friendProfiles={};(p.data||[]).forEach(function(x){friendProfiles[x.id]=x;});
 }
 function renderFriends(){
- if(!currentUser){$('friendConnections').style.display='none';$('friendSearchPanel').style.display='none';renderAuthPanel('');return;}
+ if(!currentUser){$('friendConnections').style.display='none';$('friendSearchPanel').style.display='none';leaderboardRows=null;feedItems=null;renderLeaderboard();renderFeed();renderAuthPanel('');return;}
  $('friendConnections').style.display='block';$('friendSearchPanel').style.display='block';renderAccountPanel();
+ renderLeaderboard();renderFeed();loadFriendsCircle().catch(function(e){leaderboardError=feedError=socialError(e);leaderboardRows=leaderboardRows||[];feedItems=feedItems||[];renderLeaderboard();renderFeed();});
  fetchSocialData().then(function(){
   const incoming=friendRequests.filter(function(x){return x.receiver_id===currentUser.id&&x.status==='pending';});
   const outgoing=friendRequests.filter(function(x){return x.requester_id===currentUser.id&&x.status==='pending';});
-  const accepted=friendRequests.filter(function(x){return x.status==='accepted';});
+  const accepted=friendRequests.filter(function(x){return x.status==='accepted';});acceptedFriendCount=accepted.length;
   const row=function(p,actions,note){if(!p)return '';return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name||p.username)+'</strong><small>@'+esc(p.username)+(note?' · '+esc(note):'')+'</small></div>'+(actions||'')+'</div>';};
   let html='<div class="section-title">Your connections</div><div class="account-section-title">Friends ('+accepted.length+')</div>';
   html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" onclick="removeFriend('+jsArg(x.id)+')">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
@@ -3715,6 +3895,7 @@ initWaterControls();
 initWorkoutControls();
 initSettingsControls();
 initGameControls();
+initFriendsControls();
 initGoals();
 if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();

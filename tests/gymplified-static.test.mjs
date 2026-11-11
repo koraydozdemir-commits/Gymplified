@@ -369,7 +369,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 15);
+  assert.ok(version >= 16);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -535,7 +535,9 @@ test('C4: week start day drives streak weeks, recap and weekly charts', async ()
   assert.equal(api({})(monday), 0);
   assert.equal(api({ weekStart: 'sun' })(wednesday), 3);
   assert.equal(api({ weekStart: 'sun' })(sunday), 0);
-  assert.doesNotMatch(js, /getDay\(\)\+6\)%7\)?;return dayKey/);
+  // The friends leaderboard deliberately uses Monday weeks so friends compare the same week (E1).
+  const personalWeeks = js.replace(/function leaderboardWeekKey\([^\n]*\n/, '').replace(/function msToLeaderboardReset\([^\n]*\n/, '');
+  assert.doesNotMatch(personalWeeks, /getDay\(\)\+6\)%7\)?;return dayKey/);
   assert.equal(count(js, /daysSinceWeekStart\(/g) >= 5, true);
   assert.match(js, /\['mon','sun'\]\.includes\(settings\.weekStart\)/);
   assert.match(js, /x\.date>=startKey&&x\.date<=todayKey/);
@@ -706,4 +708,79 @@ test('D8/D9: level titles, XP log and daily XP limits', async () => {
   assert.match(js, /function xpLogAdd\(n,why\)/);
   assert.match(js, /History is kept on this device/);
   assert.ok(caps);
+});
+
+// ---- Batch 5: friends leaderboard, privacy, friend profiles, activity feed (E1–E5) ----
+const FRIENDS_MIGRATION = 'supabase/migrations/20261111090000_gymplified_friend_leaderboard_feed_and_reactions.sql';
+
+test('E3: friend data is served only by locked-down aggregate functions', async () => {
+  const sql = await read(FRIENDS_MIGRATION);
+  const functions = [...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.(\w+)\(/g)].map(m => m[1]);
+  for (const name of ['gymplified_friend_leaderboard', 'gymplified_friend_profile', 'gymplified_friend_feed', 'gymplified_toggle_reaction']) {
+    assert.ok(functions.includes(name), name + ' exists');
+    const body = sql.slice(sql.indexOf('FUNCTION public.' + name + '('), sql.indexOf('$function$;', sql.indexOf('FUNCTION public.' + name + '(')));
+    assert.match(body, /SECURITY DEFINER\nSET search_path = pg_catalog, public/, name + ' pins search_path');
+    assert.match(body, /IF v_me IS NULL THEN RAISE EXCEPTION 'Authentication required'/, name + ' requires sign-in');
+    assert.match(sql, new RegExp('REVOKE ALL ON FUNCTION public\\.' + name + '\\([^)]*\\) FROM PUBLIC, anon;'));
+    assert.match(sql, new RegExp('GRANT EXECUTE ON FUNCTION public\\.' + name + '\\([^)]*\\) TO authenticated;'));
+  }
+  // helpers that bypass RLS are not callable by app users at all
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.gymplified_are_friends\(uuid, uuid\) FROM PUBLIC, anon, authenticated;/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.gymplified_friend_circle\(\) FROM PUBLIC, anon, authenticated;/);
+  assert.doesNotMatch(sql, /GRANT [A-Z, ]+ ON (TABLE )?public\.(user_app_state|friend_activity_reactions)/);
+  // reactions: only fire/muscle, no free text, RLS on with no policies
+  assert.match(sql, /reaction text NOT NULL CHECK \(reaction IN \('fire', 'muscle'\)\)/);
+  assert.match(sql, /ALTER TABLE public\.friend_activity_reactions ENABLE ROW LEVEL SECURITY;/);
+  assert.doesNotMatch(sql, /CREATE POLICY/);
+  assert.match(sql, /REVOKE ALL ON TABLE public\.friend_activity_reactions FROM PUBLIC, anon, authenticated;/);
+  assert.match(sql, />= 30 THEN\n    RAISE EXCEPTION 'Too many reactions/);
+  // friends are accepted requests only; private mode leaves the leaderboard
+  assert.match(sql, /WHERE fr\.status = 'accepted'/);
+  assert.match(sql, /WHERE c\.member_id = v_me OR public\.gymplified_shares\(c\.state, 'leaderboard'\);/);
+  // a real-Postgres test for this migration ships alongside it
+  const harness = await read('supabase/tests/friend_leaderboard_feed.sql');
+  assert.match(harness, /\\ir \.\.\/migrations\/20261111090000_gymplified_friend_leaderboard_feed_and_reactions\.sql/);
+  assert.match(harness, /tests passed/);
+  // the app never reads app state tables or reactions directly
+  const html = await read('index.html');
+  assert.doesNotMatch(html, /sb\.from\('(user_app_state|friend_activity_reactions)'\)/);
+});
+
+test('E1: leaderboard ranks highest first, shares tied ranks and puts hidden metrics last', async () => {
+  const js = appScript(await read('index.html'));
+  const api = new Function(extractFunctions(js, ['dayKey', 'rankLeaderboard', 'leaderboardWeekKey', 'msToLeaderboardReset']) + ';return {rankLeaderboard,leaderboardWeekKey,msToLeaderboardReset};')();
+  const rows = [{ username: 'c', workouts: 2 }, { username: 'a', workouts: 5 }, { username: 'h', workouts: null }, { username: 'b', workouts: 5 }, { username: 'z', workouts: 0 }];
+  const ranked = api.rankLeaderboard(rows, 'workouts');
+  assert.deepEqual(ranked.map(r => [r.username, r.rank]), [['a', 1], ['b', 1], ['c', 3], ['z', 4], ['h', null]]);
+  assert.equal(rows[0].rank, undefined, 'input rows are not mutated');
+  for (const day of ['2026-11-09', '2026-11-11', '2026-11-15']) assert.equal(api.leaderboardWeekKey(new Date(day + 'T08:00:00')), '2026-11-09', day + ' is in the week of Monday 9 November');
+  assert.equal(api.leaderboardWeekKey(new Date('2026-11-16T00:30:00')), '2026-11-16');
+  const left = api.msToLeaderboardReset(new Date('2026-11-15T23:00:00'));
+  assert.equal(Math.round(left / 36e5), 1, 'resets at local Monday midnight');
+  assert.match(js, /gymplified_friend_leaderboard',\{p_week_start:leaderboardWeekKey\(\)\}/);
+  for (const tab of ['workouts', 'volume', 'xp', 'streak']) assert.match(js, new RegExp("\\{key:'" + tab + "'"));
+  assert.match(js, /role="tablist" aria-label="Rank by"/);
+});
+
+test('E2/E4/E5: privacy settings, weekly XP and streak for the server, and safe rendering', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  assert.match(js, /const DEFAULT_PRIVACY = \{ leaderboard: true, workouts: true, volume: true, streak: true, level: true, prs: true \};/);
+  assert.match(js, /state\.privacy=\{\};Object\.keys\(DEFAULT_PRIVACY\)\.forEach\(k=>\{state\.privacy\[k\]=rawPrivacy\[k\]!==false;\}\);/);
+  assert.match(js, /weekXp:rawGame\.weekXp&&typeof rawGame\.weekXp==='object'&&safeStateDay\(rawGame\.weekXp\.week,''\)/);
+  assert.match(js, /streakNow:rawGame\.streakNow&&typeof rawGame\.streakNow==='object'&&safeStateDay\(rawGame\.streakNow\.day,''\)/);
+  assert.match(js, /const week=leaderboardWeekKey\(\);if\(!g\.weekXp\|\|g\.weekXp\.week!==week\)g\.weekXp=\{week,xp:0\};/);
+  assert.match(js, /g\.streakNow=\{day:today,n:streak\}/);
+  assert.match(html, /id="friendPrivacy"/);
+  assert.match(html, /<dialog id="friendProfileDialog" class="app-dialog friend-profile-dialog" aria-labelledby="friendProfileTitle">/);
+  const block = js.slice(js.indexOf('// ===== Batch 5:'), js.indexOf('// ===== Gymplified accounts + real friend connections ====='));
+  assert.ok(block.length > 4000);
+  assert.doesNotMatch(block, /\son[a-z]+=/, 'Batch 5 UI uses listeners, not inline handlers');
+  // every server string is escaped before it reaches innerHTML
+  for (const field of ['personName(r)', 'r.username', 'feedText(item)', 'x.name', 'b.name', 'leaderboardError', 'feedError']) {
+    assert.ok(block.includes('esc(' + field), field + ' is escaped');
+  }
+  assert.match(block, /'<button type="button" class="btn feed-react/);
+  assert.match(block, /\$\('friendProfileTitle'\)\.textContent=personName\(p\)/, 'profile title is set as text');
+  assert.match(js, /value:\(\)=>Math\.max\(state\.friends\.length,acceptedFriendCount\)/, 'first-friend badge counts accepted friends');
 });

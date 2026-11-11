@@ -462,6 +462,11 @@ input,select,textarea{font-size:calc(16px * var(--text-scale, 1))!important}
 @media(hover:none){.btn:hover,.panel:hover{transform:none}}
  
 .ex-preview-button{border:0;background:transparent;color:inherit;text-align:left;flex:1;min-width:0;cursor:pointer;padding:4px;font:inherit}
+/* Dark theme: accent tints are a dark blend of the accent, never the pale light-theme tint
+   (which put white text on pale yellow stat tiles). */
+html:not([data-theme=light]){--brand-light:color-mix(in srgb,var(--brand) 18%,var(--panel))}
+html:not([data-theme=light]) .btn-gold{color:var(--brand-text)}
+html:not([data-theme=light]) .stat{border-color:color-mix(in srgb,var(--brand) 45%,var(--line))}
 /* I3: one visible focus ring for every interactive element. --focus-ring keeps >=3:1 against --bg, --panel
    and --panel-hover in both themes; the halo separates it from accent-coloured surfaces. */
 :root{--focus-ring:#ffd76a;--focus-halo:#0b0f17}

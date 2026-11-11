@@ -368,5 +368,23 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 11);
+  assert.ok(version >= 12);
+});
+
+test('dark theme accent tint stays dark enough for body text on every accent', async () => {
+  const html = await read('index.html');
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  assert.match(css, /html:not\(\[data-theme=light\]\)\{--brand-light:color-mix\(in srgb,var\(--brand\) 18%,var\(--panel\)\)\}/);
+  const root = css.match(/:root \{([\s\S]*?)\}/)[1];
+  const pick = (block, name) => block.match(new RegExp(name + ':\\s*(#[0-9a-fA-F]{6})'))[1];
+  const panel = pick(root, '--panel'), ink = pick(root, '--ink'), muted = pick(root, '--muted');
+  const channels = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+  const mix = (a, b, share) => '#' + channels(a).map((v, i) => Math.round(v * share + channels(b)[i] * (1 - share)).toString(16).padStart(2, '0')).join('');
+  const accents = [...css.matchAll(/html\[data-color="([a-z]+)"\] \{ --brand: (#[0-9a-fA-F]{6});/g)];
+  assert.equal(accents.length, 7);
+  for (const [, name, brand] of accents) {
+    const tint = mix(brand, panel, 0.18);
+    assert.ok(contrast(ink, tint) >= 7, name + ' tint vs text ' + contrast(ink, tint).toFixed(2));
+    assert.ok(contrast(muted, tint) >= 4.5, name + ' tint vs muted text ' + contrast(muted, tint).toFixed(2));
+  }
 });

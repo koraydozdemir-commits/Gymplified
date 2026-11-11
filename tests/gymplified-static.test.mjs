@@ -68,7 +68,7 @@ test('stored data render paths escape text and encode generated JS arguments', a
   assert.match(html, /esc\(pr\.date/);
   assert.match(html, /esc\(meal\)/);
   assert.match(html, /esc\(x\.eq\).*esc\(x\.pm\)/);
-  assert.match(html, /jsArg\(x\.id\)/);
+  assert.match(html, /data-id="'\+esc\(x\.id\)\+'"/, 'friend ids in generated markup are escaped attribute values');
   assert.match(html, /function avatarMarkup/);
   assert.match(html, /url\.origin==='https:\/\/ouwvujtsrnotnwtbvqhc\.supabase\.co'/);
 });
@@ -179,8 +179,8 @@ test('unowned legacy local data requires an explicit account migration choice', 
   const html = await read('index.html');
   assert.match(html, /function hasLocalProgress/);
   assert.match(html, /id="legacyLocalDataDialog"/);
-  assert.match(html, /resolveLegacyLocalData\(true\)/);
-  assert.match(html, /resolveLegacyLocalData\(false\)/);
+  assert.match(html, /data-action="resolveLegacyLocalData" data-arg="true"/);
+  assert.match(html, /data-action="resolveLegacyLocalData" data-arg="false"/);
   assert.match(html, /downloadLegacyLocalBackup/);
   assert.match(html, /ACCOUNT_STATE_PREFIX\+'unassigned'/);
 });
@@ -235,7 +235,7 @@ test('JSON restore refuses histories above the explicit session limit', async ()
 // ---- Batch 1: fix-first (A1–A5, C2, I3, I4) ----
 const appScript = (html) => [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1]).join('\n');
 const count = (text, pattern) => (text.match(pattern) || []).length;
-const INLINE_HANDLER_BUDGET = 111;
+const INLINE_HANDLER_BUDGET = 0;
 // Pull named top-level function declarations out of the app script so pure helpers can be executed.
 function extractFunctions(source, names) {
   return names.map(name => {
@@ -383,7 +383,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 21);
+  assert.ok(version >= 22);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -611,7 +611,7 @@ test('J1: settings are grouped into sections with jump links', async () => {
   // every unit selector must be wired to a handler after the move into Units
   for (const id of ['weightUnitSelect', 'distanceUnitSelect', 'heightUnitSelect', 'weekStartSelect']) assert.match(appScript(html), new RegExp(id + ":'"));
   assert.match(appScript(html), /id==='waterUnitSelect'\)setWaterUnit\(e\.target\.value\)/);
-  assert.ok(settings.includes('id="restSettings"') && settings.includes('deleteGymplifiedAccount()') && settings.includes('resetAllData()'));
+  assert.ok(settings.includes('id="restSettings"') && settings.includes('data-action="deleteGymplifiedAccount"') && settings.includes('data-action="resetAllData"'));
   assert.match(appScript(html), /behavior:reducedMotion\(\)\?'auto':'smooth',block:'start'\}\);\n const heading=section\.querySelector\('h2'\)/);
 });
 
@@ -1268,4 +1268,29 @@ test('Deluxe admin toggle: service-role only, keeps paid records, and the admin 
   assert.doesNotMatch(page, /id="deluxeAdminBtn"[^>]*onclick/);
   assert.match(page, /This member does not have Deluxe\./);
   assert.match(page, /this does not refund them/);
+});
+
+test('K3: no inline event handlers, an explicit action allowlist, and no unsafe-inline scripts', async () => {
+  const shell = await readRaw('index.html'), js = await readRaw('app.js');
+  assert.equal(count(shell + js, /\son[a-z]+\s*=\s*\\?["']/gi), 0, 'no inline on* handlers in markup or generated HTML');
+  const csp = shell.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
+  const scriptSrc = csp.match(/script-src ([^;]+)/)[1];
+  assert.doesNotMatch(scriptSrc, /unsafe-inline|unsafe-eval/, 'scripts run only from files');
+  assert.doesNotMatch(shell, /<script(?![^>]*\ssrc=)[^>]*>/, 'no inline script blocks');
+  assert.doesNotMatch(js, /\beval\(|new Function\(|setTimeout\(\s*['"`]|setInterval\(\s*['"`]|javascript:/, 'nothing a strict CSP would block');
+  // Every action named in markup is on the allowlist, and nothing else is.
+  const used = new Set([...(shell + js).matchAll(/data-(?:action|change|input|submit)="([A-Za-z]+)"/g)].map(m => m[1]));
+  const block = js.slice(js.indexOf('const UI_ACTIONS=Object.freeze({'), js.indexOf('function bindUiActions'));
+  const defined = new Set([...block.matchAll(/(?:^|[,{ ])([A-Za-z]+):(?:\(|el)/gm)].map(m => m[1]));
+  assert.ok(used.size >= 70);
+  assert.deepEqual([...used].filter(x => !defined.has(x)), [], 'every action in markup is allowlisted');
+  assert.deepEqual([...defined].filter(x => !used.has(x)), [], 'no unused allowlist entries');
+  assert.match(js, /Object\.prototype\.hasOwnProperty\.call\(UI_ACTIONS,/, 'lookups cannot reach inherited properties');
+  assert.match(js, /\$\('legacyLocalDataDialog'\)\?\.addEventListener\('cancel',e=>e\.preventDefault\(\)\)/);
+  // Ids in generated markup are escaped attribute values, not JavaScript strings.
+  assert.doesNotMatch(js, /data-id="'\+jsArg\(/);
+  assert.match(js, /data-action="removeFriend" data-id="'\+esc\(x\.id\)\+'"/);
+  assert.doesNotMatch(js, /getAttribute\('on[a-z]+'\)/, 'no code reads old handler attributes');
+  assert.match(js, /document\.querySelectorAll\('\.color-dot'\)\.forEach\(d=>\{const on=d\.dataset\.arg===c;/);
+  assert.match(js, /data-action="goToTraining"/, 'the dashboard "Open Training Log" button works (its old inline handler had broken quoting)');
 });

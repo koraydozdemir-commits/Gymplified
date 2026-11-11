@@ -2,7 +2,8 @@
 // Secrets (Supabase > Edge Functions > Secrets): STRIPE_SECRET_KEY, STRIPE_PRICE_DELUXE.
 // Optional: DELUXE_SITE_URL (default https://gymplified.com), DELUXE_REQUIRE_TERMS=1 (needs a terms URL in
 // Stripe's public settings), DELUXE_CHECKOUT_NOTE (owner-approved text shown above the pay button),
-// STRIPE_AUTOMATIC_TAX=1 (only after Stripe Tax is set up).
+// STRIPE_AUTOMATIC_TAX=1 (only after Stripe Tax is set up), STRIPE_MANAGED_PAYMENTS=0 (only if Managed
+// Payments is turned off in Stripe; while it is on, Stripe handles VAT, receipts and checkout text itself).
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 import { deluxeCheckoutParams, formEncode, DELUXE_PRODUCT_TAG } from '../_shared/stripe.js';
 
@@ -54,7 +55,9 @@ Deno.serve(async (req) => {
         siteUrl: Deno.env.get('DELUXE_SITE_URL') || 'https://gymplified.com',
         termsRequired: Deno.env.get('DELUXE_REQUIRE_TERMS') === '1',
         submitNote: Deno.env.get('DELUXE_CHECKOUT_NOTE') || '',
-        automaticTax: Deno.env.get('STRIPE_AUTOMATIC_TAX') === '1'
+        automaticTax: Deno.env.get('STRIPE_AUTOMATIC_TAX') === '1',
+        // Managed Payments is on unless STRIPE_MANAGED_PAYMENTS=0 (match the Stripe account setting).
+        managedPayments: Deno.env.get('STRIPE_MANAGED_PAYMENTS') !== '0'
       }) });
       return json({ url: session.url }, 200, origin);
     }

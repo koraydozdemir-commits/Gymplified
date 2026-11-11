@@ -241,7 +241,9 @@ function saveState(){rewards();persistLocalState();queueCloudStateSave();renderA
 
 /* Cross-device progress sync. The database merges independent records atomically by ID. */
 function resetCloudSaveQueue(){if(cloudSaveTimer)clearTimeout(cloudSaveTimer);cloudSaveTimer=null;cloudSavePending=false;}
-function queueCloudStateSave(){if(!sb||!currentUser||cloudSyncUserId!==currentUser.id)return;cloudSavePending=true;if(cloudSaveTimer)clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(flushCloudStateSave,500);}
+let cloudSyncStatus='local',cloudSyncedAt=0;
+function setSyncStatus(status){cloudSyncStatus=status;if(status==='synced')cloudSyncedAt=Date.now();if(typeof renderSyncStatus==='function')renderSyncStatus();}
+function queueCloudStateSave(){if(!sb||!currentUser||cloudSyncUserId!==currentUser.id)return;cloudSavePending=true;setSyncStatus(navigator.onLine===false?'offline':'syncing');if(cloudSaveTimer)clearTimeout(cloudSaveTimer);cloudSaveTimer=setTimeout(flushCloudStateSave,500);}
 function mergeSyncedSnapshot(snapshot){
  const next=sanitizeStateSnapshot(snapshot),today=dayKey();
  const archive=(day,key,items)=>{if(!items.length)return;const target=next.dailyHistory[day]||(next.dailyHistory[day]={cal:0,protein:0,carbs:0,fat:0,water:0,workouts:[],foods:[],waterEntries:[]});const map=new Map((target[key]||[]).map(x=>[x.id,x]));items.forEach(x=>map.set(x.id,Object.assign({},map.get(x.id)||{},x)));target[key]=Array.from(map.values());};
@@ -270,10 +272,10 @@ async function flushCloudStateSave(){
  try{
   const result=await sb.rpc('gymplified_merge_user_app_state',{p_state:snapshot});
   if(result.error)throw result.error;
-  cloudSyncErrorShown=false;
+  cloudSyncErrorShown=false;setSyncStatus('synced');
   if(result.data&&currentUser&&currentUser.id===userId&&revision===stateRevision){state=mergeSyncedSnapshot(result.data);persistLocalState(false);renderAll();}
  }catch(error){
-  console.warn('Gymplified cloud progress sync failed:',error.message||error);
+  console.warn('Gymplified cloud progress sync failed:',error.message||error);setSyncStatus(navigator.onLine===false?'offline':'error');
   if(!cloudSyncErrorShown){showToast('Cloud sync failed. Your device copy is saved; reconnect and try again.');cloudSyncErrorShown=true;}
  }finally{cloudSaveBusy=false;if(cloudSavePending&&sb&&currentUser&&currentUser.id===userId)cloudSaveTimer=setTimeout(flushCloudStateSave,100);}
 }
@@ -292,12 +294,12 @@ async function syncUserAppState(cloudOnly=false){
     else{state=blankAccountState();state.accountOwnerId=id;state.game.day=dayKey();persistLocalState(false);}
     applySettings();renderAll();initPicker();
    }
-   cloudSyncUserId=id;cloudSyncErrorShown=false;
+   cloudSyncUserId=id;cloudSyncErrorShown=false;setSyncStatus('synced');
    try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);localStorage.setItem(ACCOUNT_STATE_PREFIX+id,JSON.stringify(state));if(clearLegacyBackupAfterSync){localStorage.removeItem(ACCOUNT_STATE_PREFIX+'unassigned');clearLegacyBackupAfterSync=false;}}catch(_){}
    if(revision!==stateRevision)queueCloudStateSave();
   }
  }catch(error){
-  if(currentUser&&currentUser.id===id)cloudSyncUserId=null;console.warn('Gymplified cloud progress could not be loaded:',error.message||error);
+  if(currentUser&&currentUser.id===id)cloudSyncUserId=null;console.warn('Gymplified cloud progress could not be loaded:',error.message||error);setSyncStatus(navigator.onLine===false?'offline':'error');
   if(!cloudSyncErrorShown){showToast('Could not sync your account yet. Your device data is preserved; try again when online.');cloudSyncErrorShown=true;}
  }finally{if(cloudSyncLoadingUserId===id)cloudSyncLoadingUserId=null;}
 }
@@ -333,11 +335,12 @@ function toggleQuickTheme() {
 }
 
 // --- NAVIGATION ---
-const MORE_SCREENS=['more','prs','deluxe','settings','account'];
+const MORE_SCREENS=['more','prs','progress','deluxe','settings','account'];
 function showScreen(screenId, btn) {
   if(!document.getElementById(screenId))screenId='dashboard';
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(screenId).classList.add('active');
+  if(staleScreens.has(screenId))renderScreen(screenId);
   // Highlight by screen, not by the clicked element, so code-driven navigation and the More menu stay in sync.
   document.querySelectorAll('nav button[data-screen]').forEach(b => b.classList.toggle('active', b.dataset.screen===screenId || (b.dataset.screen==='more' && MORE_SCREENS.includes(screenId))));
   markNav(); scrollTo(0,0); announceScreen(screenId,true); if(screenId==='friends')renderFriends(); if(screenId==='account')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
@@ -463,14 +466,21 @@ function renderNutrition() {
   }).join('');
 }
 
+// K1: per-screen renderers. Anything shown on more than one screen (dashboard, top bar, game panel) stays in renderAll.
+const SCREEN_RENDERERS={prs:()=>renderPRs(),training:()=>renderTrainingLog(),nutrition:()=>{renderNutrition();if(typeof renderSupplements==='function')renderSupplements();},settings:()=>{renderCustomExerciseList();if(typeof renderStorageStatus==='function')renderStorageStatus();},progress:()=>{if(typeof renderProgress==='function')renderProgress();}};
+const staleScreens=new Set();
+function activeScreenId(){const el=document.querySelector('.screen.active');return el&&el.id?el.id:'dashboard';}
+function renderScreen(id){if(!Object.prototype.hasOwnProperty.call(SCREEN_RENDERERS,id))return;staleScreens.delete(id);SCREEN_RENDERERS[id]();}
 function renderAll() {
   applySettings();
   renderDashboard();
-  renderPRs();
-  renderTrainingLog();
-  renderNutrition();
+  // K1: only the screen on show is rebuilt on every save. The others are marked stale and rebuilt when opened.
+  const visible=activeScreenId();
+  Object.keys(SCREEN_RENDERERS).forEach(id=>{if(id===visible)renderScreen(id);else staleScreens.add(id);});
+  if(visible!=='training')renderSessionChrome();
   renderExtras();
-  syncSettingsControls();renderBackupReminder();renderOnboarding();renderCustomExerciseList();
+  syncSettingsControls();renderBackupReminder();renderOnboarding();
+  if(typeof renderPlus==='function')renderPlus();
   if(typeof renderDeluxeUI==='function')renderDeluxeUI();
   if(typeof renderAccountChrome==='function')renderAccountChrome();
 
@@ -892,21 +902,21 @@ function sanitizeStateSnapshot(raw){
  const cleanSets=(source,count,weight,reps)=>{
   const a=list(source,50);
   if(!a.length){const n=Math.max(1,Math.min(20,Math.round(Number(count)||3)));return Array.from({length:n},(_,i)=>({id:'legacy-set-'+i,kg:safeStateNumber(weight,0,1000,0),reps:safeStateNumber(reps,1,1000,10),done:false}));}
-  return a.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-set-'+i),kg:safeStateNumber(x.kg,0,1000,0),reps:safeStateNumber(x.reps,0,1000,10),done:!!x.done,type:SET_TYPES.includes(x.type)?x.type:'normal',auto:!!x.auto&&!x.done,duration:safeStateNumber(x.duration,0,86400,0),distance:safeStateNumber(x.distance,0,1000,0),notes:safeStateText(x.notes,'',500),order:safeStateNumber(x.order,0,1000,i+1)}));
+  return a.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-set-'+i),kg:safeStateNumber(x.kg,0,1000,0),reps:safeStateNumber(x.reps,0,1000,10),done:!!x.done,type:SET_TYPES.includes(x.type)?x.type:'normal',auto:!!x.auto&&!x.done,duration:safeStateNumber(x.duration,0,86400,0),distance:safeStateNumber(x.distance,0,1000,0),notes:safeStateText(x.notes,'',500),order:safeStateNumber(x.order,0,1000,i+1),rpe:safeStateNumber(x.rpe,0,10,0)}));
  };
  const cleanPlanTarget=p=>p&&typeof p==='object'&&!Array.isArray(p)?{sets:Math.round(safeStateNumber(p.sets,1,20,3)),reps:Math.round(safeStateNumber(p.reps,1,100,8)),kg:safeStateNumber(p.kg,0,1000,0),name:safeStateText(p.name,'',50),day:safeStateText(p.day,'',30)}:null;
  const cleanPlanOutcome=p=>p&&typeof p==='object'&&!Array.isArray(p)?{planned:Math.round(safeStateNumber(p.planned,0,100,0)),completed:Math.round(safeStateNumber(p.completed,0,100,0)),name:safeStateText(p.name,'',50),day:safeStateText(p.day,'',30)}:null;
- const cleanWorkout=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const name=safeStateText(x.name||x.exercise,'Exercise',80);return{id:safeRecordId(x.id,'legacy-workout-'+i+'-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24)),name,muscle:safeStateText(x.muscle,'',40),day:safeStateDay(x.day,day),setList:cleanSets(x.setList,x.sets,x.weight,x.reps),xp:safeStateNumber(x.xp,0,1,0),plan:cleanPlanTarget(x.plan)};};
+ const cleanWorkout=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const name=safeStateText(x.name||x.exercise,'Exercise',80);return{id:safeRecordId(x.id,'legacy-workout-'+i+'-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24)),name,muscle:safeStateText(x.muscle,'',40),day:safeStateDay(x.day,day),setList:cleanSets(x.setList,x.sets,x.weight,x.reps),xp:safeStateNumber(x.xp,0,1,0),plan:cleanPlanTarget(x.plan),note:safeStateText(x.note,'',300),group:safeRecordId(x.group,'')};};
  const cleanFood=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const meals=['Breakfast','Lunch','Dinner','Snacks'];return{id:safeRecordId(x.id,'legacy-food-'+i),name:safeStateText(x.name,'Food',100),meal:meals.includes(x.meal)?x.meal:'Snacks',day:safeStateDay(x.day,day),grams:safeStateNumber(x.grams,0,10000,0),portion:safeStateText(x.portion,'',60),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),createdAt:safeStateNumber(x.createdAt,0,Number.MAX_SAFE_INTEGER,Date.now()),xp:safeStateNumber(x.xp,0,1,0)};};
  const cleanWater=(x,i,day)=>{if(typeof x==='number')return{id:'legacy-water-'+i,amount:safeStateNumber(x,0,10,0),day,createdAt:0};if(!x||typeof x!=='object'||Array.isArray(x))return null;return{id:safeRecordId(x.id,'legacy-water-'+i),amount:safeStateNumber(x.amount,0,10,0),day:safeStateDay(x.day,day),createdAt:safeStateNumber(x.createdAt,0,Number.MAX_SAFE_INTEGER,0)};};
  const cleanPrList=v=>list(v,100).filter(p=>p&&typeof p==='object'&&!Array.isArray(p)).map(p=>({name:safeStateText(p.name,'Exercise',80),kg:safeStateNumber(p.kg,0,1000,0),reps:safeStateNumber(p.reps,0,1000,0)}));
- const cleanSession=(x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const exercises=list(x.exercises,100).map((ex,j)=>{if(!ex||typeof ex!=='object'||Array.isArray(ex))return null;const sets=list(ex.sets,50).filter(s=>s&&typeof s==='object'&&!Array.isArray(s)).map((s,k)=>({id:safeRecordId(s.id,'legacy-sset-'+j+'-'+k),kg:safeStateNumber(s.kg??s.weight,0,1000,0),reps:safeStateNumber(s.reps,0,1000,0),type:SET_TYPES.includes(s.type)?s.type:'normal',duration:safeStateNumber(s.duration,0,86400,0),distance:safeStateNumber(s.distance,0,1000,0),notes:safeStateText(s.notes,'',500),order:safeStateNumber(s.order,0,1000,k+1)}));return{id:safeRecordId(ex.id,'legacy-sex-'+j),name:safeStateText(ex.name||ex.exercise,'Exercise',80),muscle:safeStateText(ex.muscle,'',40),notes:safeStateText(ex.notes,'',500),sets};}).filter(Boolean);const date=safeStateDay(x.date,today);return{id:safeRecordId(x.id,'legacy-session-'+i+'-'+date),date,name:safeStateText(x.name,'Workout',100),sourceWorkoutId:safeStateText(x.sourceWorkoutId,'',120),notes:safeStateText(x.notes,'',1000),startedAt:safeStateText(x.startedAt,'',40),finishedAt:safeStateText(x.finishedAt,'',40),mins:safeStateNumber(x.mins,0,1440,0),vol:safeStateNumber(x.vol,0,100000000,0),sets:safeStateNumber(x.sets,0,10000,0),reps:safeStateNumber(x.reps,0,100000,0),ex:safeStateNumber(x.ex,0,100,exercises.length),names:list(x.names,100).map(n=>safeStateText(n,'Exercise',80)),prs:cleanPrList(x.prs),xp:safeStateNumber(x.xp,0,100000,0),plan:cleanPlanOutcome(x.plan),exercises};};
+ const cleanSession=(x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const exercises=list(x.exercises,100).map((ex,j)=>{if(!ex||typeof ex!=='object'||Array.isArray(ex))return null;const sets=list(ex.sets,50).filter(s=>s&&typeof s==='object'&&!Array.isArray(s)).map((s,k)=>({id:safeRecordId(s.id,'legacy-sset-'+j+'-'+k),kg:safeStateNumber(s.kg??s.weight,0,1000,0),reps:safeStateNumber(s.reps,0,1000,0),type:SET_TYPES.includes(s.type)?s.type:'normal',duration:safeStateNumber(s.duration,0,86400,0),distance:safeStateNumber(s.distance,0,1000,0),notes:safeStateText(s.notes,'',500),order:safeStateNumber(s.order,0,1000,k+1),rpe:safeStateNumber(s.rpe,0,10,0)}));return{id:safeRecordId(ex.id,'legacy-sex-'+j),name:safeStateText(ex.name||ex.exercise,'Exercise',80),muscle:safeStateText(ex.muscle,'',40),notes:safeStateText(ex.notes,'',500),sets};}).filter(Boolean);const date=safeStateDay(x.date,today);return{id:safeRecordId(x.id,'legacy-session-'+i+'-'+date),date,name:safeStateText(x.name,'Workout',100),sourceWorkoutId:safeStateText(x.sourceWorkoutId,'',120),notes:safeStateText(x.notes,'',1000),startedAt:safeStateText(x.startedAt,'',40),finishedAt:safeStateText(x.finishedAt,'',40),mins:safeStateNumber(x.mins,0,1440,0),vol:safeStateNumber(x.vol,0,100000000,0),sets:safeStateNumber(x.sets,0,10000,0),reps:safeStateNumber(x.reps,0,100000,0),ex:safeStateNumber(x.ex,0,100,exercises.length),names:list(x.names,100).map(n=>safeStateText(n,'Exercise',80)),prs:cleanPrList(x.prs),xp:safeStateNumber(x.xp,0,100000,0),plan:cleanPlanOutcome(x.plan),exercises};};
  const workouts=list(raw.workouts,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean);
  const foods=list(raw.foods,5000).map((x,i)=>cleanFood(x,i,gameDay)).filter(Boolean);
  const prs=list(raw.prs,2000).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-pr-'+i),name:safeStateText(x.name,'Exercise',80),weight:safeStateNumber(x.weight,0,2000,0),reps:safeStateNumber(x.reps,1,1000,1),date:safeStateDay(x.date,today),xp:safeStateNumber(x.xp,0,1,0)}));
  const customEx=list(raw.customEx,500).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'custom-ex-'+i),name:safeStateText(x.name||x.title,'Custom exercise',80),eq:safeStateText(x.eq||x.equipment,'Other',40),pm:safeStateText(x.pm||x.muscle,'chest',40),sec:list(x.sec,12).map(v=>safeStateText(v,'',40)),type:['weights','bodyweight','timed'].includes(x.type)?x.type:'weights',custom:true}));
  const customFoods=list(raw.customFoods,500).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'custom-food-'+i),name:safeStateText(x.name,'Custom food',80),cal:safeStateNumber(x.cal,0,1000,0),protein:safeStateNumber(x.protein,0,100,0),carbs:safeStateNumber(x.carbs,0,100,0),fat:safeStateNumber(x.fat,0,100,0),kind:x.kind==='recipe'?'recipe':'food',barcode:/^\d{8,14}$/.test(String(x.barcode||''))?String(x.barcode):'',servingG:safeStateNumber(x.servingG,0,3000,0),servingLabel:safeStateText(x.servingLabel,'',40)}));
- const routines=list(raw.routines,100).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-routine-'+i),name:safeStateText(x.name,'Saved routine',80),createdAt:safeStateText(x.createdAt,'',40),exercises:list(x.exercises,100).filter(w=>w&&typeof w==='object'&&!Array.isArray(w)).map((w,j)=>({id:safeRecordId(w.id,'routine-ex-'+i+'-'+j),name:safeStateText(w.name||w.exercise,'Exercise',80),muscle:safeStateText(w.muscle,'',40),setList:cleanSets(w.setList,w.sets,w.weight,w.reps)}))}));
+ const routines=list(raw.routines,100).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-routine-'+i),name:safeStateText(x.name,'Saved routine',80),tag:safeStateText(x.tag,'',24),createdAt:safeStateText(x.createdAt,'',40),exercises:list(x.exercises,100).filter(w=>w&&typeof w==='object'&&!Array.isArray(w)).map((w,j)=>({id:safeRecordId(w.id,'routine-ex-'+i+'-'+j),name:safeStateText(w.name||w.exercise,'Exercise',80),muscle:safeStateText(w.muscle,'',40),group:safeRecordId(w.group,''),setList:cleanSets(w.setList,w.sets,w.weight,w.reps)}))}));
  const rawWater=list(raw.waterEntries,10000),legacyWater=list(raw.waterLog,10000);
  const waterEntries=(rawWater.length?rawWater:legacyWater).map((x,i)=>cleanWater(x,i,gameDay)).filter(Boolean);
  if(!waterEntries.length&&safeStateNumber(raw.water,0,20,0)>0)waterEntries.push({id:'legacy-water-total-'+gameDay,amount:safeStateNumber(raw.water,0,20,0),day:gameDay,createdAt:0});
@@ -918,7 +928,7 @@ function sanitizeStateSnapshot(raw){
  // Quest claims are date-stamped (d_YYYY-MM-DD_id / w_YYYY-MM-DD_id). Old ones are dropped before the size cap so current claims always survive.
  const claimCutoff=(()=>{const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-8);return dayKey(d);})();
  if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).filter(k=>{const m=/^[dw]_(\d{4}-\d{2}-\d{2})_/.exec(k);return !m||m[1]>=claimCutoff;}).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
- const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,5000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:[...new Set(list(raw.presets,10).map(x=>Math.round(safeStateNumber(x,1,WATER_ENTRY_MAX_ML,250))).filter(x=>x>0))].slice(0,WATER_PRESET_MAX),lastWaterMl:Math.round(safeStateNumber(raw.lastWaterMl,0,WATER_ENTRY_MAX_ML,0)),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,WATER_GOAL_MIN_L,WATER_GOAL_MAX_L,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now()),xpStart:safeStateNumber(raw.session.xpStart,0,1000000000,safeStateNumber(rawGame.xp,0,1000000000,0))}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{id:safeStateText(raw.lastSummary.id,'',120),plan:cleanPlanOutcome(raw.lastSummary.plan),prs:cleanPrList(raw.lastSummary.prs),muscles:list(raw.lastSummary.muscles,20).map(n=>safeStateText(n,'',40)).filter(Boolean),xp:safeStateNumber(raw.lastSummary.xp,0,100000,0),date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),grams:safeStateNumber(x.grams,0,10000,0),portion:safeStateText(x.portion,'',60)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,accountOwnerId:safeStateText(raw.accountOwnerId,'',80),resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
+ const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,5000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:[...new Set(list(raw.presets,10).map(x=>Math.round(safeStateNumber(x,1,WATER_ENTRY_MAX_ML,250))).filter(x=>x>0))].slice(0,WATER_PRESET_MAX),lastWaterMl:Math.round(safeStateNumber(raw.lastWaterMl,0,WATER_ENTRY_MAX_ML,0)),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,WATER_GOAL_MIN_L,WATER_GOAL_MAX_L,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now()),xpStart:safeStateNumber(raw.session.xpStart,0,1000000000,safeStateNumber(rawGame.xp,0,1000000000,0)),note:safeStateText(raw.session.note,'',1000)}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{id:safeStateText(raw.lastSummary.id,'',120),plan:cleanPlanOutcome(raw.lastSummary.plan),prs:cleanPrList(raw.lastSummary.prs),muscles:list(raw.lastSummary.muscles,20).map(n=>safeStateText(n,'',40)).filter(Boolean),xp:safeStateNumber(raw.lastSummary.xp,0,100000,0),date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),grams:safeStateNumber(x.grams,0,10000,0),portion:safeStateText(x.portion,'',60)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,accountOwnerId:safeStateText(raw.accountOwnerId,'',80),resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
  // Favourite exercises are an id -> 0/1 map (not an array) so un-favouriting survives the server-side merge.
  state.exFav={};
  if(raw.exFav&&typeof raw.exFav==='object'&&!Array.isArray(raw.exFav))Object.keys(raw.exFav).filter(k=>/^[A-Za-z0-9_-]{1,120}$/.test(k)).slice(0,400).forEach(k=>{state.exFav[k]=raw.exFav[k]?1:0;});
@@ -956,6 +966,12 @@ function sanitizeStateSnapshot(raw){
  if(['km','mi'].includes(settings.distanceUnit))state.settings.distanceUnit=settings.distanceUnit;
  if(['cm','ftin'].includes(settings.heightUnit))state.settings.heightUnit=settings.heightUnit;
  if(['mon','sun'].includes(settings.weekStart))state.settings.weekStart=settings.weekStart;
+ // Release 13: optional RPE column, overload hints, plate calculator gear, and body/supplement logs (cleaned by GymLib).
+ if(typeof settings.showRpe==='boolean')state.settings.showRpe=settings.showRpe;
+ if(typeof settings.overload==='boolean')state.settings.overload=settings.overload;
+ if(settings.overloadReps!=null)state.settings.overloadReps=Math.round(safeStateNumber(settings.overloadReps,3,30,8));
+ state.settings.gear=GymLib.sanitizeGear(settings.gear);
+ state.extras=GymLib.sanitizeExtras(raw.extras);
  const rawProfile=raw.profile&&typeof raw.profile==='object'&&!Array.isArray(raw.profile)?raw.profile:{};
  const profileRange=(value,min,max)=>{const n=Number(value);return Number.isFinite(n)&&n>=min&&n<=max?n:0;};
  state.profile={heightCm:profileRange(rawProfile.heightCm,50,260),weightKg:profileRange(rawProfile.weightKg,20,400),age:Math.round(profileRange(rawProfile.age,13,100)),sex:['male','female'].includes(rawProfile.sex)?rawProfile.sex:'',goal:['cut','maintain','bulk'].includes(rawProfile.goal)?rawProfile.goal:'',activity:['sedentary','light','moderate','active','very'].includes(rawProfile.activity)?rawProfile.activity:''};
@@ -1269,6 +1285,7 @@ function weeklyRecapMarkup(){
 }
 function renderRoutineLibrary(){
  const host=$('routineLibrary');if(!host)return;
+ if(typeof renderRoutinesPlus==='function')return renderRoutinesPlus(host);
  state.routines=(Array.isArray(state.routines)?state.routines:[]).filter(r=>r&&typeof r==='object').map((r,i)=>({id:String(r.id||'legacy-routine-'+i),name:String(r.name||'Saved routine'),exercises:Array.isArray(r.exercises)?r.exercises:[]}));
  const routines=state.routines;
  host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="st-49 btn" data-action="loadSavedRoutine" data-i="'+i+'">Load</button> <button class="st-50 btn btn-icon-only" aria-label="Delete '+esc(r.name)+'" data-action="deleteSavedRoutine" data-i="'+i+'">×</button></span>').join('')+'</div>':'<p class="st-12 sub">Save your favourite workout combinations here so you can reuse them anytime.</p>';
@@ -1278,14 +1295,14 @@ function saveCurrentRoutine(){
  if(!canSaveRoutine())return showToast('Free accounts keep up to '+FREE_ROUTINE_LIMIT+' saved routines. Delete one, or unlock Deluxe for unlimited routines.');
  const suggested='Routine '+((state.routines||[]).length+1),name=(prompt('Name this workout routine',suggested)||'').trim().slice(0,40);if(!name)return;
  state.routines=Array.isArray(state.routines)?state.routines:[];
- const exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,done:false}))}));
+ const exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,group:w.group||'',setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,type:setTypeOf(x),done:false}))}));
  state.routines.unshift({id:newRecordId('routine'),name,exercises:exercises.map(ex=>Object.assign({},ex,{id:newRecordId('routine-ex'),setList:ex.setList.map(set=>Object.assign({id:newRecordId('routine-set')},set))})),createdAt:new Date().toISOString()});state.routines=state.routines.slice(0,deluxeEnabled()?100:30);saveState();showToast('Routine saved');
 }
 function loadSavedRoutine(index){
  const routine=(state.routines||[])[index];if(!routine)return;
  if(state.workouts.length&&!confirm('Replace your current workout with "'+routine.name+'"?'))return;
  (state.workouts||[]).forEach(x=>markRecordDeleted('workouts',x));
- state.workouts=routine.exercises.map(w=>syncW({name:w.name,muscle:w.muscle,setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,done:false}))}));
+ state.workouts=routine.exercises.map(w=>syncW({name:w.name,muscle:w.muscle,group:w.group||'',setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,type:setTypeOf(x),done:false}))}));GymLib.normaliseGroups(state.workouts);
  saveState();showToast(routine.name+' loaded');
 }
 function deleteSavedRoutine(index){const routine=(state.routines||[])[index];if(!routine)return;markRecordDeleted('routines',routine);state.routines.splice(index,1);saveState();offerUndo('Routine "'+routine.name+'" deleted',()=>insertAt(state.routines,index,[freshCopy('routines',routine)]));}
@@ -1429,7 +1446,8 @@ function ensureSets(w){
    reps:Number.isFinite(Number(x.reps))?Math.max(1,Math.min(1000,Math.round(Number(x.reps)))):10,
    done:!!x.done,
    type:SET_TYPES.includes(x.type)?x.type:'normal',
-   auto:!!x.auto&&!x.done
+   auto:!!x.auto&&!x.done,
+   rpe:Number(x.rpe)>=1&&Number(x.rpe)<=10?Number(x.rpe):0
   }));
   if(!w.setList.length)w.setList=[{kg:0,reps:10,done:false}];
  }
@@ -1450,13 +1468,13 @@ function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names
   if(!st){if(confirm('No sets are ticked off yet. End without saving?')){state.session=null;saveState();}return;}
   if((state.sessions||[]).length>=5000){showToast('Your workout history has reached 5,000 sessions. Export a backup before logging another completed workout.');return;}
   const finishedAt=Date.now(),startedAt=Number(state.session.start)||finishedAt;
-  const sum={id:newRecordId('session'),date:dayKey(new Date(startedAt)),name:'Workout',startedAt:new Date(startedAt).toISOString(),finishedAt:new Date(finishedAt).toISOString(),mins:Math.max(1,Math.round((finishedAt-startedAt)/6e4)),vol:Math.round(v*10)/10,sets:st,reps:r,ex,names};
-  sum.exercises=state.workouts.map(w=>({id:newRecordId('session-ex'),name:w.name,muscle:w.muscle,sets:w.setList.filter(x=>x.done).map(x=>({id:newRecordId('session-set'),kg:Number(x.kg)||0,reps:Number(x.reps)||0,type:setTypeOf(x),duration:Number(x.duration)||0,distance:Number(x.distance)||0,notes:String(x.notes||''),order:Number(x.order)||0}))})).filter(x=>x.sets.length);
+  const sum={id:newRecordId('session'),date:dayKey(new Date(startedAt)),name:'Workout',startedAt:new Date(startedAt).toISOString(),finishedAt:new Date(finishedAt).toISOString(),mins:Math.max(1,Math.round((finishedAt-startedAt)/6e4)),vol:Math.round(v*10)/10,sets:st,reps:r,ex,names,notes:safeStateText(state.session.note,'',1000)};
+  sum.exercises=state.workouts.map(w=>({id:newRecordId('session-ex'),name:w.name,muscle:w.muscle,notes:safeStateText(w.note,'',300),sets:w.setList.filter(x=>x.done).map(x=>({id:newRecordId('session-set'),kg:Number(x.kg)||0,reps:Number(x.reps)||0,type:setTypeOf(x),duration:Number(x.duration)||0,distance:Number(x.distance)||0,notes:String(x.notes||''),order:Number(x.order)||0,rpe:Number(x.rpe)||0}))})).filter(x=>x.sets.length);
   // PRs are judged against history before this session is added to it.
   sum.prs=detectSessionPRs(sum.exercises);sum.plan=planOutcome(state.workouts);sum.muscles=[...new Set(sum.exercises.map(e=>String(e.muscle||'').trim().toLowerCase()).filter(Boolean))];sum.xp=0;
   const xpStart=Number.isFinite(Number(state.session.xpStart))?Number(state.session.xpStart):Number(state.game.xp)||0;
   sum.prs.forEach(pr=>state.prs.push({id:newRecordId('pr'),name:pr.name,weight:pr.kg,reps:pr.reps,date:sum.date}));
-  state.sessions.unshift(sum);state.lastSummary=sum;state.session=null;state.lastSession=state.workouts.map(w=>Object.assign({},w,{done:false,xp:0,setList:w.setList.map(x=>Object.assign({},x,{done:false}))}));state.workouts.forEach(w=>{w.done=false;(w.setList||[]).forEach(x=>{x.done=false;});});
+  state.sessions.unshift(sum);state.lastSummary=sum;state.session=null;state.lastSession=state.workouts.map(w=>Object.assign({},w,{done:false,xp:0,setList:w.setList.map(x=>Object.assign({},x,{done:false}))}));state.workouts.forEach(w=>{w.done=false;w.note='';(w.setList||[]).forEach(x=>{x.done=false;x.rpe=0;});});
   if(xpAllowance('session'))gainXP(40,'Workout complete');if(weekInfo().n===state.weeklyGoal)gainXP(50,'Weekly goal hit! 🗓');
   rewards();sum.xp=Math.max(0,(Number(state.game.xp)||0)-xpStart);stopRest();confetti();saveState();showSessionSummary();scheduleCelebration();}
 function editHistoryTime(index,value){const session=state.sessions[index];if(!session||!value)return;const timestamp=new Date(value).getTime();if(!Number.isFinite(timestamp)){showToast('Enter a valid workout date and time');return;}session.startedAt=new Date(timestamp).toISOString();session.date=dayKey(new Date(timestamp));if(session.finishedAt){const elapsed=Math.max(1,Math.round((new Date(session.finishedAt).getTime()-timestamp)/60000));session.mins=elapsed;}saveState();showToast('Workout date and time updated');}
@@ -1471,7 +1489,7 @@ function setVal(i,j,k,v,el){const w=state.workouts[i],x=w&&w.setList[j];if(!x)re
 let justTicked=null;
 const EXERCISE_DONE_LINES=['Exercise done. Great work! 💪','That’s a wrap on that one. Nice!','All sets done. Strong work!','Nailed it. On to the next!'];
 function toggleSet(i,j){const w=state.workouts[i],x=w&&w.setList[j];if(!x)return;x.done=!x.done;justTicked=x.done?{i,j,at:Date.now()}:null;if(x.done){x.auto=false;state.lastKg[w.name]=x.kg;}syncW(w);flushDraftSave();saveState();
- if(x.done){try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}const r=restFor(w.name);if(r>0)startRest(r);if(w.setList.every(s=>s.done))showToast(pickLine(EXERCISE_DONE_LINES,(state.sessions||[]).length+i));}}
+ if(x.done){try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}const r=restFor(w.name);if(r>0&&GymLib.restDueAfterSet(state.workouts,i))startRest(r);else if(r>0)showToast('Superset: go straight to '+state.workouts[i+1].name);if(w.setList.every(s=>s.done))showToast(pickLine(EXERCISE_DONE_LINES,(state.sessions||[]).length+i));}}
 function addSet(i){const w=state.workouts[i];if(!w)return;if(w.setList.length>=50)return showToast('An exercise can have up to 50 sets');const l=w.setList[w.setList.length-1]||{kg:0,reps:10};const type=setTypeOf(l);w.setList.push({kg:l.kg,reps:l.reps,type:type==='warmup'?'normal':type,done:false,auto:true});syncW(w);refreshTraining();}
 function removeSet(i,j){const w=state.workouts[i];if(!w)return;if(w.setList.length<=1)return showToast('Keep one set, or remove the exercise');const removed=w.setList.splice(j,1)[0];syncW(w);flushDraftSave();saveState();
  // Sets live inside their exercise (no separate tombstone), so undo puts the same set back while the exercise still exists.
@@ -1588,7 +1606,7 @@ function renderTrainingLog(){
  state.workouts=state.workouts.filter(w=>w&&typeof w==='object').map(w=>ensureSets(w));
  if(!Array.isArray(state.sessions))state.sessions=[];
  renderRoutineLibrary();const wi=weekInfo(),sb=$('sessBar');
-  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="st-52 sub">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" data-change="editSessionStart" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" data-action="endSession">■ Finish workout</button><button class="btn" data-action="cancelSession">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" data-action="startSession">▶ Start workout</button><label class="st-52 sub">Set start date & time <input id="plannedSessionStart" type="datetime-local" value="'+localDateTimeValue(Date.now())+'" aria-label="Choose workout start date and time"></label><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
+  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="st-52 sub">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" data-change="editSessionStart" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" data-action="endSession">■ Finish workout</button><button class="btn" data-action="cancelSession">Cancel</button></div>'+(typeof sessionNoteMarkup==='function'?sessionNoteMarkup():''):'<div class="row-wrap"><button class="btn btn-primary" data-action="startSession">▶ Start workout</button><label class="st-52 sub">Set start date & time <input id="plannedSessionStart" type="datetime-local" value="'+localDateTimeValue(Date.now())+'" aria-label="Choose workout start date and time"></label><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
   $('liveStats').innerHTML=liveStatsMarkup();
   const listHost=$('trainingLogList'),focused=document.activeElement&&listHost.contains(document.activeElement)?document.activeElement:null;
   const focusKey=focused&&focused.dataset.i!==undefined?(focused.dataset.setAction?'[data-set-action="'+focused.dataset.setAction+'"]':focused.dataset.setField?'[data-set-field="'+focused.dataset.setField+'"]':focused.dataset.exCardAction?'[data-ex-card-action="'+focused.dataset.exCardAction+'"]':'')+'[data-i="'+focused.dataset.i+'"]'+(focused.dataset.j!==undefined?'[data-j="'+focused.dataset.j+'"]':''):'';
@@ -1596,7 +1614,7 @@ function renderTrainingLog(){
   if(focusKey&&focusKey[0]==='['&&!focusKey.startsWith('[data-i')){const again=listHost.querySelector(focusKey);if(again)again.focus({preventScroll:true});}
   $('sessionSummary').innerHTML=sessionSummaryMarkup();
   syncRestSettingsUI();renderSessionChrome();
-  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="st-53 history-session"><summary class="st-54"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+fmtVolume(x.vol||0)+' · '+(x.sets||0)+' sets</span></summary><div class="st-3"><div class="st-55 row-wrap"><label class="st-52 sub">Workout date & start time<input type="datetime-local" value="'+localDateTimeValue(x.startedAt?new Date(x.startedAt).getTime():new Date((x.date||dayKey())+'T12:00').getTime())+'" data-change="editHistoryTime" data-i="'+i+'"></label><label class="st-52 sub">Duration (minutes)<input type="number" min="1" max="1440" value="'+(x.mins||1)+'" data-change="editHistoryDuration" data-i="'+i+'"></label></div>'+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div class="st-56"><div class="st-57"><strong>'+esc(ex.name)+'</strong><button class="btn" data-action="viewExerciseHistoryForSession" data-i="'+i+'" data-j="'+exIndex+'">Exercise history</button></div><div class="st-58 sub">'+(ex.sets||[]).map(sessionSetSummary).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Your finished workouts will collect here. Every one is a step forward.</p>';}
+  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="st-53 history-session"><summary class="st-54"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+fmtVolume(x.vol||0)+' · '+(x.sets||0)+' sets</span></summary><div class="st-3"><div class="st-55 row-wrap"><label class="st-52 sub">Workout date & start time<input type="datetime-local" value="'+localDateTimeValue(x.startedAt?new Date(x.startedAt).getTime():new Date((x.date||dayKey())+'T12:00').getTime())+'" data-change="editHistoryTime" data-i="'+i+'"></label><label class="st-52 sub">Duration (minutes)<input type="number" min="1" max="1440" value="'+(x.mins||1)+'" data-change="editHistoryDuration" data-i="'+i+'"></label></div>'+(typeof historyToolsMarkup==='function'?historyToolsMarkup(x,i):'')+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div class="st-56"><div class="st-57"><strong>'+esc(ex.name)+'</strong><button class="btn" data-action="viewExerciseHistoryForSession" data-i="'+i+'" data-j="'+exIndex+'">Exercise history</button></div><div class="st-58 sub">'+(ex.sets||[]).map(sessionSetSummary).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Your finished workouts will collect here. Every one is a step forward.</p>';}
 
 // ===== Batch 2: workout flow (rest timer, prefill, set types, recovery, search, hero, summary) =====
 function setCountsForVolume(x){return !!(x&&x.done&&x.type!=='warmup');}
@@ -1738,16 +1756,17 @@ function setRowMarkup(w,i,j,x){
   '<input type="number" inputmode="decimal" min="0" step="0.5" value="'+(auto?'':shown)+'" placeholder="'+(auto&&shown>0?shown:weightUnit())+'" data-set-field="kg"'+at+' aria-label="'+esc(w.name)+' set '+n+' weight in '+weightUnitName()+hint+'">'+
   '<input type="number" inputmode="numeric" min="1" step="1" value="'+(auto?'':Number(x.reps))+'" placeholder="'+(auto?Number(x.reps):'reps')+'" data-set-field="reps"'+at+' aria-label="'+esc(w.name)+' set '+n+' reps'+hint+'">'+
   '<button type="button" class="check-btn '+(x.done?'done':'')+(x.done&&justTicked&&justTicked.i===i&&justTicked.j===j&&Date.now()-justTicked.at<1500?' just-done':'')+'" data-set-action="done"'+at+' aria-pressed="'+!!x.done+'" aria-label="Set '+n+' done'+(auto?' — accept suggested values':'')+'">'+(x.done?'✓':'')+'</button>'+
-  '<button type="button" class="btn btn-icon-only" data-set-action="remove"'+at+' aria-label="Remove set '+n+'">−</button>'+setEstimateMarkup(i,j,x)+setStepsMarkup(i,j,n)+'</div>';
+  '<button type="button" class="btn btn-icon-only" data-set-action="remove"'+at+' aria-label="Remove set '+n+'">−</button>'+setEstimateMarkup(i,j,x)+(typeof setRowExtras==='function'?setRowExtras(w,i,j,x,n):'')+setStepsMarkup(i,j,n)+'</div>';
 }
 function exerciseCardMarkup(w,i){
  const previous=previousExercisePerformance(w.name),best=previous?bestPreviousSet(previous.sets.filter(s=>setTypeOf(s)!=='warmup')):null;
  const lastLine=previous?'Last time · '+esc(previous.date)+': '+previous.sets.slice(0,8).map(s=>{const t=setTypeOf(s);return (t!=='normal'?SET_TYPE_INFO[t].short+' ':'')+esc(fmtWeight(s.kg,2))+' × '+esc(Number(s.reps));}).join(', ')+(best?' · best '+format1RM(best.kg,best.reps)+' e1RM':''):'No previous performance yet. Estimated 1RM updates as you enter weight and reps.';
  const pending=w.setList.some(x=>x.auto&&!x.done);
- return '<div class="st-14 panel"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="st-7 btn btn-icon-only" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
+ return '<div class="st-14 panel ex-card'+(w.group?' in-superset':'')+'">'+(typeof supersetLabelMarkup==='function'?supersetLabelMarkup(w,i):'')+'<div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="st-7 btn btn-icon-only" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
   '<div class="setrow sub" aria-hidden="true"><span>Set</span><span>'+weightUnit()+'</span><span>Reps</span><span>Done</span><span></span></div>'+
   planLineMarkup(w)+w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
   '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+exerciseRestMarkup(w,i)+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
+  (typeof exerciseCardExtras==='function'?exerciseCardExtras(w,i):'')+
   '<div class="st-59 sub">Volume: <span id="exVolume-'+i+'">'+volumeNumber(vol(w))+'</span> '+weightUnit()+' <span class="sub">· warm-up sets (W) are not counted</span></div></div>';
 }
 function liveStatsMarkup(){const t=sessionTotals();return t.exercises?'<div class="stat-row"><div class="stat"><b>'+volumeNumber(t.volume)+'</b><span>'+weightUnit()+' volume</span></div><div class="stat"><b>'+t.setsDone+'/'+t.setsTotal+'</b><span>sets done</span></div><div class="stat"><b>'+t.reps+'</b><span>reps done</span></div><div class="stat"><b>'+t.exercises+'</b><span>exercises</span></div></div>':'';}
@@ -2683,7 +2702,7 @@ function initNutritionControls(){
 }
 
 // ===== Batch 7: accessibility =====
-const SCREEN_TITLES={dashboard:'Dashboard',prs:'Personal Records',training:'Training Log',nutrition:'Nutrition',friends:'Friends',deluxe:'Deluxe',settings:'Settings',account:'Account',more:'More'};
+const SCREEN_TITLES={dashboard:'Dashboard',prs:'Personal Records',training:'Training Log',nutrition:'Nutrition',friends:'Friends',deluxe:'Deluxe',settings:'Settings',account:'Account',more:'More',progress:'Progress'};
 // I6: a screen change updates the page title and moves focus to the screen's heading, so screen
 // readers announce where the user landed and keyboard users start at the top of the new screen.
 function announceScreen(id,moveFocus){
@@ -3262,11 +3281,11 @@ function installGymplified(){
 }
 window.addEventListener('beforeinstallprompt',function(event){event.preventDefault();deferredInstallPrompt=event;updateInstallUI();});
 window.addEventListener('appinstalled',function(){deferredInstallPrompt=null;closeInstallHelp();updateInstallUI();showToast('Gymplified installed');});
-window.addEventListener('online',function(){showToast('You are back online');if(sb&&currentUser)queueCloudStateSave();});
-window.addEventListener('offline',function(){showToast('Offline mode · your on-device logs still work');});
+window.addEventListener('online',function(){showToast('You are back online');if(typeof renderConnectivity==='function')renderConnectivity();if(sb&&currentUser){cloudSavePending=true;queueCloudStateSave();if(cloudSyncUserId!==currentUser.id)syncUserAppState();}});
+window.addEventListener('offline',function(){setSyncStatus('offline');if(typeof renderConnectivity==='function')renderConnectivity();});
 if('serviceWorker' in navigator){
  window.addEventListener('load',function(){
-  navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(function(reg){reg.update().catch(function(){});})
+  navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(function(reg){if(typeof watchForAppUpdate==='function')watchForAppUpdate(reg);reg.update().catch(function(){});})
    .catch(function(err){console.warn('Gymplified offline support unavailable:',err);});
  });
 }

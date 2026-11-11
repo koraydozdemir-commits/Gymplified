@@ -1,10 +1,14 @@
-const CACHE_NAME = 'gymplified-shell-v26';
-const SUPABASE_SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';
+const CACHE_NAME = 'gymplified-shell-v27';
+// K4: the Supabase SDK is self-hosted (pinned, from the npm package), so the app loads no third-party script.
+const SUPABASE_SDK = './sdk/supabase-2.57.4.js';
 const APP_SHELL = [
   './',
   './index.html',
   './app.css',
+  './lib.js',
   './app.js',
+  './plus.js',
+  SUPABASE_SDK,
   './analytics.js',
   './manifest.webmanifest',
   './gymplified-app-icon.jpg',
@@ -19,8 +23,8 @@ self.addEventListener('install', event => {
   event.waitUntil((async () => {
     const cache = await caches.open(CACHE_NAME);
     await cache.addAll(APP_SHELL);
-    try { await cache.add(SUPABASE_SDK); } catch (_) {}
-    await self.skipWaiting();
+    // K7: the first install takes over at once. An update waits until the user taps Refresh (see the message handler).
+    if (!self.registration.active) await self.skipWaiting();
   })());
 });
 
@@ -36,18 +40,6 @@ self.addEventListener('fetch', event => {
   const request = event.request;
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
-
-  if (url.href === SUPABASE_SDK) {
-    event.respondWith((async () => {
-      const cache = await caches.open(CACHE_NAME);
-      const cached = await cache.match(request);
-      if (cached) return cached;
-      const response = await fetch(request);
-      if (response && response.ok && response.type !== 'opaque') await cache.put(request, response.clone());
-      return response;
-    })());
-    return;
-  }
 
   if (url.origin !== self.location.origin) return;
 
@@ -76,7 +68,7 @@ self.addEventListener('fetch', event => {
   }
 
   // The app code and styles change with every release, so they follow index.html: network first, cache as the offline fallback.
-  if (/\/app\.(js|css)$/.test(url.pathname)) {
+  if (/\/(app|lib|plus)\.(js|css)$/.test(url.pathname)) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       try {
@@ -109,4 +101,9 @@ self.addEventListener('notificationclick', event => {
     for (const client of windows) { if ('focus' in client) return client.focus(); }
     if (self.clients.openWindow) return self.clients.openWindow('./');
   })());
+});
+
+// K7: the page asks a waiting update to take over when the user taps "Refresh now".
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });

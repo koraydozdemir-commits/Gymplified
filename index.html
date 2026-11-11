@@ -10,7 +10,7 @@
 <meta property="og:description" content="Track your workouts, personal records, nutrition and training progress with Gymplified.">
 <meta property="og:url" content="https://gymplified.com/">
 <meta property="og:site_name" content="Gymplified">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://ouwvujtsrnotnwtbvqhc.supabase.co; font-src 'self' data:; connect-src 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co wss://ouwvujtsrnotnwtbvqhc.supabase.co https://world.openfoodfacts.org; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co; script-src 'self'; style-src 'self'; img-src 'self' data: blob: https://ouwvujtsrnotnwtbvqhc.supabase.co; font-src 'self' data:; connect-src 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co wss://ouwvujtsrnotnwtbvqhc.supabase.co https://world.openfoodfacts.org; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#15120f">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -59,6 +59,10 @@
           <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           <span class="nav-text nav-long">Personal Records</span><span class="nav-text nav-short">Records</span>
         </button>
+        <button class="nav-extra" data-screen="progress" data-action="showScreen" data-arg="progress">
+          <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m7 15 4-5 3 3 5-7"/></svg>
+          <span class="nav-text nav-long">Progress</span><span class="nav-text nav-short">Progress</span>
+        </button>
         <button data-screen="training" data-action="showScreen" data-arg="training">
           <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M10 12h4"/></svg>
           <span class="nav-text nav-long">Training Log</span><span class="nav-text nav-short">Training</span>
@@ -97,6 +101,8 @@
         <div class="row-wrap"><button class="btn btn-primary" type="button" data-resume-action="resume">▶ Resume workout</button><button class="btn" type="button" data-resume-action="dismiss">Not now</button></div>
       </div>
       <!-- 1. DASHBOARD SCREEN -->
+      <div class="resume-banner status-banner" id="offlineBanner" role="status" hidden><div><strong>You’re offline</strong><p class="sub">Keep logging. Everything is saved on this device and syncs when you’re back online.</p></div></div>
+      <div class="resume-banner status-banner" id="updateBanner" role="status" hidden><div><strong>A new version is ready</strong><p class="sub">Refresh to get the latest fixes and features. Your data stays as it is.</p></div><div class="row-wrap"><button class="btn btn-primary" type="button" data-plus="applyUpdate">Refresh now</button><button class="btn" type="button" data-plus="dismissUpdate">Later</button></div></div>
       <section id="dashboard" class="screen active">
         <div class="eyebrow">Your day</div>
         <h1 class="greeting-title"><span id="dashGreetingTitle">Welcome to Gymplified</span> <span class="greeting-icon" id="dashGreetingIcon" aria-hidden="true">👋</span></h1>
@@ -121,6 +127,7 @@
         </div>
 
         <div class="st-1 panel" id="gamePanel" role="region" aria-label="Progress and streaks"></div>
+        <div class="st-1 panel" id="dashCalendar" role="region" aria-label="Training calendar" hidden></div>
         <div class="grid-2">
           <!-- Calorie Panel -->
           <div class="panel">
@@ -250,6 +257,7 @@
  <div class="panel"><div class="section-title">Add Exercise</div>
   <label class="sr" for="exSearch">Search exercises</label>
   <input type="search" id="exSearch" placeholder="Search exercises, machines, muscles…" data-input="renderPicker" autocomplete="off" class="st-9">
+  <p class="sub quick-add-hint" id="quickAddHint">Tip: type <kbd>bench 60x8x3</kbd> and press Enter to add an exercise with its sets.</p>
   <div class="st-10 row-wrap"><select id="exMuscle" data-change="renderPicker" aria-label="Filter by muscle"></select><select id="exEquip" data-change="renderPicker" aria-label="Filter by equipment"></select></div>
   <div id="exResults" class="ex-results" role="list"></div>
   <details id="customBox" class="st-11"><summary>Can't find it? Add a custom exercise</summary>
@@ -331,6 +339,7 @@
         <div class="st-15 panel nutrition-diary"><div class="section-title"><span>Today's food diary</span><div class="row-wrap"><span class="sub" id="foodEntryCount">0 items</span><button class="st-7 btn" data-action="clearFoodLogs">Clear day</button></div></div><div id="foodDiary"></div></div>
         <div class="st-15 panel" id="nutritionWeek"></div>
         <div class="st-15 panel" id="waterPanel"></div>
+        <div class="st-15 panel" id="supplementPanel" role="region" aria-label="Daily supplements"></div>
       </section>
 
       <section id="friends" class="screen">
@@ -348,7 +357,8 @@
           <label class="sr" for="friendSearch">Search usernames</label>
           <input type="search" id="friendSearch" placeholder="Search usernames…" data-input="searchFriends" autocomplete="off" class="st-9">
           <div id="searchOut" class="st-10"></div>
-          <div class="st-11 sub">Friend codes are gone. Search for someone's username and send them a request.</div>
+          <div class="st-11 sub">Search for someone's username and send them a request, or share your invite link.</div>
+          <div class="st-10 row-wrap" id="inviteRow" hidden><button class="btn" type="button" data-plus="shareInvite">🔗 Share my invite link</button><span class="sub" id="inviteStatus" role="status"></span></div>
         </div>
       </section>
 
@@ -357,6 +367,7 @@
         <div class="eyebrow">Your account</div><h1>Account</h1>
         <p class="subtitle" id="accountSubtitle">Sign in to back up your progress and use Gymplified on every device.</p>
         <div class="st-1 panel account-panel" id="friendStatus"></div>
+        <div class="st-1 panel" id="accountSecurity" role="region" aria-label="Sync and security" hidden></div>
         <div class="panel account-benefits" id="accountBenefits">
           <div class="section-title">Why create an account?</div>
           <ul class="account-benefit-list">
@@ -368,12 +379,26 @@
         </div>
       </section>
 
+      <!-- PROGRESS -->
+      <section id="progress" class="screen">
+        <div class="eyebrow">Your journey</div><h1>Progress</h1>
+        <p class="subtitle">How consistent you’ve been, what changed this month and how your body is responding.</p>
+        <div class="st-1 panel" id="progressCalendar" role="region" aria-label="Training calendar"></div>
+        <div class="st-1 panel" id="progressMonth" role="region" aria-label="Monthly report"></div>
+        <div class="grid-2">
+          <div class="panel" id="progressWeight" role="region" aria-label="Bodyweight"></div>
+          <div class="panel" id="progressRecovery" role="region" aria-label="Muscle recovery"></div>
+        </div>
+        <div class="st-1 panel" id="progressMeasures" role="region" aria-label="Body measurements"></div>
+      </section>
+
       <!-- MORE (phone navigation) -->
       <section id="more" class="screen">
         <div class="eyebrow">Menu</div><h1>More</h1>
         <div class="more-grid">
           <button class="more-tile" type="button" data-action="showScreen" data-arg="account"><span class="more-tile-icon" aria-hidden="true">👤</span><span><strong>Account</strong><small id="moreAccountHint">Sign in or create an account</small></span></button>
           <button class="more-tile" type="button" data-action="showScreen" data-arg="prs"><span class="more-tile-icon" aria-hidden="true">🏆</span><span><strong>Personal Records</strong><small>Your best lifts</small></span></button>
+          <button class="more-tile" type="button" data-action="showScreen" data-arg="progress"><span class="more-tile-icon" aria-hidden="true">📈</span><span><strong>Progress</strong><small>Calendar, monthly report, body and recovery</small></span></button>
           <button class="more-tile" type="button" data-action="showScreen" data-arg="deluxe"><span class="more-tile-icon" aria-hidden="true">✦</span><span><strong>Deluxe</strong><small>Planner, insights and extras</small></span></button>
           <button class="more-tile" type="button" data-action="showScreen" data-arg="settings"><span class="more-tile-icon" aria-hidden="true">⚙</span><span><strong>Settings</strong><small>Units, rest timer, appearance, data</small></span></button>
         </div>
@@ -502,6 +527,15 @@
  <label class="rest-check" for="keepAwakeToggle"><input type="checkbox" id="keepAwakeToggle"> Keep the screen on during a workout</label>
 </div>
         </div>
+        <div class="settings-group">
+          <h3>Set logging extras</h3>
+          <p>Optional tools on each exercise card. Turn off anything you don’t use.</p>
+          <div class="rest-settings rest-settings-flat">
+            <label class="rest-check" for="overloadToggle"><input type="checkbox" id="overloadToggle" data-plus-change="setOverload"> Suggest the next weight or reps from last time</label>
+            <label for="overloadRepsInput">Add weight once every set reaches <input type="number" id="overloadRepsInput" inputmode="numeric" min="3" max="30" step="1" data-plus-change="setOverloadReps"> reps</label>
+            <label class="rest-check" for="rpeToggle"><input type="checkbox" id="rpeToggle" data-plus-change="setShowRpe"> Show an effort rating (RPE 6–10) on each set</label>
+          </div>
+        </div>
         </section>
         <section class="settings-section" id="set-nutrition" aria-labelledby="set-nutrition-h">
           <h2 id="set-nutrition-h" tabindex="-1">Nutrition &amp; Water</h2>
@@ -547,6 +581,7 @@
           <h3>Backup</h3>
           <p>A backup is one file with everything: workouts, nutrition, records and settings. Without an account, your data lives only in this browser.</p>
           <p id="backupStatus" class="st-14 sub" role="status"></p>
+          <p id="storageStatus" class="st-14 sub" role="status"></p>
           <div class="row-wrap"><button class="btn btn-primary" type="button" data-settings-action="export-backup">⬇ Export backup</button><button class="btn" type="button" data-settings-action="import-backup">⬆ Import backup</button><input type="file" id="importFile" accept="application/json" hidden aria-label="Choose a Gymplified backup file"></div>
         </div>
         <div class="settings-group">
@@ -586,7 +621,7 @@
 </form><div class="st-34"></div><div class="section-title">Your support requests</div><div id="supportTicketList"><p class="sub">Sign in to see your support requests.</p></div><div id="supportConversation" class="st-3"></div></div>
         <div class="settings-group">
           <h3>Keyboard shortcuts</h3>
-          <p class="st-31">Press 1–6 to switch screens and W to add water.</p>
+          <p class="st-31">Press 1–6 to switch screens and W to add water. In the exercise search, type a lift like “squat 100x5x3” and press Enter.</p>
         </div>
         </section>
 
@@ -726,6 +761,10 @@
   <ul class="celebration-list" id="celebrationList"></ul>
   <div class="st-42 app-dialog-actions"><button class="btn btn-primary" id="celebrationClose" type="button" autofocus>Nice!</button></div>
 </dialog>
+<dialog id="plusDialog" class="app-dialog plus-dialog" aria-labelledby="plusDialogTitle">
+  <div class="sheet-head"><h2 id="plusDialogTitle" tabindex="-1">Tool</h2><button type="button" class="btn btn-icon-only" data-plus="closeDialog" aria-label="Close">✕</button></div>
+  <div id="plusDialogBody"></div>
+</dialog>
 <dialog id="deleteAccountDialog" class="app-dialog" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountDescription">
   <h2 id="deleteAccountTitle">Permanently delete your account?</h2>
   <p id="deleteAccountDescription">This removes your account, profile, synced progress, support requests and avatar. This cannot be undone. Type DELETE to confirm.</p>
@@ -756,8 +795,10 @@
   <div class="progress-bar rest-bar-progress" aria-hidden="true"><i id="restBarFill"></i></div>
   <div class="rest-bar-actions"><button class="btn" type="button" data-rest-action="minus" aria-label="Subtract 15 seconds of rest">−15s</button><button class="btn" type="button" data-rest-action="plus" aria-label="Add 15 seconds of rest">+15s</button><button class="btn" type="button" data-rest-action="skip" aria-label="Skip rest">Skip</button></div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js"></script>
+<script src="./sdk/supabase-2.57.4.js"></script>
+<script src="./lib.js"></script>
 <script src="./app.js"></script>
+<script src="./plus.js"></script>
 
 <script src="./analytics.js" defer></script>
 </body>

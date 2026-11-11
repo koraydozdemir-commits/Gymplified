@@ -4,7 +4,7 @@
 // Prints failures grouped by element and exits 1 if any are found.
 const { chromium } = require('playwright');
 const THEMES = ['dark', 'light'], ACCENTS = ['gold', 'blue', 'emerald', 'slate', 'crimson', 'amber', 'violet'], CONTRAST = ['normal', 'high'];
-const SCREENS = ['dashboard', 'prs', 'training', 'nutrition', 'friends', 'deluxe', 'settings'];
+const SCREENS = ['dashboard', 'prs', 'progress', 'training', 'nutrition', 'friends', 'deluxe', 'settings'];
 const base = process.env.GYMPLIFIED_URL || 'http://localhost:8765/index.html';
 (async () => {
   const browser = await chromium.launch();

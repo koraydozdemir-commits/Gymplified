@@ -225,7 +225,7 @@ test('JSON restore refuses histories above the explicit session limit', async ()
 // ---- Batch 1: fix-first (A1–A5, C2, I3, I4) ----
 const appScript = (html) => [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1]).join('\n');
 const count = (text, pattern) => (text.match(pattern) || []).length;
-const INLINE_HANDLER_BUDGET = 122;
+const INLINE_HANDLER_BUDGET = 118;
 // Pull named top-level function declarations out of the app script so pure helpers can be executed.
 function extractFunctions(source, names) {
   return names.map(name => {
@@ -369,7 +369,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 13);
+  assert.ok(version >= 14);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -494,4 +494,119 @@ test('B3/B5/B6/G1: prefill, crash recovery, header chip and dashboard hero are w
   assert.ok(block.length > 5000);
   assert.doesNotMatch(block, /\son[a-z]+=/, 'Batch 2 UI must use listeners, not inline handlers');
   assert.match(block, /behavior:reducedMotion\(\)\?'auto':'smooth'/);
+});
+
+// ---- Batch 3: units, week start, profile, onboarding, settings sections, backup reminders ----
+const UNIT_CONSTS = 'const KG_PER_LB=0.45359237,KM_PER_MI=1.609344,CM_PER_IN=2.54,BACKUP_REMINDER_DAYS=30;';
+
+test('C1/C3: weight, distance and height are converted for display only', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  const names = ['weightUnit', 'kgToDisplay', 'displayToKg', 'fmtWeight', 'volumeNumber', 'fmtVolume', 'distanceUnit', 'fmtDistance', 'heightUnit', 'cmToFeetInches', 'feetInchesToCm', 'fmtHeight', 'calculate1RM'];
+  const api = settings => new Function('state', UNIT_CONSTS + extractFunctions(js, names) + ';return {kgToDisplay,displayToKg,fmtWeight,fmtVolume,fmtDistance,fmtHeight,feetInchesToCm,calculate1RM};')({ settings });
+  const kg = api({}), lb = api({ weightUnit: 'lb', distanceUnit: 'mi', heightUnit: 'ftin' });
+  assert.equal(kg.fmtWeight(60), '60 kg');
+  assert.equal(kg.kgToDisplay(62.5, 2), 62.5);
+  assert.equal(lb.fmtWeight(100), '220.5 lb');
+  // a typed lb value survives storage in kg at 0.001 precision
+  for (const typed of [45, 135, 225, 315, 2.5, 182.5]) assert.equal(lb.kgToDisplay(Math.round(lb.displayToKg(typed) * 1000) / 1000, 2), typed);
+  assert.equal(lb.fmtWeight(lb.calculate1RM(Math.round(lb.displayToKg(135) * 1000) / 1000, 10)), '180 lb');
+  assert.equal(kg.fmtDistance(5), '5.00 km');
+  assert.equal(lb.fmtDistance(1.609344), '1.00 mi');
+  assert.equal(kg.fmtHeight(180), '180 cm');
+  assert.equal(lb.fmtHeight(180.34), '5 ft 11 in');
+  assert.ok(Math.abs(lb.feetInchesToCm(5, 11) - 180.34) < 0.001);
+  // no hard-coded kg left in rendered UI strings (canonical CSV backup and the importer keep kg)
+  const ui = js.split('\n').filter(line => !/Weight \(kg\)|weight kg|kgs\|kilogram|Rename the column|1,000 kg/.test(line)).join('\n');
+  assert.doesNotMatch(ui, /' kg\b|kg volume|\}kg\b| KG\b/);
+  assert.match(js, /Math\.round\(displayToKg\(n\)\*1000\)\/1000/);
+  assert.match(js, /\['kg','lb'\]\.includes\(settings\.weightUnit\)/);
+  assert.match(js, /\['km','mi'\]\.includes\(settings\.distanceUnit\)/);
+  assert.match(js, /\['cm','ftin'\]\.includes\(settings\.heightUnit\)/);
+  assert.equal(count(html, /data-weight-unit>/g), 2, 'PR form and Deluxe planner labels follow the weight unit (A9/H6)');
+});
+
+test('C4: week start day drives streak weeks, recap and weekly charts', async () => {
+  const js = appScript(await read('index.html'));
+  const api = settings => new Function('state', extractFunctions(js, ['weekStartsSunday', 'daysSinceWeekStart']) + ';return daysSinceWeekStart;')({ settings });
+  const wednesday = new Date(2026, 10, 11), sunday = new Date(2026, 10, 8), monday = new Date(2026, 10, 9);
+  assert.equal(api({})(wednesday), 2);
+  assert.equal(api({})(sunday), 6);
+  assert.equal(api({})(monday), 0);
+  assert.equal(api({ weekStart: 'sun' })(wednesday), 3);
+  assert.equal(api({ weekStart: 'sun' })(sunday), 0);
+  assert.doesNotMatch(js, /getDay\(\)\+6\)%7\)?;return dayKey/);
+  assert.equal(count(js, /daysSinceWeekStart\(/g) >= 5, true);
+  assert.match(js, /\['mon','sun'\]\.includes\(settings\.weekStart\)/);
+  assert.match(js, /x\.date>=startKey&&x\.date<=todayKey/);
+});
+
+test('C5: calorie suggestion is an optional estimate from the profile', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  const suggest = new Function(extractConst(js, 'ACTIVITY_LEVELS') + extractConst(js, 'GOAL_OPTIONS') + extractFunctions(js, ['suggestCalories']) + ';return suggestCalories;')();
+  const base = { weightKg: 80, heightCm: 180, age: 30, sex: 'male', activity: 'moderate', goal: 'maintain' };
+  // Mifflin-St Jeor: 10*80 + 6.25*180 - 5*30 + 5 = 1780; x1.55 = 2759 -> 2750
+  assert.equal(suggest(base), 2750);
+  assert.equal(suggest({ ...base, sex: 'female' }), 2500);
+  assert.ok(suggest({ ...base, goal: 'cut' }) < 2750 && suggest({ ...base, goal: 'bulk' }) > 2750);
+  assert.equal(suggest({ ...base, weightKg: 0 }), 0);
+  assert.equal(suggest({ ...base, activity: '' }), 0);
+  assert.equal(suggest({ weightKg: 20, heightCm: 50, age: 100, sex: 'female', activity: 'sedentary', goal: 'cut' }), 1200, 'never suggests below 1,200 kcal');
+  assert.match(js, /Estimate only/);
+  assert.match(js, /state\.profile=\{heightCm:profileRange\(rawProfile\.heightCm,50,260\)/);
+  assert.equal(count(js, /function saveProfile\(/g), 1, 'account saveProfile must not be shadowed');
+  assert.match(js, /function saveBodyProfile\(/);
+});
+
+test('C6/J2: onboarding is skippable and backup reminders follow the 30-day rule', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  assert.match(html, /id="onboardingPanel"[^>]*hidden/);
+  assert.match(js, /function onboardingNeeded\(\)\{return !state\.onboarded&&!hasLocalProgress\(state\);\}/);
+  assert.match(js, /data-onboarding-action="skip"/);
+  assert.match(js, /state\.onboarded=!!raw\.onboarded/);
+  const make = (sessions, store) => new Function('state', 'localStorage', UNIT_CONSTS + extractConst(js, 'BACKUP_AT_KEY').replace(/;$/, ';') + extractFunctions(js, ['readLocalNumber', 'lastBackupAt', 'backupAgeDays', 'backupReminderDue', 'backupStatusText']) + ';return {backupReminderDue,backupStatusText,backupAgeDays};')({ sessions }, { getItem: k => store[k] ?? null });
+  const now = Date.UTC(2026, 10, 11), day = 864e5, three = [{}, {}, {}];
+  assert.equal(make([], {}).backupReminderDue(now), false, 'no nag for a brand new user');
+  assert.equal(make(three, {}).backupReminderDue(now), true, 'history without any backup');
+  assert.equal(make(three, { gymplified_last_backup_at: String(now - 29 * day) }).backupReminderDue(now), false);
+  assert.equal(make(three, { gymplified_last_backup_at: String(now - 30 * day) }).backupReminderDue(now), true);
+  assert.equal(make(three, { gymplified_last_backup_at: String(now - 40 * day), gymplified_backup_snooze_until: String(now + day) }).backupReminderDue(now), false);
+  assert.match(js, /markBackupDone\(\);showToast\('Backup exported'\)/);
+  assert.match(html, /data-backup-action="export"/);
+});
+
+test('J1: settings are grouped into sections with jump links', async () => {
+  const html = await read('index.html');
+  const sections = ['appearance', 'accessibility', 'units', 'training', 'nutrition', 'notifications', 'privacy', 'data', 'account', 'help'];
+  let last = -1;
+  for (const key of sections) {
+    assert.match(html, new RegExp('<a href="#set-' + key + '" data-settings-jump="set-' + key + '">'));
+    const at = html.indexOf('<section class="settings-section" id="set-' + key + '"');
+    assert.ok(at > last, key + ' section exists in order');
+    last = at;
+    assert.match(html, new RegExp('<h2 id="set-' + key + '-h" tabindex="-1">'));
+  }
+  for (const id of ['themeSelect', 'scaleSelect', 'gSpacing', 'weightUnitSelect', 'distanceUnitSelect', 'heightUnitSelect', 'waterUnitSelect', 'weekStartSelect', 'gWeek', 'restAutoSelect', 'gCal', 'profilePanel', 'waterSettings', 'restNotifyToggle', 'privacyPreferences', 'importFile', 'gymplifiedCsvInput', 'supportPanel']) {
+    assert.equal(count(html, new RegExp('id="' + id + '"', 'g')), 1, id + ' appears exactly once');
+  }
+  const settings = html.slice(html.indexOf('<section id="settings"'), html.indexOf('<!-- GYMPLIFIED DELUXE -->'));
+  // every unit selector must be wired to a handler after the move into Units
+  for (const id of ['weightUnitSelect', 'distanceUnitSelect', 'heightUnitSelect', 'weekStartSelect']) assert.match(appScript(html), new RegExp(id + ":'"));
+  assert.match(appScript(html), /id==='waterUnitSelect'\)setWaterUnit\(e\.target\.value\)/);
+  assert.ok(settings.includes('id="restSettings"') && settings.includes('deleteGymplifiedAccount()') && settings.includes('resetAllData()'));
+  assert.match(appScript(html), /behavior:reducedMotion\(\)\?'auto':'smooth',block:'start'\}\);\n const heading=section\.querySelector\('h2'\)/);
+});
+
+test('page markup inside <main> has balanced container tags', async () => {
+  const html = await read('index.html');
+  const main = html.slice(html.indexOf('<main'), html.indexOf('</main>')).replace(/<style>[\s\S]*?<\/style>/g, '');
+  for (const tag of ['div', 'section', 'details', 'form', 'nav', 'label', 'select', 'button', 'article']) {
+    assert.equal(count(main, new RegExp('<' + tag + '\\b', 'g')), count(main, new RegExp('</' + tag + '>', 'g')), '<' + tag + '> open/close tags must match');
+  }
+  // every screen is a direct child of <main>, so one screen can never swallow the next
+  const screens = [...main.matchAll(/\n( *)<section id="([a-z]+)" class="screen/g)];
+  assert.equal(screens.length, 7);
+  assert.equal(new Set(screens.map(m => m[1].length)).size, 1);
 });

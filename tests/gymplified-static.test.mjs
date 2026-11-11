@@ -369,7 +369,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 17);
+  assert.ok(version >= 18);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -889,4 +889,132 @@ test('F8/F9: hydration nudge timing, water history and per-entry undo', async ()
   const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
   assert.match(css, /\.food-entry-actions button\{min-height:44px;/);
   assert.match(css, /html\[data-motion=reduced\] \.water-bar\{transition:none\}@media\(prefers-reduced-motion:reduce\)\{\.water-bar\{transition:none\}\}/);
+});
+
+// ---- Batch 7: accessibility and contrast (I1, I2, I5–I10) ----
+// Resolves the CSS custom properties for one theme x accent x contrast combination, following specificity
+// and source order for the simple `:root` / `html[...]` rules that define colour tokens.
+function colourTokens(css, theme, color, contrast) {
+  const attrs = { 'data-theme': theme, 'data-color': color, 'data-contrast': contrast };
+  const winners = {};
+  let order = 0;
+  for (const [, selectors, body] of css.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    for (const raw of selectors.split(',')) {
+      const sel = raw.trim().replace(/^@media[^{]*$/, '');
+      if (!/^(:root|html)(\[[^\]]+\]|:not\(\[[^\]]+\]\))*$/.test(sel)) continue;
+      let ok = true, spec = sel === ':root' ? 10 : 1;
+      for (const [, neg, key, val] of sel.matchAll(/(:not\()?\[([a-z-]+)=?"?([^"\]]*)"?\]\)?/g)) {
+        spec += 10;
+        const match = attrs[key] === val;
+        if (neg ? match : !match) ok = false;
+      }
+      if (!ok) continue;
+      order++;
+      for (const [, name, value] of body.matchAll(/(--[a-z-]+)\s*:\s*([^;]+)/g)) {
+        const prev = winners[name];
+        if (!prev || spec > prev.spec || (spec === prev.spec && order >= prev.order)) winners[name] = { value: value.trim(), spec, order };
+      }
+    }
+  }
+  const resolve = name => {
+    const v = winners[name] && winners[name].value;
+    if (!v) return null;
+    if (/^#[0-9a-f]{6}$/i.test(v)) return v.toLowerCase();
+    const mix = /^color-mix\(in srgb,var\((--[a-z-]+)\) (\d+)%,var\((--[a-z-]+)\)\)$/.exec(v);
+    if (mix) {
+      const a = resolve(mix[1]), b = resolve(mix[3]), share = Number(mix[2]) / 100;
+      const ch = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+      return '#' + ch(a).map((x, i) => Math.round(x * share + ch(b)[i] * (1 - share)).toString(16).padStart(2, '0')).join('');
+    }
+    return null;
+  };
+  return resolve;
+}
+
+test('I1: colour tokens meet WCAG AA in every theme, accent and contrast mode', async () => {
+  const html = await read('index.html');
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  const failures = [];
+  const check = (t, fg, bg, need, label) => {
+    const a = t(fg), b = t(bg);
+    assert.ok(a && b, label + ': could not resolve ' + fg + ' or ' + bg);
+    const r = contrast(a, b);
+    if (r + 0.005 < need) failures.push(label + ' ' + fg + ' ' + a + ' on ' + bg + ' ' + b + ' = ' + r.toFixed(2));
+  };
+  for (const theme of ['dark', 'light']) for (const color of ['gold', 'blue', 'emerald', 'slate', 'crimson', 'amber', 'violet']) for (const mode of ['normal', 'high']) {
+    const t = colourTokens(css, theme, color, mode), label = theme + '/' + color + '/' + mode;
+    for (const surface of ['--bg', '--panel', '--panel-hover', '--brand-light']) {
+      check(t, '--ink', surface, 4.5, label);
+      check(t, '--muted', surface, 4.5, label);
+      check(t, '--brand-text', surface, 4.5, label);
+    }
+    for (const surface of ['--bg', '--panel', '--panel-hover']) check(t, '--danger', surface, 4.5, label);
+    for (const surface of ['--bg', '--panel', '--brand-light']) check(t, '--success', surface, 4.5, label);
+    check(t, '--brand-ink', '--brand', 4.5, label + ' button text');
+    for (const surface of ['--bg', '--panel']) check(t, '--field-line', surface, 3, label + ' form field edge');
+    check(t, '--deluxe-text', '--panel', 4.5, label);
+    check(t, '--deluxe-line', '--panel', 3, label);
+    for (const surface of ['--bg', '--panel', '--panel-hover']) check(t, '--focus-ring', surface, 3, label + ' focus ring');
+  }
+  assert.deepEqual(failures, []);
+  // the resolver really sees the theme overrides
+  assert.equal(colourTokens(css, 'light', 'gold', 'normal')('--muted'), '#526072');
+  assert.equal(colourTokens(css, 'light', 'gold', 'high')('--muted'), '#334155');
+  assert.equal(colourTokens(css, 'dark', 'blue', 'normal')('--brand-text'), '#60a5fa');
+  assert.equal(colourTokens(css, 'light', 'blue', 'normal')('--brand-text'), '#1d4ed8');
+  assert.ok(await read('tests/browser/contrast-audit.cjs'), 'full-page browser audit ships with the repo');
+});
+
+test('I2: no hard-coded text or border colours outside the accent swatches and decorative gradients', async () => {
+  const html = await read('index.html');
+  const inline = [...html.matchAll(/style="([^"]*)"/g)].map(m => m[1]).filter(st => /#[0-9a-f]{3,6}\b/i.test(st));
+  for (const st of inline) assert.match(st, /^background: (#[0-9a-f]{6}|linear-gradient\([^)]*\));$/i, 'only accent swatches may use inline colours: ' + st);
+  const js = appScript(html);
+  assert.doesNotMatch(js, /\.style\.(color|borderColor|background)\s*=\s*[^;]*#[0-9a-f]{3,6}/i);
+  const deluxe = html.slice(html.indexOf('<section id="deluxe" class="screen">'));
+  assert.doesNotMatch(deluxe.slice(0, deluxe.indexOf('</style>')).replace(/linear-gradient\([^)]*\)/g, ''), /#b99342|#d6b15e/);
+  assert.match(html, /\.set-estimate\{color:var\(--brand-text\)!important\}/);
+});
+
+test('I5/I6/I7: landmarks, screen announcements, labelled widgets and dialogs', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  assert.match(html, /<a class="skip" href="#main">Skip to main content<\/a>/);
+  assert.match(html, /<main id="main" tabindex="-1">/);
+  assert.match(html, /<nav aria-label="Main">/);
+  assert.match(html, /<header class="topbar">/);
+  assert.match(js, /markNav\(\); scrollTo\(0,0\); announceScreen\(screenId,true\);/);
+  assert.match(js, /document\.title=\(SCREEN_TITLES\[id\]\|\|'Gymplified'\)\+' · Gymplified'/);
+  // every labelled non-interactive element has a role, so the label is announced
+  for (const [tag] of html.matchAll(/<(?:span|div|i|b|p|strong|small)\b[^>]*\baria-label=[^>]*>/g)) assert.match(tag, /\brole=/, 'aria-label without a role: ' + tag.slice(0, 100));
+  assert.match(js, /bar\('nutritionCalBar',state\.cal,state\.calTarget\|\|2500,'Calories eaten today'\)/);
+  assert.match(js, /bar\(key\+'Track',Number\(val\)\|\|0,target,label\+' towards target'\)/);
+  // the Deluxe preview is a native dialog again (its markup had been lost, so the buttons threw)
+  assert.match(html, /<dialog id="deluxeModal" class="app-dialog deluxe-dialog" aria-labelledby="deluxeModalTitle"/);
+  assert.match(js, /const dialog=\$\('deluxeModal'\);if\(dialog&&!dialog\.open\)dialog\.showModal\(\);/);
+  assert.doesNotMatch(js, /\$\('deluxeModal'\)\.classList/);
+  for (const [, tag] of html.matchAll(/(<dialog [^>]*>)/g)) assert.match(tag, /aria-labelledby="[^"]+"/, 'dialog without a name: ' + tag);
+  assert.match(js, /document\.addEventListener\('close',e=>\{\n if\(!\(e\.target instanceof HTMLDialogElement\)\)return;/, 'focus returns after any dialog closes');
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  assert.match(css, /\.app-dialog\{margin:auto;/, 'dialogs are centred despite the global margin reset');
+});
+
+test('I8/I9/I10: motion settings, non-colour cues and narrow-screen layout', async () => {
+  const html = await read('index.html');
+  const js = appScript(html);
+  const css = html.match(/<style>([\s\S]*?)<\/style>/)[1];
+  for (const [call] of js.matchAll(/scrollIntoView\(\{behavior:[^}]*\}\)/g)) assert.match(call, /behavior:(reducedMotion\(\)\?'auto':'smooth'|smooth)/, 'smooth scrolling must check the motion settings: ' + call);
+  assert.doesNotMatch(js, /behavior:'smooth'/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\*,\*::before,\*::after\{scroll-behavior:auto!important;animation-duration:\.01ms!important;transition-duration:\.01ms!important\}\}/);
+  assert.match(css, /html\[data-motion="reduced"\] \*, html\[data-motion="reduced"\] \*::before, html\[data-motion="reduced"\] \*::after \{\s*animation: none !important;\s*transition: none !important;/);
+  assert.match(css, /\.lb-tab\[aria-selected=true\]::before,\.range-btn\[aria-pressed=true\]::before\{content:"✓ "\}/);
+  assert.match(js, /\(hit\?'<span class="water-hit" aria-hidden="true">✓<\/span>':''\)/);
+  assert.match(js, /status\.textContent=enabled\?'✓ DEMO UNLOCKED':'PREVIEW MODE'/);
+  // bottom navigation: seven columns, short labels on phones (it was six, pushing Settings off-screen)
+  assert.doesNotMatch(css, /nav\{grid-template-columns:repeat\(6,/);
+  assert.match(css, / nav\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);gap:2px\}/);
+  assert.equal(count(html, /<span class="nav-text nav-long">/g), 7);
+  assert.equal(count(html, /<span class="nav-text nav-short">/g), 7);
+  assert.match(css, /@media\(max-width:480px\)\{\.top-label-long\{display:none\}\.top-label-short\{display:inline\}/);
+  assert.match(css, /\.pick-grid\{display:grid;grid-template-columns:minmax\(0,1\.2fr\) minmax\(0,\.8fr\)/);
 });

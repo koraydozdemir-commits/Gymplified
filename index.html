@@ -299,7 +299,7 @@ html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
   .grid-2 { grid-template-columns: 1fr; }
 }
 
-.skip{position:absolute;left:-999px;top:8px;background:var(--brand);color:var(--brand-ink);padding:8px 12px;border-radius:6px;z-index:999}.skip:focus{left:8px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--brand);color:var(--brand-ink);padding:8px 14px;min-height:44px;display:inline-flex;align-items:center;border-radius:6px;z-index:999}.skip:focus{left:8px}
 :focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .stat-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}.stat{flex:1;min-width:110px;background:var(--brand-light);border:1px solid var(--line);border-radius:var(--radius);padding:12px}.stat b{font:700 24px var(--font-heading);display:block}.stat span{font-size:calc(12px * var(--text-scale, 1));color:var(--muted)}
 .quest{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:calc(14px * var(--text-scale, 1))}.quest.ok{color:var(--success)}
@@ -309,7 +309,7 @@ html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
 .cf{position:fixed;top:-30px;font-size:calc(22px * var(--text-scale, 1));z-index:999;pointer-events:none;animation:fall 2s linear forwards}@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
 html[data-spacing=wide] body{letter-spacing:.04em;line-height:1.8;word-spacing:.12em}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-.pick-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-bottom:20px}@media(max-width:800px){.pick-grid{grid-template-columns:1fr}}
+.pick-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:16px;margin-bottom:20px}.pick-grid>*{min-width:0}@media(max-width:800px){.pick-grid{grid-template-columns:minmax(0,1fr)}}
 .ex-results{max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:var(--radius)}
 .ex-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);cursor:pointer}.ex-row:hover,.ex-row:focus-within{background:var(--brand-light)}
 .setrow{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 40px 36px;gap:6px;align-items:center;margin:4px 0}.setrow input{width:100%;min-width:0;min-height:42px;font-size:calc(16px * var(--text-scale, 1));text-align:center;touch-action:manipulation}.setrow .check-btn{width:40px;height:40px}.set-estimate{font-size:calc(11px * var(--text-scale, 1));color:var(--gold);font-weight:700;grid-column:2/4;margin-top:-2px}.set-tools{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:7px 0 12px;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius)}.set-tools small{color:var(--muted)}.sub{font-size:calc(12px * var(--text-scale, 1));color:var(--muted)}.sr{position:absolute;left:-999px}
@@ -356,7 +356,7 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
 @media(max-width:860px){
  .app{border:0}.topbar{height:58px;position:sticky}.date-tag{display:none}
  aside{height:calc(66px + env(safe-area-inset-bottom));padding:5px 5px calc(5px + env(safe-area-inset-bottom));background:color-mix(in srgb,var(--panel) 94%,transparent);backdrop-filter:blur(18px)}
- nav{grid-template-columns:repeat(6,minmax(0,1fr));gap:3px}
+ nav{grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
  nav button{min-width:0;min-height:52px;font-size:clamp(8px,2.3vw,10px);line-height:1.1;white-space:normal;overflow-wrap:anywhere}
  nav button svg{width:17px;height:17px;flex-shrink:0}
  main{padding:18px 13px calc(90px + env(safe-area-inset-bottom))}
@@ -471,6 +471,16 @@ html:not([data-theme=light]) .stat{border-color:color-mix(in srgb,var(--brand) 4
    and --panel-hover in both themes; the halo separates it from accent-coloured surfaces. */
 :root{--focus-ring:#ffd76a;--focus-halo:#0b0f17}
 html[data-theme=light]{--focus-ring:#7a3c00;--focus-halo:#ffffff}
+/* I1: contrast tokens. Every pair is checked by tests/gymplified-static.test.mjs (all themes x accents x
+   contrast modes) and by tests/browser/contrast-audit.cjs (every visible text element). */
+:root{--danger:#f87171;--field-line:#6b7a90;--deluxe-text:#d6b15e;--deluxe-line:#b99342}
+html[data-theme=light]{--muted:#526072;--danger:#b91c1c;--success:#065f46;--field-line:#7c889b;--deluxe-text:#7c5a12;--deluxe-line:#9a7428}
+html[data-theme=light][data-contrast=high]{--muted:#334155;--field-line:#334155}
+html[data-contrast=high]:not([data-theme=light]){--field-line:#94a3b8}
+/* Form fields need a visible edge (WCAG 1.4.11): 3:1 against the surfaces they sit on. */
+html :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=range]),select,textarea){border-color:var(--field-line)}
+html :is(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]):not([type=range]),select,textarea):focus{border-color:var(--brand)}
+.set-estimate{color:var(--brand-text)!important}
 html :is(a,button,input,select,textarea,summary,label,[tabindex],[role=button]):focus-visible{outline:3px solid var(--focus-ring)!important;outline-offset:2px!important;box-shadow:0 0 0 7px var(--focus-halo)!important}
 /* I4: 44x44px minimum touch targets */
 .btn,.check-btn,nav button{min-height:44px}
@@ -621,7 +631,29 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
 .scan-video{position:relative;border-radius:12px;overflow:hidden;background:#000;aspect-ratio:4/3;margin:8px 0}
 .scan-video video{width:100%;height:100%;object-fit:cover;display:block}
 .scan-frame{position:absolute;inset:28% 12%;border:3px solid var(--focus-ring);border-radius:10px}
-.app-dialog{width:min(92vw,480px);border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:22px;box-shadow:0 24px 90px #0009}
+/* Batch 7: accessibility */
+.nav-short{display:none}
+/* I10: the top bar fits a 320 px screen at the largest text size */
+.top-label-short{display:none}
+@media(max-width:480px){.top-label-long{display:none}.top-label-short{display:inline}.topbar .install-trigger{max-width:none;white-space:nowrap}}
+@media(max-width:360px){.brand-name{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}.topbar .top-actions{gap:4px}.topbar .btn{padding:0 8px}}
+#sessBar label,#sessBar input[type=datetime-local]{min-width:0;max-width:100%}
+@media(max-width:860px){
+ .nav-long{display:none}.nav-short{display:inline}
+ nav button{overflow-wrap:normal;white-space:nowrap;font-size:clamp(9px,2.6vw,calc(11px * var(--text-scale, 1)));padding-inline:0}
+ nav button .nav-text{display:block;max-width:100%;overflow:hidden;text-overflow:clip}
+ nav button .nav-long{display:none}
+}
+.deluxe-pill.is-unlocked{color:var(--success);border-color:var(--success);background:color-mix(in srgb,var(--success) 12%,transparent)}
+.deluxe-dialog{border-color:var(--deluxe-line)}
+/* I9: selected and achieved states carry a symbol, not just a colour */
+.lb-tab[aria-selected=true]::before,.range-btn[aria-pressed=true]::before{content:"✓ "}
+.feed-react.on::after{content:" ✓"}
+.water-hit{font-size:calc(11px * var(--text-scale, 1));line-height:1;color:var(--brand-text);font-weight:700}
+/* I8: honour both the OS setting and the in-app motion setting everywhere */
+html[data-motion=reduced]{scroll-behavior:auto}
+html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion=reduced] *::after{scroll-behavior:auto!important}
+.app-dialog{margin:auto;max-height:calc(100dvh - 32px);overflow:auto;width:min(92vw,480px);border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:22px;box-shadow:0 24px 90px #0009}
 .app-dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
 .app-dialog h2{margin:0 0 8px;font:700 20px var(--font-heading)}
 .app-dialog p{color:var(--muted);line-height:1.55;font-size:calc(13px * var(--text-scale, 1))}
@@ -631,16 +663,16 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
 </style>
 </head>
 <body>
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main">Skip to main content</a>
 
 <div class="app">
   <!-- Topbar Header -->
   <header class="topbar">
-    <div class="brand"><img src="./gymplified-brand.jpg" alt="" class="brand-logo"> Gymplified</div>
+    <div class="brand"><img src="./gymplified-brand.jpg" alt="" class="brand-logo"> <span class="brand-name">Gymplified</span></div>
     <div class="top-actions">
       <span class="date-tag" id="currentDate">Today</span>
       <button class="session-chip" id="sessionChip" type="button" hidden><span class="session-chip-time"><span aria-hidden="true">⏱ </span><span id="sessionChipClock">0:00</span></span><span class="session-chip-meta" id="sessionChipMeta"></span></button>
-      <button class="btn btn-primary top-log-btn" onclick="openLogModal()">+ Log Exercise</button>
+      <button class="btn btn-primary top-log-btn" onclick="openLogModal()" aria-label="Log exercise">+ <span class="top-label-long">Log Exercise</span><span class="top-label-short">Log</span></button>
       <button class="btn install-trigger" id="installAppButton" type="button" onclick="installGymplified()">Install app</button>
       <button class="btn btn-icon-only" title="Quick Theme Switcher" aria-label="Switch theme" onclick="toggleQuickTheme()">◐</button>
     </div>
@@ -656,34 +688,34 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
     <!-- Sidebar Navigation -->
     <aside>
       <div class="nav-label">Workspace</div>
-      <nav>
+      <nav aria-label="Main">
         <button class="active" data-screen="dashboard" onclick="showScreen('dashboard', this)">
           <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-          Dashboard
+          <span class="nav-text nav-long">Dashboard</span><span class="nav-text nav-short">Home</span>
         </button>
         <button data-screen="prs" onclick="showScreen('prs', this)">
           <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          Personal Records
+          <span class="nav-text nav-long">Personal Records</span><span class="nav-text nav-short">Records</span>
         </button>
         <button data-screen="training" onclick="showScreen('training', this)">
           <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M10 12h4"/></svg>
-          Training Log
+          <span class="nav-text nav-long">Training Log</span><span class="nav-text nav-short">Training</span>
         </button>
         <button data-screen="nutrition" onclick="showScreen('nutrition', this)">
           <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-          Nutrition
+          <span class="nav-text nav-long">Nutrition</span><span class="nav-text nav-short">Food</span>
         </button>
         <button data-screen="friends" onclick="showScreen('friends', this)">
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-          Friends
+          <span class="nav-text nav-long">Friends</span><span class="nav-text nav-short">Friends</span>
         </button>
         <button data-screen="deluxe" onclick="showScreen('deluxe', this)">
           <svg viewBox="0 0 24 24"><path d="m12 2 2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5L12 2Z"/><path d="m19 14 1.2 3.1L23 18l-2.8 1-1.2 3-1.1-3-2.9-1 2.9-.9L19 14Z"/></svg>
-          Deluxe
+          <span class="nav-text nav-long">Deluxe</span><span class="nav-text nav-short">Deluxe</span>
         </button>
         <button data-screen="settings" onclick="showScreen('settings', this)">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          Settings
+          <span class="nav-text nav-long">Settings</span><span class="nav-text nav-short">Settings</span>
         </button>
       </nav>
     </aside>
@@ -714,7 +746,7 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
           <div class="row-wrap"><button class="btn btn-primary" type="button" data-nudge-action="train">Log a workout</button><button class="btn" type="button" data-nudge-action="dismiss">Not today</button></div>
         </div>
 
-        <div class="panel" id="gamePanel" style="margin-bottom:20px" aria-label="Progress and streaks"></div>
+        <div class="panel" id="gamePanel" style="margin-bottom:20px" role="region" aria-label="Progress and streaks"></div>
         <div class="grid-2">
           <!-- Calorie Panel -->
           <div class="panel">
@@ -1073,7 +1105,7 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
           <div class="row-wrap"><label class="sr" for="gCal">Daily calorie target in kcal</label><input type="number" id="gCal" inputmode="numeric" min="500" max="10000" style="width:130px"><button class="btn btn-primary" type="button" data-settings-action="save-calories">Save calorie target</button></div>
         </div>
         <div class="settings-group" id="profilePanel"></div>
-        <div class="settings-group" id="waterSettings" aria-label="Water settings"></div>
+        <div class="settings-group" id="waterSettings" role="region" aria-label="Water settings"></div>
         </section>
         <section class="settings-section" id="set-notifications" aria-labelledby="set-notifications-h">
           <h2 id="set-notifications-h" tabindex="-1">Notifications</h2>
@@ -1117,7 +1149,7 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <button class="btn btn-primary" onclick="exportGymplifiedCSV()">↓ Export all data (CSV)</button>
             <button class="btn" onclick="document.getElementById('gymplifiedCsvInput').click()">↑ Import from another app (CSV)</button>
-            <input id="gymplifiedCsvInput" type="file" accept=".csv,text/csv,.txt" hidden onchange="importGymplifiedCSV(this)">
+            <input id="gymplifiedCsvInput" type="file" accept=".csv,text/csv,.txt" hidden aria-label="Choose a workout history CSV file" onchange="importGymplifiedCSV(this)">
           </div>
           <p id="csvBackupStatus" class="sub" aria-live="polite" style="margin-top:12px">Supports Hevy, Strong, FitNotes and standard exercise/set CSVs. Imported history is merged without replacing existing logs.</p>
         </div>
@@ -1157,21 +1189,19 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
       <!-- GYMPLIFIED DELUXE -->
       <section id="deluxe" class="screen">
         <style>
-          .deluxe-hero{border:1px solid #b99342;background:linear-gradient(135deg,rgba(201,162,78,.17),var(--panel) 65%);padding:26px;border-radius:12px;margin-bottom:18px}
-          .deluxe-wordmark{color:#d6b15e;font-weight:900;letter-spacing:.16em;font-size:calc(12px * var(--text-scale, 1))}
+          .deluxe-hero{border:1px solid var(--deluxe-line);background:linear-gradient(135deg,rgba(201,162,78,.17),var(--panel) 65%);padding:26px;border-radius:12px;margin-bottom:18px}
+          .deluxe-wordmark{color:var(--deluxe-text);font-weight:900;letter-spacing:.16em;font-size:calc(12px * var(--text-scale, 1))}
           .deluxe-price{font-size:calc(38px * var(--text-scale, 1));font-weight:900;letter-spacing:-.06em;margin:8px 0}
           .deluxe-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
           .deluxe-feature{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:16px;min-height:150px}
           .deluxe-feature h3{font-size:calc(14px * var(--text-scale, 1));margin:10px 0 5px}
           .deluxe-feature p{font-size:calc(12px * var(--text-scale, 1));color:var(--muted);line-height:1.5}
           .deluxe-feature .lock{font-size:calc(20px * var(--text-scale, 1))}
-          .deluxe-pill{display:inline-flex;border:1px solid #b99342;color:#d6b15e;padding:3px 8px;border-radius:99px;font-size:calc(10px * var(--text-scale, 1));font-weight:800;letter-spacing:.06em}
-          .deluxe-modal{position:fixed;inset:0;background:#000b;z-index:100;display:none;align-items:center;justify-content:center;padding:18px}
-          .deluxe-modal.open{display:flex}
-          .deluxe-modal-card{width:min(100%,520px);background:var(--panel);border:1px solid #b99342;border-radius:14px;padding:22px;max-height:85vh;overflow:auto}
+          .deluxe-pill{display:inline-flex;border:1px solid var(--deluxe-line);color:var(--deluxe-text);padding:3px 8px;border-radius:99px;font-size:calc(10px * var(--text-scale, 1));font-weight:800;letter-spacing:.06em}
+          .deluxe-modal-card{width:min(100%,520px);background:var(--panel);border:1px solid var(--deluxe-line);border-radius:14px;padding:22px;max-height:85vh;overflow:auto}
           .deluxe-modal-card h2{font-size:calc(20px * var(--text-scale, 1));margin-bottom:8px}
           .deluxe-modal-card p{color:var(--muted);font-size:calc(13px * var(--text-scale, 1));line-height:1.55}
-          .deluxe-demo-note{border:1px dashed #b99342;background:rgba(201,162,78,.08);padding:12px;border-radius:8px;font-size:calc(12px * var(--text-scale, 1));color:var(--muted);margin-top:14px}
+          .deluxe-demo-note{border:1px dashed var(--deluxe-line);background:rgba(201,162,78,.08);padding:12px;border-radius:8px;font-size:calc(12px * var(--text-scale, 1));color:var(--muted);margin-top:14px}
           .deluxe-chart{display:flex;align-items:end;gap:8px;height:120px;padding:12px 4px 0;border-bottom:1px solid var(--line)}
           .deluxe-bar{flex:1;min-width:8px;background:linear-gradient(180deg,#d6b15e,#8c6825);border-radius:4px 4px 0 0;position:relative}
           .deluxe-insight{padding:10px 0;border-bottom:1px solid var(--line);font-size:calc(12px * var(--text-scale, 1));line-height:1.5}
@@ -1221,7 +1251,7 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
           </div>
           <div class="panel" style="margin-bottom:16px">
             <div class="section-title">Volume progression <span class="sub">KG · COMPLETED SETS</span></div>
-            <div id="deluxeVolumeChart" class="deluxe-chart" aria-label="Weekly training volume chart"></div>
+            <div id="deluxeVolumeChart" class="deluxe-chart" role="img" aria-label="Weekly training volume chart"></div>
             <div id="deluxeVolumeLabels" class="meta-row"></div>
           </div>
           <div class="grid-2">
@@ -1269,6 +1299,12 @@ html[data-motion=reduced] .water-bar{transition:none}@media(prefers-reduced-moti
 </div>
 
 <div class="toast-container" id="toastContainer" role="status" aria-live="polite" aria-atomic="false"></div>
+<dialog id="deluxeModal" class="app-dialog deluxe-dialog" aria-labelledby="deluxeModalTitle" aria-describedby="deluxeModalText">
+  <span class="deluxe-pill">DELUXE PREVIEW</span>
+  <h2 id="deluxeModalTitle" style="margin-top:12px">Explore Gymplified Deluxe</h2>
+  <p id="deluxeModalText"></p>
+  <div class="app-dialog-actions"><button class="btn btn-primary" type="button" id="deluxeModalClose">Close</button></div>
+</dialog>
 <dialog id="scanDialog" class="app-dialog scan-dialog" aria-labelledby="scanTitle" aria-describedby="scanPrivacy">
   <h2 id="scanTitle">Scan a barcode</h2>
   <div id="scanVideoWrap" class="scan-video" hidden><video id="scanVideo" playsinline muted aria-label="Camera preview"></video><span class="scan-frame" aria-hidden="true"></span></div>
@@ -1655,7 +1691,7 @@ function showScreen(screenId, btn) {
     document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
   }
-  markNav(); scrollTo(0,0); if(screenId==='friends')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
+  markNav(); scrollTo(0,0); announceScreen(screenId,true); if(screenId==='friends')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
   if(screenId === 'prs') { nextQuote(); }
   if(screenId === 'deluxe') renderDeluxeUI();
 }
@@ -1756,14 +1792,14 @@ function renderPRs() {
 function renderNutrition() {
   const foods=state.foods||[],targets=state.nutritionTargets||{protein:0,carbs:0,fat:0};
   const set=(id,v)=>{const e=$(id);if(e)e.textContent=v;};
-  const bar=(id,v,t)=>{const e=$(id);if(e)e.style.width=(t>0?Math.min(100,Math.max(0,v/t*100)):0)+'%';};
+  const bar=(id,v,t,label)=>{const e=$(id);if(!e)return;const pct=t>0?Math.min(100,Math.max(0,v/t*100)):0;e.style.width=pct+'%';if(label)setBar(id,Math.round(pct),label);};
   set('nutritionDate',new Date().toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}));
   set('nutritionCal',Math.round(state.cal||0).toLocaleString());set('nutritionCalTarget',(state.calTarget||2500).toLocaleString());
   const cp=Math.min(100,Math.round((state.cal/(state.calTarget||2500))*100));
-  bar('nutritionCalBar',state.cal,state.calTarget||2500);set('nutritionCalLeft',Math.max(0,(state.calTarget||2500)-state.cal).toLocaleString()+' kcal remaining');set('nutritionCalPercent',cp+'%');
+  bar('nutritionCalBar',state.cal,state.calTarget||2500,'Calories eaten today');set('nutritionCalLeft',Math.max(0,(state.calTarget||2500)-state.cal).toLocaleString()+' kcal remaining');set('nutritionCalPercent',cp+'%');
   [['Protein','protein',state.protein],['Carbs','carbs',state.carbs],['Fat','fat',state.fat]].forEach(([label,key,val])=>{
     const target=Number(targets[key])||0;set('nutrition'+label,(Number(val)||0).toFixed(1).replace(/\.0$/,'')+'g');
-    bar(key+'Track',Number(val)||0,target);set(key+'Meta',target>0?(Number(val)||0).toFixed(1).replace(/\.0$/,'')+' / '+target+'g':'Set a target');
+    bar(key+'Track',Number(val)||0,target,label+' towards target');set(key+'Meta',target>0?(Number(val)||0).toFixed(1).replace(/\.0$/,'')+' / '+target+'g':'Set a target');
   });
   ['protein','carbs','fat'].forEach(k=>{const e=$('target'+k.charAt(0).toUpperCase()+k.slice(1));if(e&&document.activeElement!==e)e.value=targets[k]||0;});
   set('foodEntryCount',foods.length+' '+(foods.length===1?'item':'items'));
@@ -1898,7 +1934,7 @@ function resetWater() {
 function openLogModal() {
   showScreen('training', document.querySelector('nav button[data-screen="training"]'));
   const search=$('exSearch');
-  if(search){search.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>search.focus({preventScroll:true}),180);}
+  if(search){search.scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'center'});setTimeout(()=>search.focus({preventScroll:true}),180);}
 }
 
 function openCalorieModal() {
@@ -2500,7 +2536,7 @@ function renderStreakNudge(){
 function gamePanelMarkup(){
  const g=normalizeGame(state.game),L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),wi=weekInfo(),streak=dailyStreak(),frozen=new Set(g.frozenDays),days=sessionDaySet();
  const strip=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dayKey(d),on=i===0?todayIsActive():historyDayIsActive(k,days),ice=!on&&frozen.has(k),label=d.toLocaleDateString(undefined,{weekday:'long'})+(on?': active':ice?': streak freeze used':': no activity');
-  strip.push('<span class="wd '+(on?'on':ice?'frozen':'')+'" aria-label="'+label+'" title="'+label+'">'+(ice?'❄':on?'✓':d.toLocaleDateString(undefined,{weekday:'narrow'}))+'</span>');}
+  strip.push('<span class="wd '+(on?'on':ice?'frozen':'')+'" role="img" aria-label="'+label+'" title="'+label+'">'+(ice?'❄':on?'✓':d.toLocaleDateString(undefined,{weekday:'narrow'}))+'</span>');}
  const quest=(done,text,value,target,xp)=>'<div class="quest '+(done?'ok':'')+'"><span>'+(done?'✅ ':'⬜ ')+esc(text)+'</span><span>'+Math.min(value,target)+'/'+target+' · '+(done?'earned':'+'+xp+' XP')+'</span></div>';
  const week=weekStats(),unlocked=BADGES.filter(b=>g.badges.includes(b.id)).length,log=readXpLog();
  return '<div class="section-title"><span>Your Progress</span></div><div class="stat-row">'+
@@ -3437,7 +3473,7 @@ function renderFeed(){
  else body='<ul class="feed-list">'+feedItems.map(item=>{
   const owner=esc(item.owner_id),key=esc(item.activity_key),who=item.is_self?'You':personName(item);
   const reactions=REACTIONS.map(r=>{const n=Number(item[r.key+'_count'])||0,mine=!!item['my_'+r.key];
-   return item.is_self?(n?'<span class="feed-count" aria-label="'+n+' '+r.name+' reaction'+(n===1?'':'s')+'">'+r.emoji+' '+n+'</span>':''):'<button type="button" class="btn feed-react'+(mine?' on':'')+'" data-react="'+r.key+'" data-owner="'+owner+'" data-key="'+key+'" aria-pressed="'+mine+'" aria-label="'+r.name+' reaction'+(mine?' (yours)':'')+', '+n+'">'+r.emoji+' '+n+'</button>';}).join('');
+   return item.is_self?(n?'<span class="feed-count" role="img" aria-label="'+n+' '+r.name+' reaction'+(n===1?'':'s')+'">'+r.emoji+' '+n+'</span>':''):'<button type="button" class="btn feed-react'+(mine?' on':'')+'" data-react="'+r.key+'" data-owner="'+owner+'" data-key="'+key+'" aria-pressed="'+mine+'" aria-label="'+r.name+' reaction'+(mine?' (yours)':'')+', '+n+'">'+r.emoji+' '+n+'</button>';}).join('');
   return '<li class="feed-item"><button type="button" class="feed-avatar" data-friend-profile="'+owner+'" aria-label="Open '+esc(who)+'\'s profile">'+avatarMarkup(item,true)+'</button><div class="feed-body"><p><strong>'+esc(who)+'</strong> '+(item.kind==='pr'?'🏆 ':'')+esc(feedText(item))+'</p><small class="sub">'+esc(relativeDay(item.occurred_on))+'</small></div><div class="feed-reactions">'+reactions+'</div></li>';}).join('')+'</ul>';
  host.innerHTML='<div class="section-title"><span>Friend activity</span><span class="sub">Last 14 days</span></div>'+body;
 }
@@ -3805,9 +3841,9 @@ function renderWaterPanel(){
  const unit=waterTotalUnitLabel(),today=dayKey(),entries=(state.waterEntries||[]).filter(x=>x.day===today).slice().sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
  const label=d=>{const dt=new Date(d.day+'T12:00:00');return dt.toLocaleDateString(undefined,waterRange===7?{weekday:'short'}:{day:'numeric'});};
  host.innerHTML='<div class="section-title"><span>Water</span><span class="row-wrap" role="group" aria-label="Water history range"><button type="button" class="btn range-btn" data-water-range="7" aria-pressed="'+(waterRange===7)+'">7 days</button><button type="button" class="btn range-btn" data-water-range="30" aria-pressed="'+(waterRange===30)+'">30 days</button></span></div>'+
-  '<p class="sub">Goal reached on '+hits+' of the last '+waterRange+' days. Dashed line: your '+formatWaterTotal(goal)+' '+unit+' goal.</p>'+
+  '<p class="sub">Goal reached (✓) on '+hits+' of the last '+waterRange+' days. Dashed line: your '+formatWaterTotal(goal)+' '+unit+' goal.</p>'+
   '<div class="water-chart'+(waterRange===30?' wide':'')+'" role="list" aria-label="Water per day, last '+waterRange+' days" style="--goal:'+Math.round(goal/max*100)+'%">'+data.map(d=>{const pct=Math.round(d.litres/max*100),hit=d.litres>=goal,when=new Date(d.day+'T12:00:00').toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
-   return '<div class="water-col" role="listitem" aria-label="'+esc(when+': '+formatWaterTotal(d.litres)+' '+unit+(hit?', goal reached':''))+'"><span class="water-bar'+(hit?' hit':'')+'" style="height:'+pct+'%"></span><small aria-hidden="true">'+esc(label(d))+'</small></div>';}).join('')+'</div>'+
+   return '<div class="water-col" role="listitem" aria-label="'+esc(when+': '+formatWaterTotal(d.litres)+' '+unit+(hit?', goal reached':''))+'">'+(hit?'<span class="water-hit" aria-hidden="true">✓</span>':'')+'<span class="water-bar'+(hit?' hit':'')+'" style="height:'+pct+'%"></span><small aria-hidden="true">'+esc(label(d))+'</small></div>';}).join('')+'</div>'+
   '<div class="sub-h">Today\'s drinks</div>'+(entries.length?'<ul class="water-entries">'+entries.map(x=>'<li><span><strong>'+esc(formatWaterAmount(x.amount*1000))+'</strong> <span class="sub">'+(x.createdAt?esc(new Date(x.createdAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})):'earlier')+'</span></span><button type="button" class="btn" data-water-remove="'+esc(x.id)+'" aria-label="Remove '+esc(formatWaterAmount(x.amount*1000))+' logged '+(x.createdAt?esc(new Date(x.createdAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})):'earlier')+'">Remove</button></li>').join('')+'</ul>':'<p class="sub">No water logged yet today.</p>');
 }
 function removeWaterEntry(id){
@@ -3910,6 +3946,30 @@ function initNutritionControls(){
  setInterval(renderHydrationNudge,60000);
  $('foodMeal').value=mealForTime();
  renderPortionUnits(null);
+}
+
+// ===== Batch 7: accessibility =====
+const SCREEN_TITLES={dashboard:'Dashboard',prs:'Personal Records',training:'Training Log',nutrition:'Nutrition',friends:'Friends',deluxe:'Deluxe',settings:'Settings'};
+// I6: a screen change updates the page title and moves focus to the screen's heading, so screen
+// readers announce where the user landed and keyboard users start at the top of the new screen.
+function announceScreen(id,moveFocus){
+ document.title=(SCREEN_TITLES[id]||'Gymplified')+' · Gymplified';
+ if(!moveFocus)return;
+ const heading=document.querySelector('#'+id+' h1');
+ if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}
+}
+// I7: native <dialog> already traps focus and closes on Esc; this returns focus to whatever opened it.
+let focusBeforeDialog=null;
+document.addEventListener('focusin',e=>{if(!e.target.closest||!e.target.closest('dialog'))focusBeforeDialog=e.target;});
+document.addEventListener('close',e=>{
+ if(!(e.target instanceof HTMLDialogElement))return;
+ const back=focusBeforeDialog;
+ setTimeout(()=>{const a=document.activeElement;if(back&&document.contains(back)&&!document.querySelector('dialog[open]')&&(!a||a===document.body||e.target.contains(a)))back.focus({preventScroll:true});},0);
+},true);
+function initAccessibilityControls(){
+ $('deluxeModalClose')?.addEventListener('click',closeDeluxeModal);
+ document.querySelectorAll('.screen h1').forEach(h=>h.setAttribute('tabindex','-1'));
+ announceScreen((document.querySelector('.screen.active')||{}).id||'dashboard',false);
 }
 
 // ===== Gymplified accounts + real friend connections =====
@@ -4108,7 +4168,7 @@ function updateInstallUI(){
  const app=document.querySelector('.app'),button=$('installAppButton');
  if(isGymplifiedInstalled()){app&&app.classList.add('is-installed');return;}
  app&&app.classList.remove('is-installed');
- if(button)button.textContent=deferredInstallPrompt?'Install app':'Add to Home Screen';
+ if(button){const long=deferredInstallPrompt?'Install app':'Add to Home Screen';button.innerHTML='<span class="top-label-long">'+long+'</span><span class="top-label-short">Install</span>';button.setAttribute('aria-label',long);}
 }
 function closeInstallHelp(){const panel=$('installHelp');if(panel)panel.hidden=true;}
 function installGymplified(){
@@ -4128,7 +4188,7 @@ function installGymplified(){
   intro.textContent='Install Gymplified from your browser menu:';
   steps.innerHTML='<li>Open the browser menu (⋮).</li><li>Choose <strong>Install app</strong> or <strong>Add to Home Screen</strong>.</li><li>Confirm the install, then launch Gymplified from its new app icon.</li>';
  }
- panel.hidden=false;panel.scrollIntoView({behavior:'smooth',block:'nearest'});
+ panel.hidden=false;panel.scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'nearest'});
 }
 window.addEventListener('beforeinstallprompt',function(event){event.preventDefault();deferredInstallPrompt=event;updateInstallUI();});
 window.addEventListener('appinstalled',function(){deferredInstallPrompt=null;closeInstallHelp();updateInstallUI();showToast('Gymplified installed');});
@@ -4166,7 +4226,7 @@ function deluxeRecentWeeks(count){
 }
 function renderDeluxeUI(){
  const enabled=deluxeEnabled(),status=$('deluxeStatus'),toggle=$('deluxeDemoToggle'),locked=$('deluxeLockedNotice'),tools=$('deluxeTools'),demo=$('deluxeDemoControls'),demoBtn=$('deluxeDemoUnlockBtn');
- if(status){status.textContent=enabled?'DEMO UNLOCKED':'PREVIEW MODE';status.style.background=enabled?'rgba(16,185,129,.12)':'';status.style.borderColor=enabled?'#10b981':'#b99342';status.style.color=enabled?'#10b981':'#d6b15e';}
+ if(status){status.textContent=enabled?'✓ DEMO UNLOCKED':'PREVIEW MODE';status.classList.toggle('is-unlocked',enabled);}
  if(toggle)toggle.textContent=enabled?'Demo unlocked on this device':'Preview only';
  if(demo)demo.hidden=!deluxeDemoAllowed();if(demoBtn)demoBtn.textContent=enabled?'Turn off demo unlock':'Enable demo unlock';
  if(locked)locked.hidden=enabled;if(tools)tools.hidden=!enabled;
@@ -4197,9 +4257,9 @@ function previewDeluxeFeature(name){
  }
  $('deluxeModalTitle').textContent=name;
  $('deluxeModalText').textContent=(DELUXE_PREVIEW_COPY[name]||'This tool is part of Gymplified Deluxe.')+' Deluxe is preview-only: the payment system has not been connected.';
- $('deluxeModal').classList.add('open');
+ const dialog=$('deluxeModal');if(dialog&&!dialog.open)dialog.showModal();
 }
-function closeDeluxeModal(){$('deluxeModal').classList.remove('open');}
+function closeDeluxeModal(){const dialog=$('deluxeModal');if(dialog&&dialog.open)dialog.close();}
 $('deluxeDemoUnlockBtn')?.addEventListener('click',toggleDeluxeDemo);
 function renderDeluxeAnalytics(){
  if(!deluxeEnabled())return;
@@ -4340,6 +4400,7 @@ initSettingsControls();
 initGameControls();
 initFriendsControls();
 initNutritionControls();
+initAccessibilityControls();
 initGoals();
 if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();

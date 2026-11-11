@@ -380,7 +380,7 @@ function renderDashboard() {
     container.innerHTML = `
       <div class="empty-box">
         <p>No workouts logged today. Add exercises using the direct log or Training tab.</p>
-        <button class="btn btn-primary" onclick="showScreen('training', document.querySelector('nav button[data-screen="training"]'))">Open Training Log</button>
+        <button class="btn btn-primary" data-action="goToTraining">Open Training Log</button>
       </div>`;
   } else {
     container.innerHTML = state.workouts.map((w, i) => `
@@ -390,7 +390,7 @@ function renderDashboard() {
           <strong style="display:block; font-size:calc(14px * var(--text-scale, 1));">${esc(w.name)}</strong>
           <span style="font-size:calc(12px * var(--text-scale, 1)); color:var(--muted);">${esc(w.muscle)} · ${esc(fmtWeight(w.weight))} · ${w.sets} sets × ${w.reps} reps</span>
         </div>
-        <button class="check-btn ${w.done ? 'done' : ''}" aria-pressed="${!!w.done}" aria-label="Mark ${esc(w.name)} done" onclick="toggleWorkoutDone(${i})">${w.done ? '✓' : ''}</button>
+        <button class="check-btn ${w.done ? 'done' : ''}" aria-pressed="${!!w.done}" aria-label="Mark ${esc(w.name)} done" data-action="toggleWorkoutDone" data-i="${i}">${w.done ? '✓' : ''}</button>
       </div>
     `).join('');
   }
@@ -414,7 +414,7 @@ function renderPRs() {
         <div class="pr-title">${esc(pr.name)}</div>
         <div class="pr-metric">${kgToDisplay(Number(pr.weight)||0)} <span style="font-size:calc(14px * var(--text-scale, 1)); color:var(--muted);">${weightUnit().toUpperCase()}</span> × ${Number(pr.reps)||1} <span style="font-size:calc(14px * var(--text-scale, 1)); color:var(--muted);">REPS</span></div>
         <div class="pr-subtext">Achieved: ${esc(pr.date || 'Today')}</div>
-        <button class="btn btn-icon-only" style="position:absolute; bottom:8px; right:8px; color:var(--danger);" onclick="deletePR(${i})" title="Delete PR" aria-label="Delete PR for ${esc(pr.name)}">✕</button>
+        <button class="btn btn-icon-only" style="position:absolute; bottom:8px; right:8px; color:var(--danger);" data-action="deletePR" data-i="${i}" title="Delete PR" aria-label="Delete PR for ${esc(pr.name)}">✕</button>
       </div>
     `;
   }).join('') + `</div>`;
@@ -1242,13 +1242,13 @@ function weeklyRecapMarkup(){
  const comparison=delta>0?'↑ '+delta+' more than last week':delta<0?'↓ '+Math.abs(delta)+' fewer than last week':'Same number as last week';
  return '<div class="sub-h">Your weekly recap · this week (from '+(weekStartsSunday()?'Sunday':'Monday')+')</div>'+
  '<div class="stat-row"><div class="stat"><b>'+w.current.length+'</b><span>workouts</span></div><div class="stat"><b>'+w.sets+'</b><span>sets completed</span></div><div class="stat"><b>'+volumeNumber(w.volume)+'</b><span>'+weightUnit()+' volume</span></div><div class="stat"><b>'+w.minutes+'</b><span>minutes</span></div></div>'+
- '<div class="meta-row"><span>'+comparison+'</span><span>'+w.weekCount+'/'+w.goal+' weekly goal</span></div><div class="row-wrap" style="margin-top:10px"><button class="btn" type="button" onclick="shareWeeklyRecap()">Share weekly recap</button></div>';
+ '<div class="meta-row"><span>'+comparison+'</span><span>'+w.weekCount+'/'+w.goal+' weekly goal</span></div><div class="row-wrap" style="margin-top:10px"><button class="btn" type="button" data-action="shareWeeklyRecap">Share weekly recap</button></div>';
 }
 function renderRoutineLibrary(){
  const host=$('routineLibrary');if(!host)return;
  state.routines=(Array.isArray(state.routines)?state.routines:[]).filter(r=>r&&typeof r==='object').map((r,i)=>({id:String(r.id||'legacy-routine-'+i),name:String(r.name||'Saved routine'),exercises:Array.isArray(r.exercises)?r.exercises:[]}));
  const routines=state.routines;
- host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="btn" style="padding:0 10px;margin-left:5px" onclick="loadSavedRoutine('+i+')">Load</button> <button class="btn btn-icon-only" style="padding:0" aria-label="Delete '+esc(r.name)+'" onclick="deleteSavedRoutine('+i+')">×</button></span>').join('')+'</div>':'<p class="sub" style="margin-top:8px">Save your favourite workout combinations here so you can reuse them anytime.</p>';
+ host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="btn" style="padding:0 10px;margin-left:5px" data-action="loadSavedRoutine" data-i="'+i+'">Load</button> <button class="btn btn-icon-only" style="padding:0" aria-label="Delete '+esc(r.name)+'" data-action="deleteSavedRoutine" data-i="'+i+'">×</button></span>').join('')+'</div>':'<p class="sub" style="margin-top:8px">Save your favourite workout combinations here so you can reuse them anytime.</p>';
 }
 function saveCurrentRoutine(){
  if(!state.workouts.length)return showToast('Add exercises before saving a routine');
@@ -1339,7 +1339,7 @@ function renderExtras(){
   renderWaterSummary();setBar('dashCalBar',Math.min(100,Math.round(state.cal/state.calTarget*100)),'Calorie progress');
   renderWaterButtons();
   renderGamePanel();
-  const c=state.settings.color;document.querySelectorAll('.color-dot').forEach(d=>{const on=(d.getAttribute('onclick')||'').includes("'"+c+"'");d.classList.toggle('active',on);d.setAttribute('aria-pressed',on);});
+  const c=state.settings.color;document.querySelectorAll('.color-dot').forEach(d=>{const on=d.dataset.arg===c;d.classList.toggle('active',on);d.setAttribute('aria-pressed',on);});
   document.documentElement.setAttribute('data-spacing',state.settings.spacing||'normal');
   const dl=$('recentFoods');if(dl)dl.innerHTML=state.recent.map(r=>'<option value="'+esc(r.name)+'">').join('');
   markNav();
@@ -1564,7 +1564,7 @@ function renderTrainingLog(){
  state.workouts=state.workouts.filter(w=>w&&typeof w==='object').map(w=>ensureSets(w));
  if(!Array.isArray(state.sessions))state.sessions=[];
  renderRoutineLibrary();const wi=weekInfo(),sb=$('sessBar');
-  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="sub" style="display:grid;gap:5px">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" onchange="editSessionStart(this.value)" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" onclick="endSession()">■ Finish workout</button><button class="btn" onclick="cancelSession()">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" onclick="startSession()">▶ Start workout</button><label class="sub" style="display:grid;gap:5px">Set start date & time <input id="plannedSessionStart" type="datetime-local" value="'+localDateTimeValue(Date.now())+'" aria-label="Choose workout start date and time"></label><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
+  sb.innerHTML=state.session?'<div class="row-wrap"><div class="stat"><b id="sessClock">'+clock()+'</b><span>workout in progress</span></div><label class="sub" style="display:grid;gap:5px">Started at <input type="datetime-local" value="'+localDateTimeValue(state.session.start)+'" data-change="editSessionStart" aria-label="Edit workout start date and time"></label><button class="btn btn-primary" data-action="endSession">■ Finish workout</button><button class="btn" data-action="cancelSession">Cancel</button></div>':'<div class="row-wrap"><button class="btn btn-primary" data-action="startSession">▶ Start workout</button><label class="sub" style="display:grid;gap:5px">Set start date & time <input id="plannedSessionStart" type="datetime-local" value="'+localDateTimeValue(Date.now())+'" aria-label="Choose workout start date and time"></label><span class="sub">🔥 '+wi.st+'-week streak · '+wi.n+'/'+wi.g+' workouts this week</span></div>';
   $('liveStats').innerHTML=liveStatsMarkup();
   const listHost=$('trainingLogList'),focused=document.activeElement&&listHost.contains(document.activeElement)?document.activeElement:null;
   const focusKey=focused&&focused.dataset.i!==undefined?(focused.dataset.setAction?'[data-set-action="'+focused.dataset.setAction+'"]':focused.dataset.setField?'[data-set-field="'+focused.dataset.setField+'"]':focused.dataset.exCardAction?'[data-ex-card-action="'+focused.dataset.exCardAction+'"]':'')+'[data-i="'+focused.dataset.i+'"]'+(focused.dataset.j!==undefined?'[data-j="'+focused.dataset.j+'"]':''):'';
@@ -1572,7 +1572,7 @@ function renderTrainingLog(){
   if(focusKey&&focusKey[0]==='['&&!focusKey.startsWith('[data-i')){const again=listHost.querySelector(focusKey);if(again)again.focus({preventScroll:true});}
   $('sessionSummary').innerHTML=sessionSummaryMarkup();
   syncRestSettingsUI();renderSessionChrome();
-  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="history-session" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+fmtVolume(x.vol||0)+' · '+(x.sets||0)+' sets</span></summary><div style="margin-top:12px"><div class="row-wrap" style="padding:10px 0;border-bottom:1px solid var(--line)"><label class="sub" style="display:grid;gap:5px">Workout date & start time<input type="datetime-local" value="'+localDateTimeValue(x.startedAt?new Date(x.startedAt).getTime():new Date((x.date||dayKey())+'T12:00').getTime())+'" onchange="editHistoryTime('+i+',this.value)"></label><label class="sub" style="display:grid;gap:5px">Duration (minutes)<input type="number" min="1" max="1440" value="'+(x.mins||1)+'" onchange="editHistoryDuration('+i+',this.value)"></label></div>'+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(ex.name)+'</strong><button class="btn" onclick="viewExerciseHistoryForSession('+i+','+exIndex+');event.preventDefault()">Exercise history</button></div><div class="sub" style="margin-top:5px">'+(ex.sets||[]).map(sessionSetSummary).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
+  $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="history-session" style="border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0"><summary style="cursor:pointer;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+fmtVolume(x.vol||0)+' · '+(x.sets||0)+' sets</span></summary><div style="margin-top:12px"><div class="row-wrap" style="padding:10px 0;border-bottom:1px solid var(--line)"><label class="sub" style="display:grid;gap:5px">Workout date & start time<input type="datetime-local" value="'+localDateTimeValue(x.startedAt?new Date(x.startedAt).getTime():new Date((x.date||dayKey())+'T12:00').getTime())+'" data-change="editHistoryTime" data-i="'+i+'"></label><label class="sub" style="display:grid;gap:5px">Duration (minutes)<input type="number" min="1" max="1440" value="'+(x.mins||1)+'" data-change="editHistoryDuration" data-i="'+i+'"></label></div>'+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div style="padding:10px 0;border-top:1px solid var(--line)"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(ex.name)+'</strong><button class="btn" data-action="viewExerciseHistoryForSession" data-i="'+i+'" data-j="'+exIndex+'">Exercise history</button></div><div class="sub" style="margin-top:5px">'+(ex.sets||[]).map(sessionSetSummary).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Finished workouts will appear here.</p>';}
 
 // ===== Batch 2: workout flow (rest timer, prefill, set types, recovery, search, hero, summary) =====
 function setCountsForVolume(x){return !!(x&&x.done&&x.type!=='warmup');}
@@ -2953,7 +2953,7 @@ async function loadSupportTickets(){
  host.innerHTML='<p class="sub">Loading your requests…</p>';
  try{const r=await sb.from('support_tickets').select('id,subject,category,status,created_at,updated_at').eq('user_id',currentUser.id).order('updated_at',{ascending:false}).limit(20);if(r.error)throw r.error;
  if(!r.data.length){host.innerHTML='<p class="sub">No support requests yet. If something is wrong, send us a message above.</p>';return;}
- host.innerHTML=r.data.map(t=>'<div class="item-row" style="align-items:center;gap:12px"><div style="flex:1;min-width:0"><strong>'+esc(t.subject)+'</strong><div class="sub">'+esc(supportStatusLabel(t.status))+' · '+new Date(t.updated_at).toLocaleDateString()+'</div></div><button class="btn" type="button" onclick="openSupportTicket('+jsArg(t.id)+')">View</button></div>').join('');
+ host.innerHTML=r.data.map(t=>'<div class="item-row" style="align-items:center;gap:12px"><div style="flex:1;min-width:0"><strong>'+esc(t.subject)+'</strong><div class="sub">'+esc(supportStatusLabel(t.status))+' · '+new Date(t.updated_at).toLocaleDateString()+'</div></div><button class="btn" type="button" data-action="openSupportTicket" data-id="'+esc(t.id)+'">View</button></div>').join('');
  }catch(e){host.innerHTML='<p class="sub">Could not load your requests. Please try again.</p>';console.warn('Support tickets:',e);}
 }
 async function submitSupportTicket(event){
@@ -2970,7 +2970,7 @@ async function openSupportTicket(id){
  const host=$('supportConversation');supportCurrentTicketId=id;host.innerHTML='<p class="sub">Loading conversation…</p>';
  try{const t=await sb.from('support_tickets').select('id,subject,status,created_at').eq('id',id).eq('user_id',currentUser.id).single();if(t.error)throw t.error;
  const m=await sb.from('support_ticket_messages').select('id,author_role,message,created_at').eq('ticket_id',id).order('created_at',{ascending:true});if(m.error)throw m.error;
- host.innerHTML='<div class="panel" style="margin-top:12px"><div class="section-title">'+esc(t.data.subject)+' <span class="sub">'+esc(supportStatusLabel(t.data.status))+'</span></div>'+m.data.map(x=>'<div style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:8px 0"><div class="sub">'+(x.author_role==='admin'?'Gymplified Support':'You')+' · '+new Date(x.created_at).toLocaleString()+'</div><div style="white-space:pre-wrap;margin-top:6px;font-size:calc(13px * var(--text-scale, 1))">'+esc(x.message)+'</div></div>').join('')+(t.data.status==='resolved'?'<p class="sub">This request is marked resolved. Create a new request if you need more help.</p>':'<div class="field"><label for="supportReplyText">Reply</label><textarea id="supportReplyText" rows="3" maxlength="5000" placeholder="Add more information…"></textarea></div><button class="btn btn-primary" type="button" onclick="replyToSupportTicket()">Send reply</button>')+'</div>';
+ host.innerHTML='<div class="panel" style="margin-top:12px"><div class="section-title">'+esc(t.data.subject)+' <span class="sub">'+esc(supportStatusLabel(t.data.status))+'</span></div>'+m.data.map(x=>'<div style="padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:8px 0"><div class="sub">'+(x.author_role==='admin'?'Gymplified Support':'You')+' · '+new Date(x.created_at).toLocaleString()+'</div><div style="white-space:pre-wrap;margin-top:6px;font-size:calc(13px * var(--text-scale, 1))">'+esc(x.message)+'</div></div>').join('')+(t.data.status==='resolved'?'<p class="sub">This request is marked resolved. Create a new request if you need more help.</p>':'<div class="field"><label for="supportReplyText">Reply</label><textarea id="supportReplyText" rows="3" maxlength="5000" placeholder="Add more information…"></textarea></div><button class="btn btn-primary" type="button" data-action="replyToSupportTicket">Send reply</button>')+'</div>';
  }catch(e){host.innerHTML='<p class="sub">Could not open this support request.</p>';console.warn(e);}
 }
 async function replyToSupportTicket(){
@@ -2983,11 +2983,11 @@ async function replyToSupportTicket(){
 function renderAuthPanel(message){
  const up=authMode==='signup';
  $('friendStatus').innerHTML='<div class="section-title">Your Gymplified account</div><p class="account-hint">Create your profile, connect with friends and sync your progress across devices. We verify email addresses to help protect accounts.</p>'+
- '<div class="account-tabs"><button class="btn '+(up?'active':'')+'" onclick="switchAuthMode(\'signup\')">Create account</button><button class="btn '+(!up?'active':'')+'" onclick="switchAuthMode(\'login\')">Log in</button></div>'+
- '<form class="account-form" onsubmit="handleAuthSubmit(event)">'+
+ '<div class="account-tabs"><button class="btn '+(up?'active':'')+'" data-action="switchAuthMode" data-arg="signup">Create account</button><button class="btn '+(!up?'active':'')+'" data-action="switchAuthMode" data-arg="login">Log in</button></div>'+
+ '<form class="account-form" data-submit="handleAuthSubmit">'+
  (up?'<div class="field"><label for="authUsername">Username</label><input id="authUsername" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="e.g. johnny_fitness"><div class="account-hint">3–20 characters. Letters, numbers and underscores only.</div></div><div class="field"><label for="authDisplayName">Display name</label><input id="authDisplayName" name="displayName" maxlength="32" placeholder="How should friends see you?"></div>':'')+
  '<div class="field"><label for="authEmail">Email address</label><input id="authEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div><div class="field"><label for="authPassword">Password</label><input id="authPassword" name="password" type="password" required minlength="8" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 8 characters"></div>'+
- '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p><button class="btn" id="resendVerification" type="button" onclick="resendSignupConfirmation()" style="display:none;margin-top:8px">Resend verification email</button></form>'+
+ '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p><button class="btn" id="resendVerification" type="button" data-action="resendSignupConfirmation" style="display:none;margin-top:8px">Resend verification email</button></form>'+
  '<p class="account-hint">When you sign in, your workouts, nutrition, personal records and goals sync securely across your devices.</p>';
 }
 function switchAuthMode(mode){authMode=mode==='login'?'login':'signup';renderAuthPanel('');}
@@ -3023,9 +3023,9 @@ function renderAccountPanel(){
  const p=currentProfile||{username:currentUser.email?currentUser.email.split('@')[0]:'member',display_name:'Gymplified member'};
  $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+
  '<div style="flex:1;min-width:180px"><strong style="font:700 19px var(--font-heading)">'+esc(p.display_name||p.username)+'</strong>'+(deluxeEnabled()&&state.deluxe&&state.deluxe.profileFlair?'<span class="deluxe-pill" style="margin-left:6px">DELUXE</span>':'')+'<div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
- '<div class="account-actions"><button class="btn" onclick="$(\'avatarFile\').click()">Change picture</button><button class="btn" onclick="signOutAccount()">Sign out</button></div></div>'+
- '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp" hidden onchange="uploadAvatar(this.files[0])">'+
- '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" onclick="saveProfile()">Save profile</button></div>'+
+ '<div class="account-actions"><button class="btn" data-action="pickAvatarFile">Change picture</button><button class="btn" data-action="signOutAccount">Sign out</button></div></div>'+
+ '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp" hidden data-change="uploadAvatar">'+
+ '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" data-action="saveProfile">Save profile</button></div>'+
  '<div class="account-card"><strong>Profile picture</strong><p class="account-hint" style="margin:8px 0">Upload a JPG, PNG or WebP image. Maximum file size: 3 MB.</p><p class="account-hint">Your username is how other people can find you. Your email address is never shown in search results.</p></div></div>';
 }
 async function saveProfile(){
@@ -3078,11 +3078,11 @@ function renderFriends(){
   const accepted=friendRequests.filter(function(x){return x.status==='accepted';});acceptedFriendCount=accepted.length;
   const row=function(p,actions,note){if(!p)return '';return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name||p.username)+'</strong><small>@'+esc(p.username)+(note?' · '+esc(note):'')+'</small></div>'+(actions||'')+'</div>';};
   let html='<div class="section-title">Your connections</div><div class="account-section-title">Friends ('+accepted.length+')</div>';
-  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" onclick="removeFriend('+jsArg(x.id)+')">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
+  html+=accepted.length?accepted.map(function(x){const id=x.requester_id===currentUser.id?x.receiver_id:x.requester_id;return row(friendProfiles[id],'<button class="btn" style="color:var(--danger)" data-action="removeFriend" data-id="'+esc(x.id)+'">Remove</button>');}).join(''):'<p class="account-hint">No friends yet. Search for a username to send your first request.</p>';
   html+='<div class="account-section-title">Incoming requests ('+incoming.length+')</div>';
-  html+=incoming.length?incoming.map(function(x){return row(friendProfiles[x.requester_id],'<button class="btn btn-primary" onclick="respondFriendRequest('+jsArg(x.id)+',true)">Accept</button><button class="btn" onclick="respondFriendRequest('+jsArg(x.id)+',false)">Decline</button>');}).join(''):'<p class="account-hint">No new friend requests.</p>';
+  html+=incoming.length?incoming.map(function(x){return row(friendProfiles[x.requester_id],'<button class="btn btn-primary" data-action="respondFriendRequest" data-id="'+esc(x.id)+'" data-arg="true">Accept</button><button class="btn" data-action="respondFriendRequest" data-id="'+esc(x.id)+'" data-arg="false">Decline</button>');}).join(''):'<p class="account-hint">No new friend requests.</p>';
   html+='<div class="account-section-title">Sent requests ('+outgoing.length+')</div>';
-  html+=outgoing.length?outgoing.map(function(x){return row(friendProfiles[x.receiver_id],'<button class="btn" onclick="removeFriend('+jsArg(x.id)+')">Cancel</button>','Pending');}).join(''):'<p class="account-hint">You have no pending sent requests.</p>';
+  html+=outgoing.length?outgoing.map(function(x){return row(friendProfiles[x.receiver_id],'<button class="btn" data-action="removeFriend" data-id="'+esc(x.id)+'">Cancel</button>','Pending');}).join(''):'<p class="account-hint">You have no pending sent requests.</p>';
   $('friendConnections').innerHTML=html;
  }).catch(function(e){$('friendConnections').innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>';});
 }
@@ -3091,7 +3091,7 @@ async function searchFriends(query){
  searchTimer=setTimeout(async function(){out.innerHTML='<p class="account-hint">Searching…</p>';try{
   const term=q.replace(/[^a-zA-Z0-9 _-]/g,'').trim();if(!term){out.innerHTML='<p class="account-hint">Search using letters or numbers.</p>';return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url').or('username.ilike.%'+term+'%,display_name.ilike.%'+term+'%').neq('id',currentUser.id).limit(12);if(r.error)throw r.error;
   const known=new Set(friendRequests.map(function(x){return x.requester_id===currentUser.id?x.receiver_id:x.requester_id;}));const matches=(r.data||[]).filter(function(x){return !known.has(x.id);});
-  out.innerHTML=matches.length?matches.map(function(p){return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name)+'</strong><small>@'+esc(p.username)+'</small></div><button class="btn btn-primary" onclick="sendFriendRequest('+jsArg(p.id)+')">Add friend</button></div>';}).join(''):'<p class="account-hint">No matching usernames found.</p>';
+  out.innerHTML=matches.length?matches.map(function(p){return '<div class="profile-row">'+avatarMarkup(p,true)+'<div class="profile-info"><strong>'+esc(p.display_name)+'</strong><small>@'+esc(p.username)+'</small></div><button class="btn btn-primary" data-action="sendFriendRequest" data-id="'+esc(p.id)+'">Add friend</button></div>';}).join(''):'<p class="account-hint">No matching usernames found.</p>';
  }catch(e){out.innerHTML='<p class="account-message">'+esc(socialError(e))+'</p>'; }},250);
 }
 async function sendFriendRequest(id){
@@ -3284,7 +3284,7 @@ function addDeluxePlanExercise(){
 }
 function renderDeluxePlanDraft(){
  const host=$('deluxePlanDraft');if(!host)return;
- host.innerHTML=deluxePlanDraft.length?deluxePlanDraft.map((d,i)=>'<div class="deluxe-plan-row"><div class="plan-day-head"><strong>'+esc(d.day)+'</strong><span class="row-wrap"><button type="button" class="btn btn-icon-only" data-plan-action="up" data-i="'+i+'" aria-label="Move '+esc(d.day)+' earlier"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="btn btn-icon-only" data-plan-action="down" data-i="'+i+'" aria-label="Move '+esc(d.day)+' later"'+(i===deluxePlanDraft.length-1?' disabled':'')+'>↓</button></span></div>'+d.exercises.map((e,j)=>'<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>'+esc(e.name)+' · '+e.sets+' × '+e.reps+' · '+esc(fmtWeight(e.kg,2))+'</span><button class="btn" onclick="removeDeluxeDraftExercise('+i+','+j+')">Remove</button></div>').join('')+'</div>').join(''):'<p class="sub">Your plan is empty. Add exercises to start building it.</p>';
+ host.innerHTML=deluxePlanDraft.length?deluxePlanDraft.map((d,i)=>'<div class="deluxe-plan-row"><div class="plan-day-head"><strong>'+esc(d.day)+'</strong><span class="row-wrap"><button type="button" class="btn btn-icon-only" data-plan-action="up" data-i="'+i+'" aria-label="Move '+esc(d.day)+' earlier"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="btn btn-icon-only" data-plan-action="down" data-i="'+i+'" aria-label="Move '+esc(d.day)+' later"'+(i===deluxePlanDraft.length-1?' disabled':'')+'>↓</button></span></div>'+d.exercises.map((e,j)=>'<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>'+esc(e.name)+' · '+e.sets+' × '+e.reps+' · '+esc(fmtWeight(e.kg,2))+'</span><button class="btn" data-action="removeDeluxeDraftExercise" data-i="'+i+'" data-j="'+j+'">Remove</button></div>').join('')+'</div>').join(''):'<p class="sub">Your plan is empty. Add exercises to start building it.</p>';
 }
 function removeDeluxeDraftExercise(i,j){if(deluxePlanDraft[i]){deluxePlanDraft[i].exercises.splice(j,1);if(!deluxePlanDraft[i].exercises.length)deluxePlanDraft.splice(i,1);renderDeluxePlanDraft();}}
 function saveDeluxePlan(){
@@ -3298,7 +3298,7 @@ function saveDeluxePlan(){
 }
 function renderDeluxePlanLibrary(){
  const host=$('deluxePlanLibrary');if(!host)return;const plans=state.deluxe&&Array.isArray(state.deluxe.plans)?state.deluxe.plans:[];
- host.innerHTML=plans.length?'<div class="sub-h">Saved plans</div>'+plans.map((p,i)=>'<div class="deluxe-plan-row"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(p.name)+'</strong><span class="sub">'+p.days.reduce((n,d)=>n+d.exercises.length,0)+' planned exercises</span></div><div class="row-wrap" style="margin-top:9px"><button class="btn btn-primary" onclick="loadDeluxePlan('+i+')">Load a day</button><button type="button" class="btn" data-plan-edit="'+i+'">Edit</button><button class="btn" onclick="deleteDeluxePlan('+i+')">Delete</button></div></div>').join(''):'<p class="sub">Your saved training plans will appear here.</p>';
+ host.innerHTML=plans.length?'<div class="sub-h">Saved plans</div>'+plans.map((p,i)=>'<div class="deluxe-plan-row"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(p.name)+'</strong><span class="sub">'+p.days.reduce((n,d)=>n+d.exercises.length,0)+' planned exercises</span></div><div class="row-wrap" style="margin-top:9px"><button class="btn btn-primary" data-action="loadDeluxePlan" data-i="'+i+'">Load a day</button><button type="button" class="btn" data-plan-edit="'+i+'">Edit</button><button class="btn" data-action="deleteDeluxePlan" data-i="'+i+'">Delete</button></div></div>').join(''):'<p class="sub">Your saved training plans will appear here.</p>';
  renderDeluxePlanDraft();
 }
 let deluxePendingPlanIndex=null;
@@ -3364,5 +3364,57 @@ initAccessibilityControls();
 initLibraryControls();
 initDeluxeControls();
 initGoals();
+// ===== Batch 10 (K3): delegated UI actions instead of inline on* handlers =====
+// Markup names an action (data-action for clicks, data-change, data-input, data-submit); one listener per
+// event type runs it. Only the actions listed here can run, so markup can never call arbitrary globals,
+// and the page no longer needs 'unsafe-inline' scripts.
+const uiNum=v=>Number(v);
+const UI_ACTIONS=Object.freeze({
+ // navigation and general
+ showScreen:el=>showScreen(el.dataset.arg,el),goToTraining:()=>goToTraining(),nextQuote:()=>nextQuote(),
+ openLogModal:()=>openLogModal(),openCalorieModal:()=>openCalorieModal(),installGymplified:()=>installGymplified(),closeInstallHelp:()=>closeInstallHelp(),
+ setAnalyticsConsent:el=>{if(typeof window.setAnalyticsConsent==='function')window.setAnalyticsConsent(el.dataset.arg==='granted'?'granted':'denied');},
+ // appearance
+ changeColor:el=>changeColor(el.dataset.arg,el),changeTheme:el=>changeTheme(el.value),changeScale:el=>changeScale(el.value),changeMotion:el=>changeMotion(el.value),
+ changeFont:el=>changeFont(el.value),changeContrast:el=>changeContrast(el.value),toggleQuickTheme:()=>toggleQuickTheme(),
+ // training
+ renderPicker:()=>renderPicker(),addCustom:()=>addCustom(),rest:el=>rest(uiNum(el.dataset.arg)),toggleWorkoutDone:el=>toggleWorkoutDone(uiNum(el.dataset.i)),
+ startSession:()=>startSession(),endSession:()=>endSession(),cancelSession:()=>cancelSession(),editSessionStart:el=>editSessionStart(el.value),
+ editHistoryTime:el=>editHistoryTime(uiNum(el.dataset.i),el.value),editHistoryDuration:el=>editHistoryDuration(uiNum(el.dataset.i),el.value),
+ viewExerciseHistoryForSession:(el,e)=>{e.preventDefault();viewExerciseHistoryForSession(uiNum(el.dataset.i),uiNum(el.dataset.j));},
+ saveCurrentRoutine:()=>saveCurrentRoutine(),reuseRoutine:()=>reuseRoutine(),loadSavedRoutine:el=>loadSavedRoutine(uiNum(el.dataset.i)),deleteSavedRoutine:el=>deleteSavedRoutine(uiNum(el.dataset.i)),
+ clearAllWorkouts:()=>clearAllWorkouts(),savePRRecord:()=>savePRRecord(),deletePR:el=>deletePR(uiNum(el.dataset.i)),clearAllPRs:()=>clearAllPRs(),shareWeeklyRecap:()=>shareWeeklyRecap(),
+ // nutrition
+ addSelectedFood:()=>addSelectedFood(),clearFoodPicker:()=>clearFoodPicker(),saveCustomFood:()=>saveCustomFood(),clearFoodLogs:()=>clearFoodLogs(),saveNutritionTargets:()=>saveNutritionTargets(),
+ // data tools
+ exportData:()=>exportData(),exportGymplifiedCSV:()=>exportGymplifiedCSV(),pickCsvFile:()=>$('gymplifiedCsvInput').click(),importGymplifiedCSV:el=>importGymplifiedCSV(el),
+ resetAllData:()=>resetAllData(),confirmResetAllData:()=>confirmResetAllData(),downloadLegacyLocalBackup:()=>downloadLegacyLocalBackup(),
+ resolveLegacyLocalData:el=>resolveLegacyLocalData(el.dataset.arg==='true'),
+ // account, profile, support, friends
+ switchAuthMode:el=>switchAuthMode(el.dataset.arg==='signup'?'signup':'login'),handleAuthSubmit:(el,e)=>handleAuthSubmit(e),resendSignupConfirmation:()=>resendSignupConfirmation(),
+ signOutAccount:()=>signOutAccount(),saveProfile:()=>saveProfile(),pickAvatarFile:()=>$('avatarFile').click(),uploadAvatar:el=>uploadAvatar(el.files&&el.files[0]),
+ closeAccountDialogs:()=>closeAccountDialogs(),deleteGymplifiedAccount:()=>deleteGymplifiedAccount(),confirmDeleteGymplifiedAccount:()=>confirmDeleteGymplifiedAccount(),updateDeleteAccountConfirm:()=>updateDeleteAccountConfirm(),
+ submitSupportTicket:(el,e)=>submitSupportTicket(e),openSupportTicket:el=>openSupportTicket(el.dataset.id),replyToSupportTicket:()=>replyToSupportTicket(),
+ searchFriends:el=>searchFriends(el.value),sendFriendRequest:el=>sendFriendRequest(el.dataset.id),removeFriend:el=>removeFriend(el.dataset.id),
+ respondFriendRequest:el=>respondFriendRequest(el.dataset.id,el.dataset.arg==='true'),
+ // Deluxe
+ openDeluxeDemo:()=>openDeluxeDemo(),previewDeluxeFeature:el=>previewDeluxeFeature(el.dataset.arg),saveDeluxeCustomisation:()=>saveDeluxeCustomisation(),renderDeluxePerformance:()=>renderDeluxePerformance(),
+ addDeluxePlanExercise:()=>addDeluxePlanExercise(),removeDeluxeDraftExercise:el=>removeDeluxeDraftExercise(uiNum(el.dataset.i),uiNum(el.dataset.j)),saveDeluxePlan:()=>saveDeluxePlan(),
+ loadDeluxePlan:el=>loadDeluxePlan(uiNum(el.dataset.i)),deleteDeluxePlan:el=>deleteDeluxePlan(uiNum(el.dataset.i)),confirmLoadDeluxePlan:()=>confirmLoadDeluxePlan(),closeDeluxePlanDayDialog:()=>closeDeluxePlanDayDialog(),
+ exportDeluxeCSV:()=>exportDeluxeCSV(),exportDeluxeReport:()=>exportDeluxeReport()
+});
+function bindUiActions(){
+ [['click','data-action'],['change','data-change'],['input','data-input'],['submit','data-submit']].forEach(([type,attr])=>{
+  document.addEventListener(type,e=>{
+   const el=e.target&&e.target.closest?e.target.closest('['+attr+']'):null;if(!el)return;
+   const run=Object.prototype.hasOwnProperty.call(UI_ACTIONS,el.getAttribute(attr))?UI_ACTIONS[el.getAttribute(attr)]:null;
+   if(!run){console.warn('Unknown UI action:',el.getAttribute(attr));return;}
+   run(el,e);
+  });
+ });
+ // The legacy-data choice must be answered; Escape may not dismiss it.
+ $('legacyLocalDataDialog')?.addEventListener('cancel',e=>e.preventDefault());
+}
+bindUiActions();
 if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();

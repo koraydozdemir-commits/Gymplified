@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gymplified-shell-v21';
+const CACHE_NAME = 'gymplified-shell-v22';
 const SUPABASE_SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';
 const APP_SHELL = [
   './',

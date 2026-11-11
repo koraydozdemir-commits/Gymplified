@@ -10,7 +10,7 @@
 <meta property="og:description" content="Track your workouts, personal records, nutrition and training progress with Gymplified.">
 <meta property="og:url" content="https://gymplified.com/">
 <meta property="og:site_name" content="Gymplified">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ouwvujtsrnotnwtbvqhc.supabase.co; font-src 'self' data:; connect-src 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co wss://ouwvujtsrnotnwtbvqhc.supabase.co https://world.openfoodfacts.org; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ouwvujtsrnotnwtbvqhc.supabase.co; font-src 'self' data:; connect-src 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co wss://ouwvujtsrnotnwtbvqhc.supabase.co https://world.openfoodfacts.org; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f17">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -33,16 +33,16 @@
     <div class="top-actions">
       <span class="date-tag" id="currentDate">Today</span>
       <button class="session-chip" id="sessionChip" type="button" hidden><span class="session-chip-time"><span aria-hidden="true">⏱ </span><span id="sessionChipClock">0:00</span></span><span class="session-chip-meta" id="sessionChipMeta"></span></button>
-      <button class="btn btn-primary top-log-btn" onclick="openLogModal()" aria-label="Log exercise">+ <span class="top-label-long">Log Exercise</span><span class="top-label-short">Log</span></button>
-      <button class="btn install-trigger" id="installAppButton" type="button" onclick="installGymplified()">Install app</button>
-      <button class="btn btn-icon-only" title="Quick Theme Switcher" aria-label="Switch theme" onclick="toggleQuickTheme()">◐</button>
+      <button class="btn btn-primary top-log-btn" data-action="openLogModal" aria-label="Log exercise">+ <span class="top-label-long">Log Exercise</span><span class="top-label-short">Log</span></button>
+      <button class="btn install-trigger" id="installAppButton" type="button" data-action="installGymplified">Install app</button>
+      <button class="btn btn-icon-only" title="Quick Theme Switcher" aria-label="Switch theme" data-action="toggleQuickTheme">◐</button>
     </div>
   </header>
   <section class="install-help" id="installHelp" hidden aria-live="polite">
     <h2>Make Gymplified your app</h2>
     <p id="installHelpIntro">Add Gymplified to your Home Screen for a full-screen app experience.</p>
     <ol id="installSteps"><li>Open your browser's share or menu button.</li><li>Choose “Add to Home Screen”.</li><li>Tap Add. Gymplified will open from its own icon.</li></ol>
-    <div class="install-actions"><button class="btn btn-primary" type="button" onclick="installGymplified()">Install</button><button class="btn" type="button" onclick="closeInstallHelp()">Got it</button></div>
+    <div class="install-actions"><button class="btn btn-primary" type="button" data-action="installGymplified">Install</button><button class="btn" type="button" data-action="closeInstallHelp">Got it</button></div>
   </section>
 
   <div class="layout">
@@ -50,31 +50,31 @@
     <aside>
       <div class="nav-label">Workspace</div>
       <nav aria-label="Main">
-        <button class="active" data-screen="dashboard" onclick="showScreen('dashboard', this)">
+        <button class="active" data-screen="dashboard" data-action="showScreen" data-arg="dashboard">
           <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           <span class="nav-text nav-long">Dashboard</span><span class="nav-text nav-short">Home</span>
         </button>
-        <button data-screen="prs" onclick="showScreen('prs', this)">
+        <button data-screen="prs" data-action="showScreen" data-arg="prs">
           <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
           <span class="nav-text nav-long">Personal Records</span><span class="nav-text nav-short">Records</span>
         </button>
-        <button data-screen="training" onclick="showScreen('training', this)">
+        <button data-screen="training" data-action="showScreen" data-arg="training">
           <svg viewBox="0 0 24 24"><path d="M6 5v14M18 5v14M2 9v6M22 9v6M10 12h4"/></svg>
           <span class="nav-text nav-long">Training Log</span><span class="nav-text nav-short">Training</span>
         </button>
-        <button data-screen="nutrition" onclick="showScreen('nutrition', this)">
+        <button data-screen="nutrition" data-action="showScreen" data-arg="nutrition">
           <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
           <span class="nav-text nav-long">Nutrition</span><span class="nav-text nav-short">Food</span>
         </button>
-        <button data-screen="friends" onclick="showScreen('friends', this)">
+        <button data-screen="friends" data-action="showScreen" data-arg="friends">
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span class="nav-text nav-long">Friends</span><span class="nav-text nav-short">Friends</span>
         </button>
-        <button data-screen="deluxe" onclick="showScreen('deluxe', this)">
+        <button data-screen="deluxe" data-action="showScreen" data-arg="deluxe">
           <svg viewBox="0 0 24 24"><path d="m12 2 2.5 6.5L21 11l-6.5 2.5L12 20l-2.5-6.5L3 11l6.5-2.5L12 2Z"/><path d="m19 14 1.2 3.1L23 18l-2.8 1-1.2 3-1.1-3-2.9-1 2.9-.9L19 14Z"/></svg>
           <span class="nav-text nav-long">Deluxe</span><span class="nav-text nav-short">Deluxe</span>
         </button>
-        <button data-screen="settings" onclick="showScreen('settings', this)">
+        <button data-screen="settings" data-action="showScreen" data-arg="settings">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           <span class="nav-text nav-long">Settings</span><span class="nav-text nav-short">Settings</span>
         </button>
@@ -116,7 +116,7 @@
                 <div class="eyebrow">Energy Intake</div>
                 <div class="metric-num"><span id="dashCal">—</span> <span class="metric-unit">/ <span id="dashCalTarget">—</span> kcal</span></div>
               </div>
-              <button class="btn" onclick="openCalorieModal()">+ Add Food</button>
+              <button class="btn" data-action="openCalorieModal">+ Add Food</button>
             </div>
             <div class="progress-bar"><i id="dashCalBar" style="width: 0%"></i></div>
             <div class="meta-row">
@@ -156,7 +156,7 @@
         <div class="panel">
           <div class="section-title">
             <span>Today's Logged Exercises</span>
-            <button class="btn btn-primary" onclick="openLogModal()">+ Log Exercise</button>
+            <button class="btn btn-primary" data-action="openLogModal">+ Log Exercise</button>
           </div>
           <div id="dashWorkoutsContainer">
             <!-- Dynamic rows -->
@@ -175,7 +175,7 @@
           <div class="quote-icon">“</div>
           <div class="motivation-header">
             <div class="eyebrow" style="color: var(--brand-text);">Daily Mindset Strategy</div>
-            <button class="btn btn-gold" onclick="nextQuote()" title="Get New Random Quote">
+            <button class="btn btn-gold" data-action="nextQuote" title="Get New Random Quote">
               <span>New Quote</span> ↺
             </button>
           </div>
@@ -206,14 +206,14 @@
               <input type="date" id="inputPRDate">
             </div>
           </div>
-          <button class="btn btn-primary" onclick="savePRRecord()">+ Save Personal Record</button>
+          <button class="btn btn-primary" data-action="savePRRecord">+ Save Personal Record</button>
         </div>
 
         <!-- PR Display Cards Grid -->
         <div class="panel">
           <div class="section-title">
             <span>Peak Lifter Hall of Fame</span>
-            <button class="btn" onclick="clearAllPRs()" style="color:var(--danger)">Reset All PRs</button>
+            <button class="btn" data-action="clearAllPRs" style="color:var(--danger)">Reset All PRs</button>
           </div>
           <div id="prListContainer">
             <!-- Dynamic PR cards -->
@@ -229,23 +229,23 @@
 <div class="panel" id="sessBar" role="status" aria-live="polite" aria-atomic="true" style="margin-bottom:20px"></div>
 <div id="sessionSummary"></div>
 <div class="panel" style="margin-bottom:20px"><div class="section-title">Rest Timer & Routine</div><div class="row-wrap">
-<button class="btn" onclick="rest(60)">60s</button><button class="btn" onclick="rest(90)">90s</button><button class="btn" onclick="rest(120)">2 min</button>
+<button class="btn" data-action="rest" data-arg="60">60s</button><button class="btn" data-action="rest" data-arg="90">90s</button><button class="btn" data-action="rest" data-arg="120">2 min</button>
 <strong id="timerOut" role="timer" aria-label="Rest timer" aria-live="off" style="font:700 22px var(--font-heading);min-width:70px">–</strong>
-<button class="btn" type="button" id="restSettingsLink">⚙ Rest timer settings</button><button class="btn" onclick="reuseRoutine()">↻ Reuse last routine</button><button class="btn btn-primary" onclick="saveCurrentRoutine()">＋ Save routine</button></div><div id="routineLibrary" style="margin-top:12px"></div></div>
+<button class="btn" type="button" id="restSettingsLink">⚙ Rest timer settings</button><button class="btn" data-action="reuseRoutine">↻ Reuse last routine</button><button class="btn btn-primary" data-action="saveCurrentRoutine">＋ Save routine</button></div><div id="routineLibrary" style="margin-top:12px"></div></div>
 
         <div class="pick-grid">
  <div class="panel"><div class="section-title">Add Exercise</div>
   <label class="sr" for="exSearch">Search exercises</label>
-  <input type="search" id="exSearch" placeholder="Search exercises, machines, muscles…" oninput="renderPicker()" autocomplete="off" style="width:100%">
-  <div class="row-wrap" style="margin:8px 0"><select id="exMuscle" onchange="renderPicker()" aria-label="Filter by muscle"></select><select id="exEquip" onchange="renderPicker()" aria-label="Filter by equipment"></select></div>
+  <input type="search" id="exSearch" placeholder="Search exercises, machines, muscles…" data-input="renderPicker" autocomplete="off" style="width:100%">
+  <div class="row-wrap" style="margin:8px 0"><select id="exMuscle" data-change="renderPicker" aria-label="Filter by muscle"></select><select id="exEquip" data-change="renderPicker" aria-label="Filter by equipment"></select></div>
   <div id="exResults" class="ex-results" role="list"></div>
   <details id="customBox" style="margin-top:10px"><summary>Can't find it? Add a custom exercise</summary>
-   <div class="row-wrap" style="margin-top:8px"><input type="text" id="cName" maxlength="60" placeholder="Exercise name" aria-label="Custom exercise name"><select id="cMuscle" aria-label="Primary muscle"></select><select id="cEquip" aria-label="Equipment"></select><button class="btn btn-primary" onclick="addCustom()">Create & add</button></div></details>
+   <div class="row-wrap" style="margin-top:8px"><input type="text" id="cName" maxlength="60" placeholder="Exercise name" aria-label="Custom exercise name"><select id="cMuscle" aria-label="Primary muscle"></select><select id="cEquip" aria-label="Equipment"></select><button class="btn btn-primary" data-action="addCustom">Create & add</button></div></details>
  </div>
  <div><div class="body-visualizer" style="display:block;text-align:center;padding:14px"><div class="muscle-map-legend"><span><i class="muscle-map-dot primary"></i>Primary muscle</span><span><i class="muscle-map-dot secondary"></i>Supporting muscle</span></div><div id="muscleMapMount" class="muscle-map-mount" aria-live="polite"></div><div class="muscle-image-credit">Anatomical illustration: OpenStax, Tomáš Kebert & umimeto.org · CC BY-SA 4.0 · <a href="https://commons.wikimedia.org/wiki/File:Muscles_front_and_back.svg" target="_blank" rel="noopener">Source & licence</a></div></div><div class="panel" id="exPreview" style="margin-top:12px" aria-live="polite"></div></div>
 </div>
 <div id="liveStats" role="status" aria-live="polite" aria-atomic="true"></div>
-<div class="section-title"><span>Today's Workout</span><button class="btn" onclick="clearAllWorkouts()" style="color:var(--danger)">Clear all</button></div>
+<div class="section-title"><span>Today's Workout</span><button class="btn" data-action="clearAllWorkouts" style="color:var(--danger)">Clear all</button></div>
 <div id="trainingLogList" style="margin-bottom:20px"></div>
 <div id="exerciseHistoryPanel"></div>
 <div class="panel"><div class="section-title">Workout History</div><p class="sub" style="margin-bottom:12px">Open any finished workout to review the exercises and sets you completed.</p><div id="sessionHistory"></div></div>
@@ -274,7 +274,7 @@
               <label>Carbs <span>g</span><input id="targetCarbs" type="number" min="0" max="800" step="1"></label>
               <label>Fat <span>g</span><input id="targetFat" type="number" min="0" max="300" step="1"></label>
             </div>
-            <button class="btn btn-primary" onclick="saveNutritionTargets()">Save macro goals</button>
+            <button class="btn btn-primary" data-action="saveNutritionTargets">Save macro goals</button>
             <p class="sub" id="macroPercentLine" style="margin-top:10px"></p>
             <details class="macro-percent"><summary>Set targets by percentage</summary>
               <p class="sub">Splits your calorie target into grams (protein and carbs 4 kcal/g, fat 9 kcal/g).</p>
@@ -301,7 +301,7 @@
             <div class="field"><label for="foodMeal">Add to meal</label><select id="foodMeal"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snacks</option></select></div>
           </div>
           <div id="foodPreview" class="food-preview"><span class="sub">Select a food to see its nutrition breakdown.</span></div>
-          <div class="row-wrap" style="margin-top:14px"><button class="btn btn-primary" id="addFoodButton" onclick="addSelectedFood()" disabled>+ Add to food diary</button><button class="btn" onclick="clearFoodPicker()">Clear selection</button></div>
+          <div class="row-wrap" style="margin-top:14px"><button class="btn btn-primary" id="addFoodButton" data-action="addSelectedFood" disabled>+ Add to food diary</button><button class="btn" data-action="clearFoodPicker">Clear selection</button></div>
           <div id="foodQuickAdd" class="food-quick-add"></div>
           <details class="custom-food-details"><summary>Can't find your food? Add a custom food</summary>
             <p class="sub">Enter the label values per 100g once. Then choose the portion you actually ate.</p>
@@ -312,10 +312,10 @@
               <div class="field"><label for="customFoodCarbs">Carbs / 100g</label><input id="customFoodCarbs" type="number" min="0" max="100" step="0.1" placeholder="e.g. 65"></div>
               <div class="field"><label for="customFoodFat">Fat / 100g</label><input id="customFoodFat" type="number" min="0" max="100" step="0.1" placeholder="e.g. 7"></div>
             </div>
-            <button class="btn" onclick="saveCustomFood()">Save custom food</button>
+            <button class="btn" data-action="saveCustomFood">Save custom food</button>
           </details>
         </div>
-        <div class="panel nutrition-diary" style="margin-bottom:18px"><div class="section-title"><span>Today's food diary</span><div class="row-wrap"><span class="sub" id="foodEntryCount">0 items</span><button class="btn" onclick="clearFoodLogs()" style="color:var(--danger)">Clear day</button></div></div><div id="foodDiary"></div></div>
+        <div class="panel nutrition-diary" style="margin-bottom:18px"><div class="section-title"><span>Today's food diary</span><div class="row-wrap"><span class="sub" id="foodEntryCount">0 items</span><button class="btn" data-action="clearFoodLogs" style="color:var(--danger)">Clear day</button></div></div><div id="foodDiary"></div></div>
         <div class="panel" id="nutritionWeek" style="margin-bottom:18px"></div>
         <div class="panel" id="waterPanel" style="margin-bottom:18px"></div>
       </section>
@@ -330,7 +330,7 @@
         <div class="panel" id="friendSearchPanel" style="display:none">
           <div class="section-title">Find people</div>
           <label class="sr" for="friendSearch">Search usernames</label>
-          <input type="search" id="friendSearch" placeholder="Search usernames…" oninput="searchFriends(this.value)" autocomplete="off" style="width:100%">
+          <input type="search" id="friendSearch" placeholder="Search usernames…" data-input="searchFriends" autocomplete="off" style="width:100%">
           <div id="searchOut" style="margin:8px 0"></div>
           <div class="sub" style="margin-top:10px">Friend codes are gone. Search for someone's username and send them a request.</div>
         </div>
@@ -362,7 +362,7 @@
           
           <div class="toggle-row">
             <label for="themeSelect">Display Theme Mode</label>
-            <select id="themeSelect" onchange="changeTheme(this.value)" style="width: 170px;">
+            <select id="themeSelect" data-change="changeTheme" style="width: 170px;">
               <option value="dark">Dark Mode (Default)</option>
               <option value="light">Light Mode</option>
             </select>
@@ -371,13 +371,13 @@
           <div style="margin-top: 14px;">
             <label style="font-size:calc(11px * var(--text-scale, 1)); font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">UI Accent Palette</label>
             <div class="color-picker">
-              <button type="button" class="color-dot" style="background: #2563eb;" title="Electric Blue" aria-label="Electric Blue accent" onclick="changeColor('blue', this)"></button>
-              <button type="button" class="color-dot" style="background: #059669;" title="Emerald Green" aria-label="Emerald Green accent" onclick="changeColor('emerald', this)"></button>
-              <button type="button" class="color-dot" style="background: #475569;" title="Slate Gray" aria-label="Slate Gray accent" onclick="changeColor('slate', this)"></button>
-              <button type="button" class="color-dot" style="background: #dc2626;" title="Crimson Red" aria-label="Crimson Red accent" onclick="changeColor('crimson', this)"></button>
-              <button type="button" class="color-dot" style="background: #d97706;" title="Amber" aria-label="Amber accent" onclick="changeColor('amber', this)"></button>
-              <button type="button" class="color-dot" style="background: linear-gradient(135deg,#f5df9b,#c9a24e 55%,#8d682b);" title="Gymplified Gold" aria-label="Gymplified Gold accent" onclick="changeColor('gold', this)"></button>
-              <button type="button" class="color-dot" style="background: #7c3aed;" title="Violet Purple" aria-label="Violet Purple accent" onclick="changeColor('violet', this)"></button>
+              <button type="button" class="color-dot" style="background: #2563eb;" title="Electric Blue" aria-label="Electric Blue accent" data-action="changeColor" data-arg="blue"></button>
+              <button type="button" class="color-dot" style="background: #059669;" title="Emerald Green" aria-label="Emerald Green accent" data-action="changeColor" data-arg="emerald"></button>
+              <button type="button" class="color-dot" style="background: #475569;" title="Slate Gray" aria-label="Slate Gray accent" data-action="changeColor" data-arg="slate"></button>
+              <button type="button" class="color-dot" style="background: #dc2626;" title="Crimson Red" aria-label="Crimson Red accent" data-action="changeColor" data-arg="crimson"></button>
+              <button type="button" class="color-dot" style="background: #d97706;" title="Amber" aria-label="Amber accent" data-action="changeColor" data-arg="amber"></button>
+              <button type="button" class="color-dot" style="background: linear-gradient(135deg,#f5df9b,#c9a24e 55%,#8d682b);" title="Gymplified Gold" aria-label="Gymplified Gold accent" data-action="changeColor" data-arg="gold"></button>
+              <button type="button" class="color-dot" style="background: #7c3aed;" title="Violet Purple" aria-label="Violet Purple accent" data-action="changeColor" data-arg="violet"></button>
             </div>
           </div>
         </div>
@@ -392,7 +392,7 @@
 
           <div class="toggle-row">
             <label for="scaleSelect">Text & UI Scale</label>
-            <select id="scaleSelect" onchange="changeScale(this.value)" style="width: 170px;">
+            <select id="scaleSelect" data-change="changeScale" style="width: 170px;">
               <option value="sm">Compact (87.5%)</option>
               <option value="md" selected>Default (100%)</option>
               <option value="lg">Large (112.5%)</option>
@@ -402,7 +402,7 @@
 
           <div class="toggle-row">
             <label for="fontSelect">Typography Style</label>
-            <select id="fontSelect" onchange="changeFont(this.value)" style="width: 170px;">
+            <select id="fontSelect" data-change="changeFont" style="width: 170px;">
               <option value="default">Standard Sans-Serif</option>
               <option value="accessible">Verdana (clear sans-serif)</option>
             </select>
@@ -410,7 +410,7 @@
 
           <div class="toggle-row">
             <label for="contrastToggle">Sharp Border Contrast</label>
-            <select id="contrastToggle" onchange="changeContrast(this.value)" style="width: 170px;">
+            <select id="contrastToggle" data-change="changeContrast" style="width: 170px;">
               <option value="normal">Normal Contrast</option>
               <option value="high">High Sharp Contrast</option>
             </select>
@@ -418,7 +418,7 @@
 
           <div class="toggle-row">
             <label for="motionToggle">UI Animation / Motion</label>
-            <select id="motionToggle" onchange="changeMotion(this.value)" style="width: 170px;">
+            <select id="motionToggle" data-change="changeMotion" style="width: 170px;">
               <option value="normal">Enabled (Smooth Transitions)</option>
               <option value="reduced">Reduced Motion</option>
             </select>
@@ -485,8 +485,8 @@
           <h3>Privacy & Analytics</h3>
           <p>Optional usage analytics are off until you choose to allow them. Gymplified does not attach your account ID to analytics events.</p>
           <div class="row-wrap">
-            <button class="btn btn-primary" type="button" onclick="setAnalyticsConsent('granted')">Allow anonymous analytics</button>
-            <button class="btn" type="button" onclick="setAnalyticsConsent('denied')">Disable analytics</button>
+            <button class="btn btn-primary" type="button" data-action="setAnalyticsConsent" data-arg="granted">Allow anonymous analytics</button>
+            <button class="btn" type="button" data-action="setAnalyticsConsent" data-arg="denied">Disable analytics</button>
           </div>
           <p id="analyticsConsentStatus" role="status" aria-live="polite" style="margin-top:8px">Analytics preference not yet set.</p>
         </div>
@@ -509,16 +509,16 @@
           <h3>Workout history CSV</h3>
           <p>Export workout history as a portable CSV, or import workout-history CSV exports from other gym apps. CSV backups always use kg and km so they restore exactly.</p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn btn-primary" onclick="exportGymplifiedCSV()">↓ Export all data (CSV)</button>
-            <button class="btn" onclick="document.getElementById('gymplifiedCsvInput').click()">↑ Import from another app (CSV)</button>
-            <input id="gymplifiedCsvInput" type="file" accept=".csv,text/csv,.txt" hidden aria-label="Choose a workout history CSV file" onchange="importGymplifiedCSV(this)">
+            <button class="btn btn-primary" data-action="exportGymplifiedCSV">↓ Export all data (CSV)</button>
+            <button class="btn" data-action="pickCsvFile">↑ Import from another app (CSV)</button>
+            <input id="gymplifiedCsvInput" type="file" accept=".csv,text/csv,.txt" hidden aria-label="Choose a workout history CSV file" data-change="importGymplifiedCSV">
           </div>
           <p id="csvBackupStatus" class="sub" aria-live="polite" style="margin-top:12px">Supports Hevy, Strong, FitNotes and standard exercise/set CSVs. Imported history is merged without replacing existing logs.</p>
         </div>
         <div class="settings-group">
           <h3>Reset</h3>
           <p>Gymplified starts with a clean slate. You can reset your saved progress from this device and your synced account.</p>
-          <button class="btn" onclick="resetAllData()" style="color:var(--danger);border-color:var(--danger)">Reset All My Progress</button>
+          <button class="btn" data-action="resetAllData" style="color:var(--danger);border-color:var(--danger)">Reset All My Progress</button>
         </div>
         </section>
         <section class="settings-section" id="set-account" aria-labelledby="set-account-h">
@@ -526,7 +526,7 @@
         <div class="settings-group">
           <h3>Your account</h3>
           <p>Sign-in, your profile, username and avatar are on the Friends screen.</p>
-          <div class="row-wrap"><button class="btn" type="button" data-settings-action="open-account">Open account</button><button class="btn" onclick="deleteGymplifiedAccount()" style="color:var(--danger);border-color:var(--danger)">Delete my account permanently</button></div>
+          <div class="row-wrap"><button class="btn" type="button" data-settings-action="open-account">Open account</button><button class="btn" data-action="deleteGymplifiedAccount" style="color:var(--danger);border-color:var(--danger)">Delete my account permanently</button></div>
         </div>
         </section>
         <section class="settings-section" id="set-help" aria-labelledby="set-help-h">
@@ -534,7 +534,7 @@
 <div class="panel" id="supportPanel" style="margin-bottom:20px">
 <div class="section-title">Help & support <span class="sub">WE'RE HERE TO HELP</span></div>
 <p class="account-hint">Something not working? Send us a message and follow the conversation here.</p>
-<form id="supportForm" onsubmit="submitSupportTicket(event)">
+<form id="supportForm" data-submit="submitSupportTicket">
 <div class="field"><label for="supportCategory">What do you need help with?</label><select id="supportCategory" required><option value="account">Account & sign-in</option><option value="bug">Report a bug</option><option value="workout_tracking">Workout tracking</option><option value="nutrition">Nutrition & food diary</option><option value="feature_request">Suggest a feature</option><option value="other">Something else</option></select></div>
 <div class="field"><label for="supportSubject">Subject</label><input id="supportSubject" maxlength="120" minlength="4" required placeholder="Briefly describe the issue"></div>
 <div class="field"><label for="supportMessage">Message</label><textarea id="supportMessage" maxlength="5000" minlength="10" required rows="4" placeholder="Tell us what happened and what you expected…"></textarea></div>
@@ -561,7 +561,7 @@
             <span class="deluxe-pill" id="deluxeStatus">COMING SOON</span>
             <button class="btn btn-primary" type="button" id="deluxeBuyBtn" hidden>Unlock Deluxe · €9.99</button>
             <button class="btn" type="button" id="deluxeRestoreBtn" hidden>Restore purchase</button>
-            <button class="btn" type="button" onclick="openDeluxeDemo()">Explore Deluxe</button>
+            <button class="btn" type="button" data-action="openDeluxeDemo">Explore Deluxe</button>
             <span class="sub" id="deluxeDemoToggle" role="status"></span>
           </div>
           <div class="deluxe-demo-note" id="deluxeSalesNote">Deluxe is not on sale yet. No payment is taken on this page.</div>
@@ -569,12 +569,12 @@
         <div class="section-title">What's included <span class="sub" id="deluxeIncludedNote">ONE-TIME · NO SUBSCRIPTION</span></div>
         <p class="sub deluxe-free-note">Always free: workout and food logging, PRs, up to 5 saved routines, streaks, badges, friends and leaderboards, progress lines, backups and CSV export.</p>
         <div class="deluxe-grid">
-          <article class="deluxe-feature"><div class="lock">📈</div><h3>Advanced analytics</h3><p>Track strength trends, volume progression, estimated 1RM and training consistency with detailed charts.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Advanced analytics')">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">🧠</div><h3>Smart training insights</h3><p>See muscle-group workload, identify neglected areas and get useful recovery guidance from your logged sessions.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Smart training insights')">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">🗓️</div><h3>Workout planner</h3><p>Build multi-week training plans, organise training days and compare planned sessions with completed workouts.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Workout planner')">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">🏆</div><h3>Performance lab</h3><p>Compare exercise history, personal records, estimated one-rep max and best-set performance over time.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Performance lab')">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">📦</div><h3>Complete data tools</h3><p>Advanced exports, full backup options and detailed training reports for keeping your data portable.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Complete data tools')">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">🎨</div><h3>Deluxe customisation</h3><p>Exclusive profile accents, premium themes, profile presentation options and Deluxe account flair.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Deluxe customisation')">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">📈</div><h3>Advanced analytics</h3><p>Track strength trends, volume progression, estimated 1RM and training consistency with detailed charts.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Advanced analytics">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🧠</div><h3>Smart training insights</h3><p>See muscle-group workload, identify neglected areas and get useful recovery guidance from your logged sessions.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Smart training insights">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🗓️</div><h3>Workout planner</h3><p>Build multi-week training plans, organise training days and compare planned sessions with completed workouts.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Workout planner">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🏆</div><h3>Performance lab</h3><p>Compare exercise history, personal records, estimated one-rep max and best-set performance over time.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Performance lab">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">📦</div><h3>Complete data tools</h3><p>Advanced exports, full backup options and detailed training reports for keeping your data portable.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Complete data tools">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🎨</div><h3>Deluxe customisation</h3><p>Exclusive profile accents, premium themes, profile presentation options and Deluxe account flair.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Deluxe customisation">Preview feature</button></article>
         </div>
         <div id="deluxeLockedNotice" class="panel" style="margin-bottom:16px">
           <strong id="deluxeLockedTitle">Deluxe tools are locked.</strong>
@@ -603,7 +603,7 @@
           </div>
           <div class="panel" style="margin:16px 0">
             <div class="section-title">Performance lab</div>
-            <div class="form-grid"><div class="field"><label for="deluxeExerciseSelect">Exercise</label><select id="deluxeExerciseSelect" onchange="renderDeluxePerformance()"></select></div><div class="field"><label>Best estimated 1RM</label><div class="metric-num" id="deluxeExerciseBest">—</div></div><div class="field"><label>Change since first logged</label><div class="metric-num" id="deluxeExerciseChange">—</div></div></div>
+            <div class="form-grid"><div class="field"><label for="deluxeExerciseSelect">Exercise</label><select id="deluxeExerciseSelect" data-change="renderDeluxePerformance"></select></div><div class="field"><label>Best estimated 1RM</label><div class="metric-num" id="deluxeExerciseBest">—</div></div><div class="field"><label>Change since first logged</label><div class="metric-num" id="deluxeExerciseChange">—</div></div></div>
             <div id="deluxePerformanceRows"></div>
           </div>
           <div class="panel" style="margin:16px 0">
@@ -616,23 +616,23 @@
               <div class="field"><label for="deluxePlanReps">Target reps</label><input id="deluxePlanReps" type="number" min="1" max="100" value="8"></div>
               <div class="field"><label for="deluxePlanKg">Suggested weight (<span data-weight-unit>kg</span>)</label><input id="deluxePlanKg" type="number" min="0" max="1000" step="0.5" value="0"></div>
             </div>
-            <div class="row-wrap"><button class="btn btn-primary" onclick="addDeluxePlanExercise()">Add exercise to plan</button><button class="btn" onclick="saveDeluxePlan()">Save plan</button></div>
+            <div class="row-wrap"><button class="btn btn-primary" data-action="addDeluxePlanExercise">Add exercise to plan</button><button class="btn" data-action="saveDeluxePlan">Save plan</button></div>
             <div id="deluxePlanDraft" style="margin-top:12px"></div>
             <div id="deluxePlanLibrary" style="margin-top:16px"></div>
           </div>
           <div class="panel" style="margin:16px 0">
             <div class="section-title">Data tools</div>
             <p class="sub" style="margin-bottom:12px">Export detailed training data, download a report, or use Gymplified's full JSON backup to move all your data.</p>
-            <div class="row-wrap"><button class="btn btn-primary" onclick="exportDeluxeCSV()">Export workout CSV</button><button class="btn" onclick="exportDeluxeReport()">Download progress report</button><button class="btn" onclick="exportData()">Full JSON backup</button></div>
+            <div class="row-wrap"><button class="btn btn-primary" data-action="exportDeluxeCSV">Export workout CSV</button><button class="btn" data-action="exportDeluxeReport">Download progress report</button><button class="btn" data-action="exportData">Full JSON backup</button></div>
             <div class="sub" id="deluxeExportStatus" style="margin-top:10px" aria-live="polite"></div>
           </div>
           <div class="panel" style="margin:16px 0">
             <div class="section-title">Deluxe customisation</div>
             <div class="form-grid">
-              <div class="field"><label for="deluxeAccent">Premium accent colour</label><select id="deluxeAccent" onchange="saveDeluxeCustomisation()"><option value="gold">Gold</option><option value="violet">Violet</option><option value="blue">Blue</option><option value="emerald">Emerald</option><option value="crimson">Crimson</option><option value="amber">Amber</option></select></div>
-              <div class="field"><label for="deluxeTheme">App appearance</label><select id="deluxeTheme" onchange="saveDeluxeCustomisation()"><option value="dark">Dark</option><option value="light">Light</option></select></div>
+              <div class="field"><label for="deluxeAccent">Premium accent colour</label><select id="deluxeAccent" data-change="saveDeluxeCustomisation"><option value="gold">Gold</option><option value="violet">Violet</option><option value="blue">Blue</option><option value="emerald">Emerald</option><option value="crimson">Crimson</option><option value="amber">Amber</option></select></div>
+              <div class="field"><label for="deluxeTheme">App appearance</label><select id="deluxeTheme" data-change="saveDeluxeCustomisation"><option value="dark">Dark</option><option value="light">Light</option></select></div>
             </div>
-            <label style="display:flex;gap:9px;align-items:center;font-size:calc(13px * var(--text-scale, 1))"><input id="deluxeProfileFlair" type="checkbox" onchange="saveDeluxeCustomisation()"> Show Deluxe flair on my profile</label>
+            <label style="display:flex;gap:9px;align-items:center;font-size:calc(13px * var(--text-scale, 1))"><input id="deluxeProfileFlair" type="checkbox" data-change="saveDeluxeCustomisation"> Show Deluxe flair on my profile</label>
             <p class="sub" style="margin-top:8px">These preferences sync with your Gymplified account when signed in.</p>
           </div>
         </div>
@@ -686,26 +686,26 @@
   <h2 id="deleteAccountTitle">Permanently delete your account?</h2>
   <p id="deleteAccountDescription">This removes your account, profile, synced progress, support requests and avatar. This cannot be undone. Type DELETE to confirm.</p>
   <label for="deleteAccountConfirm">Type DELETE</label>
-  <input id="deleteAccountConfirm" type="text" autocomplete="off" maxlength="6" spellcheck="false" oninput="updateDeleteAccountConfirm()">
-  <div class="app-dialog-actions"><button class="btn" type="button" onclick="closeAccountDialogs()">Cancel</button><button class="btn" id="confirmDeleteAccountButton" type="button" disabled onclick="confirmDeleteGymplifiedAccount()">Delete permanently</button></div>
+  <input id="deleteAccountConfirm" type="text" autocomplete="off" maxlength="6" spellcheck="false" data-input="updateDeleteAccountConfirm">
+  <div class="app-dialog-actions"><button class="btn" type="button" data-action="closeAccountDialogs">Cancel</button><button class="btn" id="confirmDeleteAccountButton" type="button" disabled data-action="confirmDeleteGymplifiedAccount">Delete permanently</button></div>
 </dialog>
 <dialog id="resetProgressDialog" class="app-dialog" aria-labelledby="resetProgressTitle" aria-describedby="resetProgressDescription">
   <h2 id="resetProgressTitle">Reset all progress?</h2>
   <p id="resetProgressDescription">This clears workouts, nutrition, goals and personal records on this device and in your synced account. This cannot be undone.</p>
-  <div class="app-dialog-actions"><button class="btn" type="button" onclick="closeAccountDialogs()">Cancel</button><button class="btn" type="button" style="color:var(--danger)" onclick="confirmResetAllData()">Reset progress</button></div>
+  <div class="app-dialog-actions"><button class="btn" type="button" data-action="closeAccountDialogs">Cancel</button><button class="btn" type="button" style="color:var(--danger)" data-action="confirmResetAllData">Reset progress</button></div>
 </dialog>
 
-<dialog id="legacyLocalDataDialog" class="app-dialog" aria-labelledby="legacyLocalDataTitle" aria-describedby="legacyLocalDataDescription" oncancel="event.preventDefault()">
+<dialog id="legacyLocalDataDialog" class="app-dialog" aria-labelledby="legacyLocalDataTitle" aria-describedby="legacyLocalDataDescription">
   <h2 id="legacyLocalDataTitle">Local progress found</h2>
   <p id="legacyLocalDataDescription">This device has workout data but no saved account owner. It could belong to a different account. Choose whether to merge it into the account you just signed into. A recovery copy will be kept on this device.</p>
-  <div class="app-dialog-actions" style="justify-content:space-between"><button class="btn" type="button" onclick="downloadLegacyLocalBackup()">Download recovery copy</button><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" onclick="resolveLegacyLocalData(false)">Use cloud data</button><button class="btn btn-primary" type="button" onclick="resolveLegacyLocalData(true)">Merge local data</button></span></div>
+  <div class="app-dialog-actions" style="justify-content:space-between"><button class="btn" type="button" data-action="downloadLegacyLocalBackup">Download recovery copy</button><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-action="resolveLegacyLocalData" data-arg="false">Use cloud data</button><button class="btn btn-primary" type="button" data-action="resolveLegacyLocalData" data-arg="true">Merge local data</button></span></div>
 </dialog>
 <dialog id="deluxePlanDayDialog" class="app-dialog" aria-labelledby="deluxePlanDayTitle" aria-describedby="deluxePlanDayDescription">
   <h2 id="deluxePlanDayTitle">Load a training day</h2>
   <p id="deluxePlanDayDescription">Choose which day to add to your Training Log.</p>
   <label for="deluxePlanDaySelect">Training day</label>
   <select id="deluxePlanDaySelect"></select>
-  <div class="app-dialog-actions"><button class="btn" type="button" onclick="closeDeluxePlanDayDialog()">Cancel</button><button class="btn btn-primary" type="button" onclick="confirmLoadDeluxePlan()">Load day</button></div>
+  <div class="app-dialog-actions"><button class="btn" type="button" data-action="closeDeluxePlanDayDialog">Cancel</button><button class="btn btn-primary" type="button" data-action="confirmLoadDeluxePlan">Load day</button></div>
 </dialog>
 <div class="rest-bar" id="restBar" role="group" aria-label="Rest timer" hidden>
   <div class="rest-bar-main"><span class="rest-bar-label" id="restBarLabel">Rest</span><strong id="restBarTime" role="timer" aria-live="off">0:00</strong></div>

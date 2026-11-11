@@ -1,8 +1,10 @@
-const CACHE_NAME = 'gymplified-shell-v18';
+const CACHE_NAME = 'gymplified-shell-v21';
 const SUPABASE_SDK = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.min.js';
 const APP_SHELL = [
   './',
   './index.html',
+  './app.css',
+  './app.js',
   './analytics.js',
   './manifest.webmanifest',
   './gymplified-app-icon.jpg',
@@ -68,6 +70,21 @@ self.addEventListener('fetch', event => {
         if (path.endsWith('/privacy.html')) return (await cache.match('./privacy.html')) || Response.error();
         if (path.endsWith('/terms.html')) return (await cache.match('./terms.html')) || Response.error();
         return Response.error();
+      }
+    })());
+    return;
+  }
+
+  // The app code and styles change with every release, so they follow index.html: network first, cache as the offline fallback.
+  if (/\/app\.(js|css)$/.test(url.pathname)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(CACHE_NAME);
+      try {
+        const response = await fetch(request);
+        if (response && response.ok && response.type === 'basic') await cache.put(request, response.clone());
+        return response;
+      } catch (_) {
+        return (await cache.match(request, {ignoreSearch:true})) || Response.error();
       }
     })());
     return;

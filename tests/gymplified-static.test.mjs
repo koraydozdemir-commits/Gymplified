@@ -3,7 +3,17 @@ import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 
 const root = new URL('../', import.meta.url);
-const read = (path) => readFile(new URL(path, root), 'utf8');
+const readRaw = (path) => readFile(new URL(path, root), 'utf8');
+// K2: index.html is a thin shell that loads app.css and app.js. Most checks read the app as one document,
+// so `read('index.html')` puts the two files back where the shell references them.
+const read = async (path) => {
+  const text = await readRaw(path);
+  if (path !== 'index.html') return text;
+  const [css, js] = await Promise.all([readRaw('app.css'), readRaw('app.js')]);
+  return text
+    .replace('<link rel="stylesheet" href="./app.css">', () => '<style>\n' + css + '</style>')
+    .replace('<script src="./app.js"></script>', () => '<script>\n' + js + '</script>');
+};
 
 test('inline application scripts and standalone scripts parse', async () => {
   const html = await read('index.html');
@@ -225,7 +235,7 @@ test('JSON restore refuses histories above the explicit session limit', async ()
 // ---- Batch 1: fix-first (A1–A5, C2, I3, I4) ----
 const appScript = (html) => [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi)].map(m => m[1]).join('\n');
 const count = (text, pattern) => (text.match(pattern) || []).length;
-const INLINE_HANDLER_BUDGET = 113;
+const INLINE_HANDLER_BUDGET = 111;
 // Pull named top-level function declarations out of the app script so pure helpers can be executed.
 function extractFunctions(source, names) {
   return names.map(name => {
@@ -296,11 +306,15 @@ test('A4: the local Deluxe demo unlock only works behind the ?demo=1 developer f
   assert.doesNotMatch(html, /onclick="toggleDeluxeDemo\(\)"/);
   assert.match(html, /id="deluxeDemoControls"[^>]*\shidden>/);
   assert.match(js, /TODO\(H3\)/);
-  const build = (search, stored) => new Function('location', 'localStorage', "const DELUXE_DEMO_KEY='gymplified_deluxe_demo';" + extractFunctions(js, ['deluxeDemoAllowed', 'deluxeEnabled']) + ';return deluxeEnabled();')({ search }, { getItem: () => stored });
+  const build = (search, stored, access = { deluxe: false, userId: '' }, user = null) => new Function('location', 'localStorage', 'deluxeAccess', 'currentUser', "const DELUXE_DEMO_KEY='gymplified_deluxe_demo';" + extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return deluxeEnabled();')({ search }, { getItem: () => stored }, access, user);
   assert.equal(build('', '1'), false, 'console-set flag must not unlock production');
   assert.equal(build('?demo=0', '1'), false);
   assert.equal(build('?demo=1', null), false);
   assert.equal(build('?demo=1', '1'), true);
+  // Batch 9: the server entitlement unlocks Deluxe, but only for the account it was fetched for
+  assert.equal(build('', null, { deluxe: true, userId: 'u1' }, { id: 'u1' }), true);
+  assert.equal(build('', null, { deluxe: true, userId: 'u1' }, { id: 'u2' }), false, 'another account after switching');
+  assert.equal(build('', null, { deluxe: true, userId: 'u1' }, null), false, 'signed out');
 });
 
 test('A5: dashboard markup has no hard-coded targets and renders goals from state', async () => {
@@ -369,7 +383,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 18);
+  assert.ok(version >= 21);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -1009,7 +1023,7 @@ test('I8/I9/I10: motion settings, non-colour cues and narrow-screen layout', asy
   assert.match(css, /html\[data-motion="reduced"\] \*, html\[data-motion="reduced"\] \*::before, html\[data-motion="reduced"\] \*::after \{\s*animation: none !important;\s*transition: none !important;/);
   assert.match(css, /\.lb-tab\[aria-selected=true\]::before,\.range-btn\[aria-pressed=true\]::before\{content:"✓ "\}/);
   assert.match(js, /\(hit\?'<span class="water-hit" aria-hidden="true">✓<\/span>':''\)/);
-  assert.match(js, /status\.textContent=enabled\?'✓ DEMO UNLOCKED':'PREVIEW MODE'/);
+  assert.match(js, /status\.textContent=owned\?'✓ DELUXE UNLOCKED':demo\?'✓ DEMO UNLOCKED':/);
   // bottom navigation: seven columns, short labels on phones (it was six, pushing Settings off-screen)
   assert.doesNotMatch(css, /nav\{grid-template-columns:repeat\(6,/);
   assert.match(css, / nav\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);gap:2px\}/);
@@ -1017,4 +1031,223 @@ test('I8/I9/I10: motion settings, non-colour cues and narrow-screen layout', asy
   assert.equal(count(html, /<span class="nav-text nav-short">/g), 7);
   assert.match(css, /@media\(max-width:480px\)\{\.top-label-long\{display:none\}\.top-label-short\{display:inline\}/);
   assert.match(css, /\.pick-grid\{display:grid;grid-template-columns:minmax\(0,1\.2fr\) minmax\(0,\.8fr\)/);
+});
+
+// ---- Batch 8: exercise library, custom exercises, detail sheet, swaps, form tips (B23–B27) ----
+async function libraryApi() {
+  const html = await read('index.html');
+  const js = appScript(html);
+  const lib = new Function(html.match(/const MC=\{[^}]*\};/)[0] + SLUG + "const mkEx=(n,eq,pm,sec,c)=>({id:(c?'c-':'')+slug(n),name:n,eq,pm,sec,custom:!!c});" +
+    html.match(/const LIB=\{[\s\S]*?\};/)[0] + html.match(/const EX=\[\];.*\n/)[0] + ';return {MC,LIB,EX,slug};')();
+  return { html, js, ...lib };
+}
+
+test('B23: library has 300 unique exercises with valid muscles, including bands and the requested machines', async () => {
+  const { EX, MC, LIB } = await libraryApi();
+  assert.ok(EX.length >= 300, 'expected at least 300 exercises, got ' + EX.length);
+  assert.equal(new Set(EX.map(x => x.name.toLowerCase())).size, EX.length, 'names are unique');
+  assert.equal(new Set(EX.map(x => x.id)).size, EX.length, 'ids are unique');
+  const muscles = Object.values(MC);
+  for (const x of EX) {
+    assert.ok(muscles.includes(x.pm), x.name + ' primary muscle');
+    for (const m of x.sec) assert.ok(muscles.includes(m) && m !== x.pm, x.name + ' supporting muscle ' + m);
+  }
+  assert.ok(LIB.Band && LIB.Band.split(';').length >= 15, 'resistance band exercises');
+  for (const name of ['Leg Extension', 'Seated Leg Curl', 'Lying Leg Curl', 'Hack Squat Machine', 'Pec Deck Fly', 'Assisted Pull-Up Machine', 'Cable Crossover', 'Smith Machine Squat', 'Hip Abductor', 'Hip Adductor', 'Leg Press Calf Raise', 'Seated Calf Raise', 'Glute Drive Machine', 'Back Extension', 'Preacher Curl Machine', 'Kettlebell Press', 'Nordic Hamstring Curl', 'EZ-Bar Curl'])
+    assert.ok(EX.some(x => x.name === name), 'library includes ' + name);
+});
+
+test('B27: form tips are short, attached to real exercises and labelled as general guidance', async () => {
+  const { js, EX } = await libraryApi();
+  const tips = new Function(js.slice(js.indexOf('const FORM_TIPS={'), js.indexOf('};', js.indexOf('const FORM_TIPS={')) + 2) + ';return FORM_TIPS;')();
+  const ids = new Set(EX.map(x => x.id));
+  assert.ok(Object.keys(tips).length >= 30);
+  for (const [id, tip] of Object.entries(tips)) {
+    assert.ok(ids.has(id), 'tip for unknown exercise ' + id);
+    assert.ok(tip.length <= 200, id + ' tip is short');
+    assert.ok(tip.split(/(?<=\.)\s/).length <= 2, id + ' tip is at most two sentences');
+  }
+  for (const major of ['barbell-back-squat', 'conventional-deadlift', 'flat-bench-press', 'overhead-press', 'barbell-row', 'pull-up', 'romanian-deadlift', 'hip-thrust']) assert.ok(tips[major], 'tip for ' + major);
+  assert.match(js, /General guidance, not personal coaching\./);
+});
+
+test('B26: alternatives train the same main muscle and prefer different equipment', async () => {
+  const { js, EX } = await libraryApi();
+  const suggest = new Function(extractFunctions(js, ['suggestAlternatives']) + ';return suggestAlternatives;')();
+  const legPress = EX.find(x => x.name === 'Leg Press');
+  const alts = suggest(legPress, EX, 5);
+  assert.equal(alts.length, 5);
+  assert.ok(alts.every(a => a.pm === legPress.pm && a.id !== legPress.id), 'same main muscle, never itself');
+  assert.ok(alts.filter(a => a.eq !== legPress.eq).length >= 3, 'mostly different equipment');
+  const bench = EX.find(x => x.name === 'Flat Bench Press');
+  const b = suggest(bench, EX, 5);
+  assert.ok(b.every(a => a.pm === 'chest'));
+  assert.ok(b[0].sec.includes('triceps') && b[0].sec.includes('shoulders'), 'best match shares supporting muscles: ' + b[0].name);
+  assert.deepEqual(suggest(null, EX), []);
+  assert.match(js, /if\(w\.setList\.some\(s=>s\.done\)\)return showToast\('Sets are already ticked/, 'swapping never discards ticked sets');
+});
+
+test('B24: renaming or merging a custom exercise moves its history everywhere', async () => {
+  const { js } = await libraryApi();
+  const rename = new Function(extractFunctions(js, ['renameExerciseEverywhere']) + ';return renameExerciseEverywhere;')();
+  const state = {
+    workouts: [{ name: 'my press', muscle: 'Chest' }, { name: 'Squat', muscle: 'Quads' }],
+    lastSession: [{ name: 'My Press' }], prs: [{ name: 'My Press', weight: 50 }],
+    sessions: [{ names: ['My Press', 'Squat'], prs: [{ name: 'My Press' }], exercises: [{ name: 'My Press' }, { name: 'Squat' }] }],
+    routines: [{ exercises: [{ name: 'My Press' }] }],
+    deluxe: { plans: [{ days: [{ exercises: [{ name: 'My Press' }] }] }] },
+    dailyHistory: { '2026-11-10': { workouts: [{ name: 'My Press', muscle: 'Chest' }] } },
+    lastSummary: { names: ['My Press'], prs: [{ name: 'My Press' }] },
+    lastKg: { 'My Press': 50 }
+  };
+  const n = rename(state, 'My Press', 'Chest Press Machine', 'Chest');
+  assert.equal(n, 9, 'nine named records (name lists are updated too but not counted)');
+  const all = JSON.stringify(state);
+  assert.ok(!/my press/i.test(all.replace(/"lastKg":\{[^}]*\}/, '')), 'no references left: ' + all);
+  assert.equal(state.lastKg['Chest Press Machine'], 50);
+  assert.equal(state.workouts[1].name, 'Squat');
+  assert.equal(rename(state, '', 'x'), 0);
+  assert.match(js, /markRecordDeleted\('customEx',state\.customEx\[i\]\);state\.customEx\.splice\(i,1\);/, 'merge and delete leave a tombstone for sync');
+  assert.match(js, /type:\['weights','bodyweight','timed'\]\.includes\(x\.type\)\?x\.type:'weights',custom:true\}\)\);/);
+  assert.match(js, /already exists'\+\(clash\.custom\?'':' in the library — use Merge instead'\)/);
+});
+
+test('B25: exercise sheet with muscle map, records, last five sessions and an accessible sparkline', async () => {
+  const { html, js } = await libraryApi();
+  assert.match(html, /<dialog id="exerciseSheet" class="app-dialog exercise-sheet" aria-labelledby="exerciseSheetTitle">/);
+  const pts = new Function(extractFunctions(js, ['sparklinePoints']) + ';return sparklinePoints;')();
+  assert.equal(pts([10, 20, 15], 100, 50, 0), '0.0,50.0 50.0,0.0 100.0,25.0');
+  assert.equal(pts([5], 100, 50, 0), '50.0,25.0', 'a single point sits in the middle');
+  assert.equal(pts([7, 7], 100, 50, 0), '0.0,25.0 100.0,25.0', 'a flat line is centred and does not divide by zero');
+  assert.equal(pts([], 100, 50), '');
+  assert.match(js, /<svg viewBox="0 0 '\+w\+' '\+h\+'" role="img" aria-label="'\+esc\(summary\)\+'">/);
+  assert.match(js, /rows\.slice\(0,5\)\.map/);
+  assert.match(js, /function viewExerciseHistory\(name\)\{openExerciseSheet\(name\);\}/, 'history buttons open the sheet');
+  assert.match(js, /data-ex-card-action="details"/);
+  assert.match(js, /dialog\.addEventListener\('close',\(\)=>\{if\(!dialog\.open\)sheetState=null;\}\);/, 'a late close event cannot wipe a reopened sheet');
+  const block = js.slice(js.indexOf('// ===== Batch 8:'), js.indexOf('// ===== Gymplified accounts + real friend connections ====='));
+  assert.ok(block.length > 8000);
+  assert.doesNotMatch(block, /\son[a-z]+=/, 'Batch 8 UI uses listeners, not inline handlers');
+  for (const field of ['esc(x.eq)', 'esc(x.pm)', 'esc(a.name)', 'esc(e.name)', 'esc(tip)', 'esc(summary)']) assert.ok(block.includes(field), field + ' is escaped');
+});
+
+// ===== Batch 9: Deluxe entitlement, Stripe payment, free tier, planner =====
+const stripeHelpers = () => import(new URL('supabase/functions/_shared/stripe.js', root).href);
+const signStripe = async (payload, secret, t) => {
+  const { createHmac } = await import('node:crypto');
+  return 't=' + t + ',v1=' + createHmac('sha256', secret).update(t + '.' + payload).digest('hex');
+};
+
+test('H3: Stripe webhook signatures are verified with a timestamp tolerance', async () => {
+  const { verifyStripeWebhook } = await stripeHelpers();
+  const secret = 'whsec_test', body = '{"id":"evt_1","type":"checkout.session.completed"}', now = 1_800_000_000;
+  const ok = (b, h, k, t) => verifyStripeWebhook(b, h, k, { nowSeconds: t }).then(() => true, () => false);
+  const good = await signStripe(body, secret, now);
+  assert.deepEqual(await verifyStripeWebhook(body, good, secret, { nowSeconds: now + 10 }), { id: 'evt_1', type: 'checkout.session.completed' });
+  assert.equal(await ok(body + ' ', good, secret, now), false, 'a changed body fails');
+  assert.equal(await ok(body, good, 'whsec_other', now), false, 'a different secret fails');
+  assert.equal(await ok(body, good, secret, now + 301), false, 'old signatures are rejected');
+  assert.equal(await ok(body, good.replace('v1=', 'v0='), secret, now), false, 'v0 signatures are ignored');
+  assert.equal(await ok(body, '', secret, now), false);
+  assert.equal(await ok(body, good, '', now), false, 'a missing secret never verifies');
+  assert.equal(await ok(body, good + ',v1=' + '0'.repeat(64), secret, now), true, 'any matching v1 (secret rotation) is accepted');
+});
+
+test('H1/H3: checkout parameters and paid-session checks bind the purchase to one account', async () => {
+  const { formEncode, entitlementFromCheckoutSession, deluxeCheckoutParams, DELUXE_PRODUCT_TAG } = await stripeHelpers();
+  const user = '0f8fad5b-d9cb-469f-a165-70867728950e';
+  const params = formEncode(deluxeCheckoutParams({ priceId: 'price_123', userId: user, email: 'a@b.co', siteUrl: 'https://gymplified.com' }));
+  assert.equal(params.get('mode'), 'payment', 'one-time payment, not a subscription');
+  assert.equal(params.get('line_items[0][price]'), 'price_123');
+  assert.equal(params.get('client_reference_id'), user);
+  assert.equal(params.get('metadata[user_id]'), user);
+  assert.equal(params.get('payment_intent_data[metadata][product]'), DELUXE_PRODUCT_TAG);
+  assert.equal(params.get('payment_intent_data[metadata][user_id]'), user);
+  assert.equal(params.get('success_url'), 'https://gymplified.com/?deluxe=success&session_id={CHECKOUT_SESSION_ID}');
+  assert.equal(params.get('automatic_tax[enabled]'), null, 'tax collection is an owner decision and stays off unless configured');
+  assert.equal(params.get('consent_collection[terms_of_service]'), null);
+  const withTerms = formEncode(deluxeCheckoutParams({ priceId: 'p', userId: user, siteUrl: 'https://gymplified.com', termsRequired: true, automaticTax: true }));
+  assert.equal(withTerms.get('consent_collection[terms_of_service]'), 'required');
+  assert.equal(withTerms.get('automatic_tax[enabled]'), 'true');
+  const paid = { object: 'checkout.session', id: 'cs_test_1', mode: 'payment', payment_status: 'paid', client_reference_id: user, payment_intent: 'pi_1', amount_total: 999, currency: 'eur', metadata: { product: DELUXE_PRODUCT_TAG, user_id: user } };
+  assert.equal(entitlementFromCheckoutSession(paid).userId, user);
+  assert.equal(entitlementFromCheckoutSession({ ...paid, payment_status: 'unpaid' }), null, 'unpaid sessions grant nothing');
+  assert.equal(entitlementFromCheckoutSession({ ...paid, mode: 'subscription' }), null);
+  assert.equal(entitlementFromCheckoutSession({ ...paid, metadata: { product: 'other', user_id: user } }), null, 'other products grant nothing');
+  assert.equal(entitlementFromCheckoutSession({ ...paid, client_reference_id: '1f8fad5b-d9cb-469f-a165-70867728950e' }), null, 'mismatched account ids grant nothing');
+  assert.equal(entitlementFromCheckoutSession({ ...paid, client_reference_id: 'not-a-uuid', metadata: { product: DELUXE_PRODUCT_TAG, user_id: 'not-a-uuid' } }), null);
+});
+
+test('H2/H4: entitlement lives on the server, is granted only by the service role and is never trusted from the client', async () => {
+  const sql = await read('supabase/migrations/20261111120000_gymplified_deluxe_entitlements.sql');
+  assert.match(sql, /alter table public\.deluxe_entitlements enable row level security/i);
+  assert.match(sql, /revoke all on (table )?public\.deluxe_entitlements from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function public\.gymplified_grant_deluxe\([^)]*\) to service_role/i);
+  assert.doesNotMatch(sql, /grant execute on function public\.gymplified_grant_deluxe\([^)]*\) to [^;]*authenticated/i);
+  assert.match(sql, /grant execute on function public\.gymplified_revoke_deluxe_by_payment\(text\) to service_role/i);
+  for (const f of sql.matchAll(/create or replace function[\s\S]*?\$\$;/gi)) assert.match(f[0], /security definer[\s\S]*set search_path = pg_catalog, public/i);
+  const webhook = await read('supabase/functions/gymplified-stripe-webhook/index.ts');
+  assert.match(webhook, /verifyStripeWebhook\(/);
+  assert.match(webhook, /charge\.refunded/);
+  const fn = await read('supabase/functions/gymplified-deluxe/index.ts');
+  assert.match(fn, /auth\.getUser\(/, 'checkout and restore need a signed-in user');
+  assert.doesNotMatch(fn, /Access-Control-Allow-Origin['"]?\s*:\s*['"]\*/, 'no wildcard CORS');
+  const html = await read('index.html'), js = appScript(html);
+  const sanitize = new Function('state', 'currentUser', 'localStorage', 'location', extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return {deluxeEnabled,deluxeOwned};');
+  assert.match(js, /\/\/ TODO\(owner\/legal\): add the approved EU\/UK withdrawal-right and refund wording/);
+  assert.match(await read('terms.html'), /TODO\(owner\/legal\): before Gymplified Deluxe goes on sale/);
+  assert.ok(sanitize, 'entitlement helpers extract');
+  // The browser never stores a "paid" flag in synced state.
+  assert.doesNotMatch(extractFunctions(js, ['sanitizeStateSnapshot']), /deluxeOwned|entitlement/);
+});
+
+test('H5/H6: free routine limit, plan for today, planned-vs-completed and safe plan fields', async () => {
+  const html = await read('index.html'), js = appScript(html);
+  assert.match(js, /const FREE_ROUTINE_LIMIT=5;/);
+  const canSave = (enabled, n) => new Function('deluxeEnabled', 'state', 'FREE_ROUTINE_LIMIT', extractFunctions(js, ['canSaveRoutine']) + ';return canSaveRoutine();')(() => enabled, { routines: Array(n).fill({}) }, 5);
+  assert.equal(canSave(false, 4), true);
+  assert.equal(canSave(false, 5), false, 'free accounts stop at five routines');
+  assert.equal(canSave(true, 50), true, 'Deluxe is unlimited (up to the storage cap)');
+  const forDate = new Function(extractFunctions(js, ['planDayForDate']) + ';return planDayForDate;')();
+  const plans = [{ name: 'A', days: [{ day: 'Day 1 · Monday', exercises: [{ name: 'Squat' }] }, { day: 'Day 2 · Wednesday', exercises: [] }] }];
+  assert.equal(forDate(plans, '2026-11-09T12:00:00').day.day, 'Day 1 · Monday');
+  assert.equal(forDate(plans, '2026-11-11T12:00:00'), null, 'an empty day is not offered');
+  assert.equal(forDate([], '2026-11-09T12:00:00'), null);
+  const outcome = new Function('setTypeOf', extractFunctions(js, ['planOutcome']) + ';return planOutcome;')(s => s.type || 'normal');
+  const ws = [
+    { plan: { sets: 2, reps: 8, name: 'A', day: 'Mon' }, setList: [{ done: true, reps: 8 }, { done: true, reps: 10 }, { done: true, reps: 12, type: 'warmup' }] },
+    { plan: { sets: 3, reps: 5, name: 'A', day: 'Mon' }, setList: [{ done: true, reps: 5 }, { done: true, reps: 4 }, { done: true, reps: 5 }] },
+    { setList: [{ done: true, reps: 5 }] }];
+  assert.deepEqual(outcome(ws), { planned: 2, completed: 1, name: 'A', day: 'Mon' });
+  assert.equal(outcome([{ setList: [] }]), null);
+  assert.match(js, /plan:cleanPlanTarget\(x\.plan\)/);
+  assert.match(js, /plan:cleanPlanOutcome\(raw\.lastSummary\.plan\)/);
+  assert.match(js, /const cleanPlanTarget=p=>[^;]*safeStateText\(p\.name,'',50\)/);
+  assert.match(html, /id="deluxePlanExercise"[^>]*list="deluxeExerciseList"/);
+  const block = js.slice(js.indexOf('// ===== Batch 9: Deluxe entitlement'), js.indexOf('// ===== Gymplified accounts + real friend connections ====='));
+  assert.ok(block.length > 1000);
+  assert.doesNotMatch(block, /onclick=/, 'Batch 9 code uses listeners, not inline handlers');
+  assert.match(block, /data-plan-action/);
+});
+
+test('H1: a new account with no cloud copy starts from a fully shaped state', async () => {
+  const js = appScript(await read('index.html'));
+  assert.doesNotMatch(js, /state=JSON\.parse\(JSON\.stringify\(cleanState\)\)/, 'bare template has no game data and crashed the next save');
+  assert.match(js, /function blankAccountState\(\)\{return sanitizeStateSnapshot\(/);
+});
+
+test('K2: index.html is a thin shell; styles and app code live in app.css and app.js and are cached for offline', async () => {
+  const shell = await readRaw('index.html');
+  assert.ok(shell.length < 120000, 'the shell stays small');
+  assert.equal(count(shell, /<link rel="stylesheet" href="\.\/app\.css">/g), 1);
+  assert.match(shell, /<script src="https:\/\/cdn\.jsdelivr\.net\/npm\/@supabase\/supabase-js@2\.57\.4\/dist\/umd\/supabase\.min\.js"><\/script>\n<script src="\.\/app\.js"><\/script>/, 'app.js loads right after the SDK, in the same place the inline script ran');
+  assert.doesNotMatch(shell, /<style[\s>]/, 'no inline style blocks');
+  assert.doesNotMatch(shell, /<script>(?!<\/script>)/, 'no inline script blocks');
+  const css = await readRaw('app.css'), js = await readRaw('app.js');
+  assert.doesNotMatch(css, /<\/?style/);
+  assert.doesNotMatch(js, /<\/?script/i);
+  assert.doesNotThrow(() => new Function(js));
+  const sw = await readRaw('sw.js');
+  assert.match(sw, /'\.\/app\.css',\n  '\.\/app\.js',/);
+  assert.match(sw, /if \(\/\\\/app\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
 });

@@ -675,6 +675,14 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
 .cx-secondary label{display:flex;align-items:center;gap:4px;margin:0;font-weight:500;min-height:44px}
 [data-ex-card-action]{min-width:44px}
 @media(max-width:480px){.card-btn-label{display:none}}
+/* Batch 9: Deluxe purchase and planner */
+.deluxe-price-note{font-size:calc(13px * var(--text-scale, 1));font-weight:600;color:var(--muted);letter-spacing:0}
+.deluxe-hero-text{font-size:calc(13px * var(--text-scale, 1));color:var(--muted);max-width:620px}
+.deluxe-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center}
+.deluxe-free-note{margin:-4px 0 12px}
+.plan-day-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.plan-line{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;padding:6px 10px;margin:0 0 8px;border:1px dashed var(--line);border-radius:8px;font-size:calc(13px * var(--text-scale, 1));color:var(--muted)}
+.plan-result{margin:4px 0 0}
 .app-dialog{margin:auto;max-height:calc(100dvh - 32px);overflow:auto;width:min(92vw,480px);border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:22px;box-shadow:0 24px 90px #0009}
 .app-dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
 .app-dialog h2{margin:0 0 8px;font:700 20px var(--font-heading)}
@@ -1238,16 +1246,19 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
         <p class="subtitle">More insight. Smarter training. Your progress, without limits.</p>
         <div class="deluxe-hero">
           <div class="deluxe-wordmark">GYMPLIFIED DELUXE</div>
-          <div class="deluxe-price">€9.99 <span style="font-size:calc(13px * var(--text-scale, 1));font-weight:600;color:var(--muted);letter-spacing:0">payment setup pending</span></div>
-          <p style="font-size:calc(13px * var(--text-scale, 1));color:var(--muted);max-width:620px">Preview the Deluxe features. Payments and account entitlements are not available yet.</p>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;align-items:center">
-            <span class="deluxe-pill" id="deluxeStatus">PREVIEW MODE</span>
-            <button class="btn btn-primary" type="button" onclick="openDeluxeDemo()">Explore Deluxe</button>
-            <span class="sub" id="deluxeDemoToggle" role="status">Preview only</span>
+          <div class="deluxe-price">€9.99 <span class="deluxe-price-note" id="deluxePriceNote">one-time · coming soon</span></div>
+          <p class="deluxe-hero-text" id="deluxeHeroText">Handy extras on top of the full free tracker. Everything you need to log and improve stays free.</p>
+          <div class="deluxe-actions">
+            <span class="deluxe-pill" id="deluxeStatus">COMING SOON</span>
+            <button class="btn btn-primary" type="button" id="deluxeBuyBtn" hidden>Unlock Deluxe · €9.99</button>
+            <button class="btn" type="button" id="deluxeRestoreBtn" hidden>Restore purchase</button>
+            <button class="btn" type="button" onclick="openDeluxeDemo()">Explore Deluxe</button>
+            <span class="sub" id="deluxeDemoToggle" role="status"></span>
           </div>
-          <div class="deluxe-demo-note">Preview only. Payments are not connected, and this page does not offer paid access or account entitlements.</div>
+          <div class="deluxe-demo-note" id="deluxeSalesNote">Deluxe is not on sale yet. No payment is taken on this page.</div>
         </div>
-        <div class="section-title">What's included <span class="sub">PREVIEW · PAYMENT NOT CONNECTED</span></div>
+        <div class="section-title">What's included <span class="sub" id="deluxeIncludedNote">ONE-TIME · NO SUBSCRIPTION</span></div>
+        <p class="sub deluxe-free-note">Always free: workout and food logging, PRs, up to 5 saved routines, streaks, badges, friends and leaderboards, progress lines, backups and CSV export.</p>
         <div class="deluxe-grid">
           <article class="deluxe-feature"><div class="lock">📈</div><h3>Advanced analytics</h3><p>Track strength trends, volume progression, estimated 1RM and training consistency with detailed charts.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Advanced analytics')">Preview feature</button></article>
           <article class="deluxe-feature"><div class="lock">🧠</div><h3>Smart training insights</h3><p>See muscle-group workload, identify neglected areas and get useful recovery guidance from your logged sessions.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Smart training insights')">Preview feature</button></article>
@@ -1257,8 +1268,8 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
           <article class="deluxe-feature"><div class="lock">🎨</div><h3>Deluxe customisation</h3><p>Exclusive profile accents, premium themes, profile presentation options and Deluxe account flair.</p><button class="btn" style="margin-top:12px" onclick="previewDeluxeFeature('Deluxe customisation')">Preview feature</button></article>
         </div>
         <div id="deluxeLockedNotice" class="panel" style="margin-bottom:16px">
-          <strong>Deluxe tools are locked in preview mode.</strong>
-          <p class="sub" style="margin:6px 0 0">Payments are not connected yet, so Deluxe tools cannot be unlocked. No payment is taken on this page.</p>
+          <strong id="deluxeLockedTitle">Deluxe tools are locked.</strong>
+          <p class="sub" style="margin:6px 0 0" id="deluxeLockedText">Deluxe is not on sale yet, so these tools cannot be unlocked.</p>
         </div>
         <div id="deluxeDemoControls" class="panel" style="margin-bottom:16px" hidden>
           <strong>Developer demo</strong>
@@ -1291,7 +1302,7 @@ html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion
             <div class="form-grid">
               <div class="field"><label for="deluxePlanName">Plan name</label><input id="deluxePlanName" maxlength="50" placeholder="e.g. 4-day strength split"></div>
               <div class="field"><label for="deluxePlanDay">Training day</label><select id="deluxePlanDay"><option>Day 1 · Monday</option><option>Day 2 · Tuesday</option><option>Day 3 · Wednesday</option><option>Day 4 · Thursday</option><option>Day 5 · Friday</option><option>Day 6 · Saturday</option><option>Day 7 · Sunday</option></select></div>
-              <div class="field"><label for="deluxePlanExercise">Exercise name</label><input id="deluxePlanExercise" maxlength="80" placeholder="e.g. Bench Press"></div>
+              <div class="field"><label for="deluxePlanExercise">Exercise name</label><input id="deluxePlanExercise" maxlength="80" placeholder="Search the exercise library" list="deluxeExerciseList" autocomplete="off"><datalist id="deluxeExerciseList"></datalist></div>
               <div class="field"><label for="deluxePlanSets">Sets</label><input id="deluxePlanSets" type="number" min="1" max="20" value="3"></div>
               <div class="field"><label for="deluxePlanReps">Target reps</label><input id="deluxePlanReps" type="number" min="1" max="100" value="8"></div>
               <div class="field"><label for="deluxePlanKg">Suggested weight (<span data-weight-unit>kg</span>)</label><input id="deluxePlanKg" type="number" min="0" max="1000" step="0.5" value="0"></div>
@@ -1586,11 +1597,11 @@ function prepareLocalAccountState(userId){
   try{cached=localStorage.getItem(ACCOUNT_STATE_PREFIX+userId);unassigned=localStorage.getItem(ACCOUNT_STATE_PREFIX+'unassigned');}catch(_){}
   if(cached){
    try{state=sanitizeStateSnapshot(JSON.parse(cached));}
-   catch(error){console.warn('Saved account cache was invalid; using cloud copy:',error);state=JSON.parse(JSON.stringify(cleanState));cloudOnly=true;}
+   catch(error){console.warn('Saved account cache was invalid; using cloud copy:',error);state=blankAccountState();cloudOnly=true;}
   }else if(unassigned){
    try{state=sanitizeStateSnapshot(JSON.parse(unassigned));stateRevision++;persistLocalState(false);pendingLegacyAccountId=userId;return true;}
-   catch(error){console.warn('Unassigned recovery copy was invalid:',error);state=JSON.parse(JSON.stringify(cleanState));cloudOnly=true;}
-  }else{state=JSON.parse(JSON.stringify(cleanState));cloudOnly=true;}
+   catch(error){console.warn('Unassigned recovery copy was invalid:',error);state=blankAccountState();cloudOnly=true;}
+  }else{state=blankAccountState();cloudOnly=true;}
   stateRevision++;persistLocalState(false);
  }else if(!owner&&!hasLocalProgress(state)){
   let cached=null,unassigned=null;
@@ -1612,7 +1623,7 @@ function prepareLocalAccountState(userId){
  persistLocalState(false);
  return cloudOnly?'cloud':false;
 }
-function releaseLocalAccountState(userId){if(pendingLegacyAccountId===userId){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(_){}pendingLegacyAccountId=null;}else if(userId)saveAccountLocalSnapshot(userId);state=JSON.parse(JSON.stringify(cleanState));stateRevision++;persistLocalState(false);try{localStorage.removeItem(ACCOUNT_OWNER_KEY);}catch(_){} }
+function releaseLocalAccountState(userId){if(pendingLegacyAccountId===userId){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(_){}pendingLegacyAccountId=null;}else if(userId)saveAccountLocalSnapshot(userId);state=blankAccountState();stateRevision++;persistLocalState(false);try{localStorage.removeItem(ACCOUNT_OWNER_KEY);}catch(_){} }
 function markRecordDeleted(kind,item){if(!item||!item.id)return;const value=kind+':'+String(item.id);state.deletedRecordIds=Array.isArray(state.deletedRecordIds)?state.deletedRecordIds:[];if(!state.deletedRecordIds.includes(value))state.deletedRecordIds.push(value);}
 function persistLocalState(markDirty=true){if(markDirty)stateRevision++;try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));return true;}catch(error){console.error('Gymplified local save failed:',error);showToast('Could not save on this device. Free storage space, then export a backup and try again.');return false;}}
 function saveState(){rewards();persistLocalState();queueCloudStateSave();renderAll();}
@@ -1667,7 +1678,7 @@ async function syncUserAppState(cloudOnly=false){
   if(currentUser&&currentUser.id===id){
    if(revision===stateRevision){
     if(result.data&&typeof result.data==='object')migrateAccountSnapshot(result.data);
-    else{state=JSON.parse(JSON.stringify(cleanState));state.accountOwnerId=id;state.game.day=dayKey();persistLocalState(false);}
+    else{state=blankAccountState();state.accountOwnerId=id;state.game.day=dayKey();persistLocalState(false);}
     applySettings();renderAll();initPicker();
    }
    cloudSyncUserId=id;cloudSyncErrorShown=false;
@@ -1720,7 +1731,7 @@ function showScreen(screenId, btn) {
   }
   markNav(); scrollTo(0,0); announceScreen(screenId,true); if(screenId==='friends')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
   if(screenId === 'prs') { nextQuote(); }
-  if(screenId === 'deluxe') renderDeluxeUI();
+  if(screenId === 'deluxe'){ renderDeluxeUI(); if(currentUser) refreshDeluxeAccess(); }
 }
 
 // --- MOTIVATIONAL QUOTE ENGINE ---
@@ -2258,6 +2269,8 @@ function newRecordId(prefix){try{if(window.crypto&&crypto.randomUUID)return pref
 function safeStateText(value,fallback,max){return String(value==null?fallback:value).replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,max)||fallback;}
 function safeStateNumber(value,min,max,fallback=0){const n=Number(value);return Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;}
 function safeStateDay(value,fallback){const s=String(value||'');if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return fallback;const d=new Date(s+'T12:00:00');return Number.isFinite(d.getTime())&&d.toISOString().slice(0,10)===s?s:fallback;}
+// A signed-in account with no cloud copy yet starts from a fully shaped blank state (game, sessions, settings…), never the bare template.
+function blankAccountState(){return sanitizeStateSnapshot(JSON.parse(JSON.stringify(cleanState)));}
 function sanitizeStateSnapshot(raw){
  if(!raw||typeof raw!=='object'||Array.isArray(raw))throw new Error('Backup must contain a JSON object.');
  const today=dayKey(),rawGame=raw.game&&typeof raw.game==='object'?raw.game:{},gameDay=safeStateDay(rawGame.day,today);
@@ -2267,11 +2280,13 @@ function sanitizeStateSnapshot(raw){
   if(!a.length){const n=Math.max(1,Math.min(20,Math.round(Number(count)||3)));return Array.from({length:n},(_,i)=>({id:'legacy-set-'+i,kg:safeStateNumber(weight,0,1000,0),reps:safeStateNumber(reps,1,1000,10),done:false}));}
   return a.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-set-'+i),kg:safeStateNumber(x.kg,0,1000,0),reps:safeStateNumber(x.reps,0,1000,10),done:!!x.done,type:SET_TYPES.includes(x.type)?x.type:'normal',auto:!!x.auto&&!x.done,duration:safeStateNumber(x.duration,0,86400,0),distance:safeStateNumber(x.distance,0,1000,0),notes:safeStateText(x.notes,'',500),order:safeStateNumber(x.order,0,1000,i+1)}));
  };
- const cleanWorkout=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const name=safeStateText(x.name||x.exercise,'Exercise',80);return{id:safeRecordId(x.id,'legacy-workout-'+i+'-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24)),name,muscle:safeStateText(x.muscle,'',40),day:safeStateDay(x.day,day),setList:cleanSets(x.setList,x.sets,x.weight,x.reps),xp:safeStateNumber(x.xp,0,1,0)};};
+ const cleanPlanTarget=p=>p&&typeof p==='object'&&!Array.isArray(p)?{sets:Math.round(safeStateNumber(p.sets,1,20,3)),reps:Math.round(safeStateNumber(p.reps,1,100,8)),kg:safeStateNumber(p.kg,0,1000,0),name:safeStateText(p.name,'',50),day:safeStateText(p.day,'',30)}:null;
+ const cleanPlanOutcome=p=>p&&typeof p==='object'&&!Array.isArray(p)?{planned:Math.round(safeStateNumber(p.planned,0,100,0)),completed:Math.round(safeStateNumber(p.completed,0,100,0)),name:safeStateText(p.name,'',50),day:safeStateText(p.day,'',30)}:null;
+ const cleanWorkout=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const name=safeStateText(x.name||x.exercise,'Exercise',80);return{id:safeRecordId(x.id,'legacy-workout-'+i+'-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24)),name,muscle:safeStateText(x.muscle,'',40),day:safeStateDay(x.day,day),setList:cleanSets(x.setList,x.sets,x.weight,x.reps),xp:safeStateNumber(x.xp,0,1,0),plan:cleanPlanTarget(x.plan)};};
  const cleanFood=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const meals=['Breakfast','Lunch','Dinner','Snacks'];return{id:safeRecordId(x.id,'legacy-food-'+i),name:safeStateText(x.name,'Food',100),meal:meals.includes(x.meal)?x.meal:'Snacks',day:safeStateDay(x.day,day),grams:safeStateNumber(x.grams,0,10000,0),portion:safeStateText(x.portion,'',60),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),createdAt:safeStateNumber(x.createdAt,0,Number.MAX_SAFE_INTEGER,Date.now()),xp:safeStateNumber(x.xp,0,1,0)};};
  const cleanWater=(x,i,day)=>{if(typeof x==='number')return{id:'legacy-water-'+i,amount:safeStateNumber(x,0,10,0),day,createdAt:0};if(!x||typeof x!=='object'||Array.isArray(x))return null;return{id:safeRecordId(x.id,'legacy-water-'+i),amount:safeStateNumber(x.amount,0,10,0),day:safeStateDay(x.day,day),createdAt:safeStateNumber(x.createdAt,0,Number.MAX_SAFE_INTEGER,0)};};
  const cleanPrList=v=>list(v,100).filter(p=>p&&typeof p==='object'&&!Array.isArray(p)).map(p=>({name:safeStateText(p.name,'Exercise',80),kg:safeStateNumber(p.kg,0,1000,0),reps:safeStateNumber(p.reps,0,1000,0)}));
- const cleanSession=(x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const exercises=list(x.exercises,100).map((ex,j)=>{if(!ex||typeof ex!=='object'||Array.isArray(ex))return null;const sets=list(ex.sets,50).filter(s=>s&&typeof s==='object'&&!Array.isArray(s)).map((s,k)=>({id:safeRecordId(s.id,'legacy-sset-'+j+'-'+k),kg:safeStateNumber(s.kg??s.weight,0,1000,0),reps:safeStateNumber(s.reps,0,1000,0),type:SET_TYPES.includes(s.type)?s.type:'normal',duration:safeStateNumber(s.duration,0,86400,0),distance:safeStateNumber(s.distance,0,1000,0),notes:safeStateText(s.notes,'',500),order:safeStateNumber(s.order,0,1000,k+1)}));return{id:safeRecordId(ex.id,'legacy-sex-'+j),name:safeStateText(ex.name||ex.exercise,'Exercise',80),muscle:safeStateText(ex.muscle,'',40),notes:safeStateText(ex.notes,'',500),sets};}).filter(Boolean);const date=safeStateDay(x.date,today);return{id:safeRecordId(x.id,'legacy-session-'+i+'-'+date),date,name:safeStateText(x.name,'Workout',100),sourceWorkoutId:safeStateText(x.sourceWorkoutId,'',120),notes:safeStateText(x.notes,'',1000),startedAt:safeStateText(x.startedAt,'',40),finishedAt:safeStateText(x.finishedAt,'',40),mins:safeStateNumber(x.mins,0,1440,0),vol:safeStateNumber(x.vol,0,100000000,0),sets:safeStateNumber(x.sets,0,10000,0),reps:safeStateNumber(x.reps,0,100000,0),ex:safeStateNumber(x.ex,0,100,exercises.length),names:list(x.names,100).map(n=>safeStateText(n,'Exercise',80)),prs:cleanPrList(x.prs),xp:safeStateNumber(x.xp,0,100000,0),exercises};};
+ const cleanSession=(x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const exercises=list(x.exercises,100).map((ex,j)=>{if(!ex||typeof ex!=='object'||Array.isArray(ex))return null;const sets=list(ex.sets,50).filter(s=>s&&typeof s==='object'&&!Array.isArray(s)).map((s,k)=>({id:safeRecordId(s.id,'legacy-sset-'+j+'-'+k),kg:safeStateNumber(s.kg??s.weight,0,1000,0),reps:safeStateNumber(s.reps,0,1000,0),type:SET_TYPES.includes(s.type)?s.type:'normal',duration:safeStateNumber(s.duration,0,86400,0),distance:safeStateNumber(s.distance,0,1000,0),notes:safeStateText(s.notes,'',500),order:safeStateNumber(s.order,0,1000,k+1)}));return{id:safeRecordId(ex.id,'legacy-sex-'+j),name:safeStateText(ex.name||ex.exercise,'Exercise',80),muscle:safeStateText(ex.muscle,'',40),notes:safeStateText(ex.notes,'',500),sets};}).filter(Boolean);const date=safeStateDay(x.date,today);return{id:safeRecordId(x.id,'legacy-session-'+i+'-'+date),date,name:safeStateText(x.name,'Workout',100),sourceWorkoutId:safeStateText(x.sourceWorkoutId,'',120),notes:safeStateText(x.notes,'',1000),startedAt:safeStateText(x.startedAt,'',40),finishedAt:safeStateText(x.finishedAt,'',40),mins:safeStateNumber(x.mins,0,1440,0),vol:safeStateNumber(x.vol,0,100000000,0),sets:safeStateNumber(x.sets,0,10000,0),reps:safeStateNumber(x.reps,0,100000,0),ex:safeStateNumber(x.ex,0,100,exercises.length),names:list(x.names,100).map(n=>safeStateText(n,'Exercise',80)),prs:cleanPrList(x.prs),xp:safeStateNumber(x.xp,0,100000,0),plan:cleanPlanOutcome(x.plan),exercises};};
  const workouts=list(raw.workouts,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean);
  const foods=list(raw.foods,5000).map((x,i)=>cleanFood(x,i,gameDay)).filter(Boolean);
  const prs=list(raw.prs,2000).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-pr-'+i),name:safeStateText(x.name,'Exercise',80),weight:safeStateNumber(x.weight,0,2000,0),reps:safeStateNumber(x.reps,1,1000,1),date:safeStateDay(x.date,today),xp:safeStateNumber(x.xp,0,1,0)}));
@@ -2289,7 +2304,7 @@ function sanitizeStateSnapshot(raw){
  // Quest claims are date-stamped (d_YYYY-MM-DD_id / w_YYYY-MM-DD_id). Old ones are dropped before the size cap so current claims always survive.
  const claimCutoff=(()=>{const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-8);return dayKey(d);})();
  if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).filter(k=>{const m=/^[dw]_(\d{4}-\d{2}-\d{2})_/.exec(k);return !m||m[1]>=claimCutoff;}).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
- const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,5000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:[...new Set(list(raw.presets,10).map(x=>Math.round(safeStateNumber(x,1,WATER_ENTRY_MAX_ML,250))).filter(x=>x>0))].slice(0,WATER_PRESET_MAX),lastWaterMl:Math.round(safeStateNumber(raw.lastWaterMl,0,WATER_ENTRY_MAX_ML,0)),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,WATER_GOAL_MIN_L,WATER_GOAL_MAX_L,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now()),xpStart:safeStateNumber(raw.session.xpStart,0,1000000000,safeStateNumber(rawGame.xp,0,1000000000,0))}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{id:safeStateText(raw.lastSummary.id,'',120),prs:cleanPrList(raw.lastSummary.prs),muscles:list(raw.lastSummary.muscles,20).map(n=>safeStateText(n,'',40)).filter(Boolean),xp:safeStateNumber(raw.lastSummary.xp,0,100000,0),date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),grams:safeStateNumber(x.grams,0,10000,0),portion:safeStateText(x.portion,'',60)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,accountOwnerId:safeStateText(raw.accountOwnerId,'',80),resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
+ const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,5000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:[...new Set(list(raw.presets,10).map(x=>Math.round(safeStateNumber(x,1,WATER_ENTRY_MAX_ML,250))).filter(x=>x>0))].slice(0,WATER_PRESET_MAX),lastWaterMl:Math.round(safeStateNumber(raw.lastWaterMl,0,WATER_ENTRY_MAX_ML,0)),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,WATER_GOAL_MIN_L,WATER_GOAL_MAX_L,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now()),xpStart:safeStateNumber(raw.session.xpStart,0,1000000000,safeStateNumber(rawGame.xp,0,1000000000,0))}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{id:safeStateText(raw.lastSummary.id,'',120),plan:cleanPlanOutcome(raw.lastSummary.plan),prs:cleanPrList(raw.lastSummary.prs),muscles:list(raw.lastSummary.muscles,20).map(n=>safeStateText(n,'',40)).filter(Boolean),xp:safeStateNumber(raw.lastSummary.xp,0,100000,0),date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),grams:safeStateNumber(x.grams,0,10000,0),portion:safeStateText(x.portion,'',60)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,accountOwnerId:safeStateText(raw.accountOwnerId,'',80),resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
  // Favourite exercises are an id -> 0/1 map (not an array) so un-favouriting survives the server-side merge.
  state.exFav={};
  if(raw.exFav&&typeof raw.exFav==='object'&&!Array.isArray(raw.exFav))Object.keys(raw.exFav).filter(k=>/^[A-Za-z0-9_-]{1,120}$/.test(k)).slice(0,400).forEach(k=>{state.exFav[k]=raw.exFav[k]?1:0;});
@@ -2644,10 +2659,11 @@ function renderRoutineLibrary(){
 }
 function saveCurrentRoutine(){
  if(!state.workouts.length)return showToast('Add exercises before saving a routine');
+ if(!canSaveRoutine())return showToast('Free accounts keep up to '+FREE_ROUTINE_LIMIT+' saved routines. Delete one, or unlock Deluxe for unlimited routines.');
  const suggested='Routine '+((state.routines||[]).length+1),name=(prompt('Name this workout routine',suggested)||'').trim().slice(0,40);if(!name)return;
  state.routines=Array.isArray(state.routines)?state.routines:[];
  const exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,done:false}))}));
- state.routines.unshift({id:newRecordId('routine'),name,exercises:exercises.map(ex=>Object.assign({},ex,{id:newRecordId('routine-ex'),setList:ex.setList.map(set=>Object.assign({id:newRecordId('routine-set')},set))})),createdAt:new Date().toISOString()});state.routines=state.routines.slice(0,30);saveState();showToast('Routine saved');
+ state.routines.unshift({id:newRecordId('routine'),name,exercises:exercises.map(ex=>Object.assign({},ex,{id:newRecordId('routine-ex'),setList:ex.setList.map(set=>Object.assign({id:newRecordId('routine-set')},set))})),createdAt:new Date().toISOString()});state.routines=state.routines.slice(0,deluxeEnabled()?100:30);saveState();showToast('Routine saved');
 }
 function loadSavedRoutine(index){
  const routine=(state.routines||[])[index];if(!routine)return;
@@ -2821,7 +2837,7 @@ function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names
   const sum={id:newRecordId('session'),date:dayKey(new Date(startedAt)),name:'Workout',startedAt:new Date(startedAt).toISOString(),finishedAt:new Date(finishedAt).toISOString(),mins:Math.max(1,Math.round((finishedAt-startedAt)/6e4)),vol:Math.round(v*10)/10,sets:st,reps:r,ex,names};
   sum.exercises=state.workouts.map(w=>({id:newRecordId('session-ex'),name:w.name,muscle:w.muscle,sets:w.setList.filter(x=>x.done).map(x=>({id:newRecordId('session-set'),kg:Number(x.kg)||0,reps:Number(x.reps)||0,type:setTypeOf(x),duration:Number(x.duration)||0,distance:Number(x.distance)||0,notes:String(x.notes||''),order:Number(x.order)||0}))})).filter(x=>x.sets.length);
   // PRs are judged against history before this session is added to it.
-  sum.prs=detectSessionPRs(sum.exercises);sum.muscles=[...new Set(sum.exercises.map(e=>String(e.muscle||'').trim().toLowerCase()).filter(Boolean))];sum.xp=0;
+  sum.prs=detectSessionPRs(sum.exercises);sum.plan=planOutcome(state.workouts);sum.muscles=[...new Set(sum.exercises.map(e=>String(e.muscle||'').trim().toLowerCase()).filter(Boolean))];sum.xp=0;
   const xpStart=Number.isFinite(Number(state.session.xpStart))?Number(state.session.xpStart):Number(state.game.xp)||0;
   sum.prs.forEach(pr=>state.prs.push({id:newRecordId('pr'),name:pr.name,weight:pr.kg,reps:pr.reps,date:sum.date}));
   state.sessions.unshift(sum);state.lastSummary=sum;state.session=null;state.lastSession=state.workouts.map(w=>Object.assign({},w,{done:false,xp:0,setList:w.setList.map(x=>Object.assign({},x,{done:false}))}));state.workouts.forEach(w=>{w.done=false;(w.setList||[]).forEach(x=>{x.done=false;});});
@@ -3067,7 +3083,7 @@ function exerciseCardMarkup(w,i){
  const pending=w.setList.some(x=>x.auto&&!x.done);
  return '<div class="panel" style="margin-bottom:12px"><div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="btn btn-icon-only" style="color:var(--danger)" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
   '<div class="setrow sub" aria-hidden="true"><span>Set</span><span>'+weightUnit()+'</span><span>Reps</span><span>Done</span><span></span></div>'+
-  w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
+  planLineMarkup(w)+w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
   '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
   '<div class="sub" style="margin-top:6px">Volume: <span id="exVolume-'+i+'">'+volumeNumber(vol(w))+'</span> '+weightUnit()+' <span class="sub">· warm-up sets (W) are not counted</span></div></div>';
 }
@@ -3102,7 +3118,7 @@ function renderWorkoutHero(){
  let title,sub,buttons;
  if(state.session){title='Workout in progress';sub='<span id="heroClock">'+clock()+'</span> · '+t.setsDone+'/'+t.setsTotal+' sets · '+fmtVolume(t.volume);buttons='<button type="button" class="btn btn-primary hero-btn" data-hero-action="resume">▶ Resume workout</button>';}
  else if(done){title='Done today ✓';sub=(done.mins||0)+' min · '+fmtVolume(done.vol||0)+' · '+(done.sets||0)+' sets · '+wi.n+'/'+wi.g+' workouts this week';buttons='<button type="button" class="btn btn-primary hero-btn" data-hero-action="summary">View summary</button><button type="button" class="btn" data-hero-action="start">Start another workout</button>';}
- else{title='Ready to train?';sub=wi.n+'/'+wi.g+' workouts this week · '+wi.st+'-week streak';buttons='<button type="button" class="btn btn-primary hero-btn" data-hero-action="start">▶ Start workout</button>';}
+ else{const today=deluxeEnabled()&&!(state.workouts||[]).length?planDayForDate(state.deluxe&&state.deluxe.plans,new Date()):null;title='Ready to train?';sub=wi.n+'/'+wi.g+' workouts this week · '+wi.st+'-week streak'+(today?' · today\'s plan: '+esc(today.plan.name)+' — '+esc(today.day.day):'');buttons=(today?'<button type="button" class="btn btn-primary hero-btn" data-hero-action="plan">▶ Start today\'s plan</button><button type="button" class="btn" data-hero-action="start">Start an empty workout</button>':'<button type="button" class="btn btn-primary hero-btn" data-hero-action="start">▶ Start workout</button>');}
  host.innerHTML='<div><div class="eyebrow">Today\'s workout</div><h2 class="hero-title">'+title+'</h2><p class="sub">'+sub+'</p></div><div class="row-wrap">'+buttons+'</div>';
 }
 function startWorkoutNow(){
@@ -3110,8 +3126,9 @@ function startWorkoutNow(){
  goToTraining();
 }
 function summaryFromSession(s){
+ const plan=s.plan||null;
  const muscles=[...new Set((s.exercises||[]).map(e=>String(e.muscle||'').trim().toLowerCase()).filter(Boolean))];
- return {id:s.id||'',date:s.date,mins:s.mins||0,vol:s.vol||0,sets:s.sets||0,reps:s.reps||0,ex:s.ex||0,names:(s.names||[]).slice(),prs:(s.prs||[]).map(p=>({name:p.name,kg:p.kg,reps:p.reps})),muscles,xp:s.xp||0};
+ return {id:s.id||'',date:s.date,mins:s.mins||0,vol:s.vol||0,sets:s.sets||0,reps:s.reps||0,ex:s.ex||0,names:(s.names||[]).slice(),prs:(s.prs||[]).map(p=>({name:p.name,kg:p.kg,reps:p.reps})),muscles,xp:s.xp||0,plan};
 }
 function showSessionSummary(){goToTraining();const el=$('sessionSummary');if(el&&el.firstElementChild){el.scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'start'});el.firstElementChild.focus({preventScroll:true});}}
 function viewTodaySummary(){const s=todaysFinishedSession();if(!s)return showToast('No finished workout today yet');state.lastSummary=summaryFromSession(s);saveState();showSessionSummary();}
@@ -3147,6 +3164,7 @@ function sessionSummaryMarkup(){
  return '<div class="panel summary-panel" tabindex="-1" role="region" aria-label="Workout summary" style="margin-bottom:20px"><div class="section-title"><span>🎉 Workout complete</span><span class="row-wrap"><button type="button" class="btn btn-primary" data-summary-action="share">Share</button><button type="button" class="btn" data-summary-action="dismiss">Dismiss</button></span></div>'+
   '<div class="stat-row">'+stat(Number(m.mins)+' min','duration')+stat(fmtVolume(m.vol),'total volume')+stat(Number(m.sets),'sets')+stat(Number(m.reps),'reps')+stat(Number(m.ex),'exercises')+stat('+'+Number(m.xp||0),'XP earned')+'</div>'+
   '<div class="sub-h">PRs hit</div>'+(prs.length?'<div class="tag-list">'+prs.map(x=>'<span class="tag primary">🏆 '+esc(x.name)+' · '+esc(fmtWeight(x.kg,2))+' × '+esc(Number(x.reps))+'</span>').join('')+'</div>':'<p class="sub">No new PRs this time — beat a previous best set to earn one.</p>')+
+  (m.plan&&m.plan.planned?'<div class="sub-h">Plan</div><p class="plan-result">📋 '+esc(m.plan.name||'Plan')+(m.plan.day?' · '+esc(m.plan.day):'')+': <strong>'+Number(m.plan.completed)+' of '+Number(m.plan.planned)+'</strong> exercise'+(m.plan.planned===1?'':'s')+' done as planned'+(m.plan.completed===m.plan.planned?' ✓':'')+'</p>':'')+
   '<div class="sub-h">Muscles worked</div>'+(muscles.length?'<div class="tag-list">'+muscles.map(x=>'<span class="tag">'+esc(x)+'</span>').join('')+'</div>':'<p class="sub">No muscle groups recorded.</p>')+
   '<p class="sub" style="margin-top:12px">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc((m.names||[]).join(', '))+'</p></div>';
 }
@@ -4208,6 +4226,107 @@ function initLibraryControls(){
  $('exPreview')?.addEventListener('click',e=>{const b=e.target.closest('[data-ex-details]');if(b)openExerciseSheet(b.dataset.exDetails);});
 }
 
+// ===== Batch 9: Deluxe entitlement, purchase, restore, free-tier limits, planner upgrades =====
+// Deluxe comes from the server (public.deluxe_entitlements via the gymplified-deluxe function).
+// The ?demo=1 developer unlock still exists for testing and is never shown to normal visitors.
+const DELUXE_PRICE_LABEL='€9.99';
+const FREE_ROUTINE_LIMIT=5;
+const DELUXE_CACHE_PREFIX='gymplified_deluxe_access_v1:';
+let deluxeAccess={checked:false,deluxe:false,salesOpen:false,userId:''};
+function readDeluxeCache(uid){try{const c=JSON.parse(localStorage.getItem(DELUXE_CACHE_PREFIX+uid)||'null');return c&&typeof c.deluxe==='boolean'?c:null;}catch(e){return null;}}
+function writeDeluxeCache(uid,value){try{localStorage.setItem(DELUXE_CACHE_PREFIX+uid,JSON.stringify({deluxe:!!value.deluxe,salesOpen:!!value.salesOpen,at:Date.now()}));}catch(e){}}
+async function callDeluxe(action){
+ if(!sb||!currentUser)throw new Error('Sign in to continue');
+ const r=await sb.functions.invoke('gymplified-deluxe',{body:{action}});
+ if(r.error)throw r.error;if(r.data&&r.data.error)throw new Error(r.data.error);
+ return r.data||{};
+}
+// The server answer always wins. A cached answer is only used when the server cannot be reached
+// (offline), so a paying user keeps Deluxe in the gym without signal.
+async function refreshDeluxeAccess(){
+ if(!sb||!currentUser){deluxeAccess={checked:true,deluxe:false,salesOpen:false,userId:''};renderDeluxeUI();return deluxeAccess;}
+ const uid=currentUser.id;
+ try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,salesOpen:!!d.salesOpen,userId:uid};writeDeluxeCache(uid,deluxeAccess);}
+ catch(e){const c=readDeluxeCache(uid);deluxeAccess={checked:true,deluxe:!!(c&&c.deluxe),salesOpen:!!(c&&c.salesOpen),userId:uid,offline:true};}
+ if(currentUser&&currentUser.id===uid){renderDeluxeUI();try{renderWorkoutHero();}catch(e){}}
+ return deluxeAccess;
+}
+function deluxeOwned(){return !!(deluxeAccess.deluxe&&currentUser&&deluxeAccess.userId===currentUser.id);}
+function deluxeDemoOn(){if(!deluxeDemoAllowed())return false;try{return localStorage.getItem(DELUXE_DEMO_KEY)==='1';}catch(e){return false;}}
+async function buyDeluxe(button){
+ if(!currentUser){showToast('Sign in or create an account first — Deluxe is linked to your account');showScreen('friends',document.querySelector('nav button[data-screen="friends"]'));return;}
+ if(button)button.disabled=true;
+ try{const d=await callDeluxe('checkout');if(d.alreadyOwned){await refreshDeluxeAccess();showToast('Deluxe is already unlocked on your account');return;}if(!d.url)throw new Error('Checkout is not available right now');location.assign(d.url);}
+ catch(e){showToast(e.message||'Checkout is not available right now');}
+ finally{if(button)button.disabled=false;}
+}
+async function restoreDeluxe(button){
+ if(!currentUser){showToast('Sign in with the account you used to buy Deluxe');showScreen('friends',document.querySelector('nav button[data-screen="friends"]'));return;}
+ if(button)button.disabled=true;
+ try{const d=await callDeluxe('restore');await refreshDeluxeAccess();showToast(d.deluxe?(d.restored?'Purchase found — Deluxe restored':'Deluxe is unlocked on your account'):'No Deluxe purchase was found for this account');}
+ catch(e){showToast(e.message||'Could not check purchases right now');}
+ finally{if(button)button.disabled=false;}
+}
+// Coming back from Stripe Checkout. The webhook may take a few seconds, so check a few times.
+async function handleDeluxeReturn(){
+ let params;try{params=new URLSearchParams(location.search);}catch(e){return;}
+ const result=params.get('deluxe');if(!result)return;
+ params.delete('deluxe');params.delete('session_id');
+ try{history.replaceState(null,'',location.pathname+(params.toString()?'?'+params.toString():'')+location.hash);}catch(e){}
+ if(result==='cancel'){showToast('Checkout cancelled — you have not been charged');return;}
+ if(result!=='success')return;
+ showScreen('deluxe',document.querySelector('nav button[data-screen="deluxe"]'));showToast('Payment received. Unlocking Deluxe…');
+ for(let i=0;i<8;i++){
+  if(!currentUser)await new Promise(r=>setTimeout(r,1500));
+  if(currentUser){const a=await refreshDeluxeAccess();if(a.deluxe){celebrate({icon:'✨',title:'Deluxe unlocked',text:'Thank you! Deluxe is now part of your account on every device.'});return;}}
+  await new Promise(r=>setTimeout(r,2000));
+ }
+ showToast('Your payment is still being confirmed. Tap “Restore purchase” in a minute.');
+}
+function canSaveRoutine(){return deluxeEnabled()||(state.routines||[]).length<FREE_ROUTINE_LIMIT;}
+
+// --- H5: planner upgrades ---
+let deluxeEditingPlanId=null;
+function renderPlannerExerciseList(){const list=$('deluxeExerciseList');if(list&&!list.childElementCount)list.innerHTML=allEx().map(x=>'<option value="'+esc(x.name)+'"></option>').join('');}
+function moveDraftDay(i,delta){const j=i+delta;if(!(i>=0&&j>=0&&i<deluxePlanDraft.length&&j<deluxePlanDraft.length))return;const d=deluxePlanDraft.splice(i,1)[0];deluxePlanDraft.splice(j,0,d);renderDeluxePlanDraft();
+ // Keep keyboard focus on the moved day; at the top/bottom edge the same-direction button is disabled, so fall back to the other one.
+ const box=$('deluxePlanDraft'),pick=a=>box.querySelector('[data-plan-action="'+a+'"][data-i="'+j+'"]:not(:disabled)');(pick(delta<0?'up':'down')||pick(delta<0?'down':'up'))?.focus();}
+function editDeluxePlan(index){
+ const plan=state.deluxe?.plans?.[index];if(!plan)return;
+ deluxePlanDraft=JSON.parse(JSON.stringify(plan.days||[]));deluxeEditingPlanId=plan.id;$('deluxePlanName').value=plan.name;renderDeluxePlanDraft();
+ $('deluxePlanName').focus();showToast('Editing '+plan.name+' — save to keep your changes');
+}
+// Pure: today's day in a plan, matched by weekday name in the day label (e.g. "Day 1 · Monday").
+function planDayForDate(plans,date){
+ const weekday=new Date(date).toLocaleDateString('en-GB',{weekday:'long'}).toLowerCase();
+ for(const plan of plans||[])for(const day of plan.days||[])if(String(day.day||'').toLowerCase().includes(weekday)&&(day.exercises||[]).length)return {plan,day};
+ return null;
+}
+function loadPlanDay(plan,day,startNow){
+ (state.workouts||[]).forEach(x=>markRecordDeleted('workouts',x));
+ state.workouts=(day.exercises||[]).map(e=>{const x=exerciseByName(e.name);return syncW({name:e.name,muscle:x?cap(x.pm):'',plan:{sets:e.sets,reps:e.reps,kg:e.kg,name:plan.name,day:day.day},setList:Array.from({length:e.sets},()=>({kg:e.kg,reps:e.reps,done:false}))});});
+ if(startNow&&!state.session)state.session={start:Date.now(),xpStart:Number(state.game.xp)||0};
+ saveState();showToast(day.day+' loaded'+(startNow?' — workout started':''));goToTraining();
+}
+// Pure: how many planned exercises reached their planned sets and reps (warm-ups do not count).
+function planOutcome(workouts){
+ const planned=(workouts||[]).filter(w=>w.plan&&w.plan.sets>0);
+ const completed=planned.filter(w=>(w.setList||[]).filter(s=>s.done&&setTypeOf(s)!=='warmup'&&Number(s.reps)>=Number(w.plan.reps)).length>=Number(w.plan.sets)).length;
+ return planned.length?{planned:planned.length,completed,name:planned[0].plan.name||'',day:planned[0].plan.day||''}:null;
+}
+function planLineMarkup(w){
+ if(!w.plan)return '';const done=(w.setList||[]).filter(s=>s.done&&setTypeOf(s)!=='warmup').length;
+ return '<div class="plan-line"><span>📋 Planned '+Number(w.plan.sets)+' × '+Number(w.plan.reps)+(Number(w.plan.kg)>0?' · '+esc(fmtWeight(w.plan.kg,2)):'')+'</span><span>'+Math.min(done,Number(w.plan.sets))+'/'+Number(w.plan.sets)+' sets done'+(done>=Number(w.plan.sets)?' ✓':'')+'</span></div>';
+}
+function initDeluxeControls(){
+ $('deluxeBuyBtn')?.addEventListener('click',e=>buyDeluxe(e.currentTarget));
+ $('deluxeRestoreBtn')?.addEventListener('click',e=>restoreDeluxe(e.currentTarget));
+ $('deluxePlanDraft')?.addEventListener('click',e=>{const b=e.target.closest('[data-plan-action]');if(!b)return;const i=Number(b.dataset.i);if(b.dataset.planAction==='up')moveDraftDay(i,-1);else if(b.dataset.planAction==='down')moveDraftDay(i,1);});
+ $('deluxePlanLibrary')?.addEventListener('click',e=>{const b=e.target.closest('[data-plan-edit]');if(b)editDeluxePlan(Number(b.dataset.planEdit));});
+ $('workoutHero')?.addEventListener('click',e=>{if(!e.target.closest('[data-hero-action="plan"]'))return;const today=planDayForDate(state.deluxe&&state.deluxe.plans,new Date());if(today)loadPlanDay(today.plan,today.day,true);});
+ handleDeluxeReturn();
+}
+
 // ===== Gymplified accounts + real friend connections =====
 const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3iqgTv1xyZgxhnD8iV1uMQ_DcrlHxPj';
@@ -4229,8 +4348,8 @@ async function initSocial(){
  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  const r=await sb.auth.getSession();if(r.error)socialError(r.error);currentUser=r.data&&r.data.session?r.data.session.user:null;
  if(currentUser&&!currentUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;authMode='signup';renderAuthPanel('Please verify your email address before using your Gymplified account.');}
- if(currentUser){const syncMode=prepareLocalAccountState(currentUser.id);await loadMyProfile();if(syncMode===true)showLegacyLocalDataDialog();else await syncUserAppState(syncMode==='cloud');loadSupportTickets();}renderFriends();
- sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);let syncMode=false;if(changed){resetCloudSaveQueue();cloudSyncUserId=null;cloudSyncLoadingUserId=null;if(currentUser&&nextUser){if(pendingLegacyAccountId===currentUser.id){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(_){}pendingLegacyAccountId=null;}else saveAccountLocalSnapshot(currentUser.id);}if(nextUser)syncMode=prepareLocalAccountState(nextUser.id);else if(currentUser)releaseLocalAccountState(currentUser.id);}currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed&&syncMode!==true)await syncUserAppState(syncMode==='cloud');if(syncMode===true)showLegacyLocalDataDialog();loadSupportTickets();}else{resetCloudSaveQueue();cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';renderAll();}friendRequests=[];friendProfiles={};renderFriends();},0);});
+ if(currentUser){const syncMode=prepareLocalAccountState(currentUser.id);await loadMyProfile();if(syncMode===true)showLegacyLocalDataDialog();else await syncUserAppState(syncMode==='cloud');loadSupportTickets();}renderFriends();refreshDeluxeAccess();
+ sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);let syncMode=false;if(changed){resetCloudSaveQueue();cloudSyncUserId=null;cloudSyncLoadingUserId=null;if(currentUser&&nextUser){if(pendingLegacyAccountId===currentUser.id){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(_){}pendingLegacyAccountId=null;}else saveAccountLocalSnapshot(currentUser.id);}if(nextUser)syncMode=prepareLocalAccountState(nextUser.id);else if(currentUser)releaseLocalAccountState(currentUser.id);}currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed&&syncMode!==true)await syncUserAppState(syncMode==='cloud');if(syncMode===true)showLegacyLocalDataDialog();loadSupportTickets();}else{resetCloudSaveQueue();cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';renderAll();}friendRequests=[];friendProfiles={};renderFriends();refreshDeluxeAccess();},0);});
 }
 async function loadMyProfile(){if(!currentUser){currentProfile=null;return;}const r=await sb.from('profiles').select('id,username,display_name,avatar_url,created_at').eq('id',currentUser.id).maybeSingle();if(r.error){socialError(r.error);return;}currentProfile=r.data;}
 
@@ -4447,7 +4566,8 @@ let deluxePlanDraft=[];
 // Until then the local demo flag is only honoured behind the ?demo=1 developer flag.
 const DELUXE_DEMO_KEY='gymplified_deluxe_demo';
 function deluxeDemoAllowed(){try{return new URLSearchParams(location.search).get('demo')==='1';}catch(e){return false;}}
-function deluxeEnabled(){if(!deluxeDemoAllowed())return false;try{return localStorage.getItem(DELUXE_DEMO_KEY)==='1';}catch(e){return false;}}
+// A4: Deluxe is unlocked by the server entitlement; the local demo flag only works behind ?demo=1.
+function deluxeEnabled(){return deluxeOwned()||deluxeDemoOn();}
 function deluxeDownload(filename,content,type){
  const blob=new Blob([content],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -4461,18 +4581,28 @@ function deluxeRecentWeeks(count){
  return out.map(w=>Object.assign(w,{volume:w.sessions.reduce((n,s)=>n+deluxeSessionVolume(s),0),workouts:w.sessions.length,sets:w.sessions.reduce((n,s)=>n+(Number(s.sets)||0),0)}));
 }
 function renderDeluxeUI(){
- const enabled=deluxeEnabled(),status=$('deluxeStatus'),toggle=$('deluxeDemoToggle'),locked=$('deluxeLockedNotice'),tools=$('deluxeTools'),demo=$('deluxeDemoControls'),demoBtn=$('deluxeDemoUnlockBtn');
- if(status){status.textContent=enabled?'✓ DEMO UNLOCKED':'PREVIEW MODE';status.classList.toggle('is-unlocked',enabled);}
- if(toggle)toggle.textContent=enabled?'Demo unlocked on this device':'Preview only';
- if(demo)demo.hidden=!deluxeDemoAllowed();if(demoBtn)demoBtn.textContent=enabled?'Turn off demo unlock':'Enable demo unlock';
+ const owned=deluxeOwned(),demo=!owned&&deluxeDemoOn(),enabled=owned||demo,open=deluxeAccess.salesOpen,signedIn=!!currentUser;
+ const status=$('deluxeStatus'),toggle=$('deluxeDemoToggle'),locked=$('deluxeLockedNotice'),tools=$('deluxeTools'),demoBox=$('deluxeDemoControls'),demoBtn=$('deluxeDemoUnlockBtn');
+ const set=(id,text)=>{const el=$(id);if(el)el.textContent=text;};
+ if(status){status.textContent=owned?'✓ DELUXE UNLOCKED':demo?'✓ DEMO UNLOCKED':open?'ONE-TIME '+DELUXE_PRICE_LABEL:!signedIn?'SIGN IN TO BUY':'COMING SOON';status.classList.toggle('is-unlocked',enabled);}
+ if($('deluxeBuyBtn'))$('deluxeBuyBtn').hidden=owned||!(open||!signedIn);
+ if($('deluxeRestoreBtn'))$('deluxeRestoreBtn').hidden=owned||!(open||!signedIn);
+ set('deluxePriceNote',owned?'one-time · paid':open||!signedIn?'one-time · no subscription':'one-time · coming soon');
+ set('deluxeHeroText',owned?'Thank you for supporting Gymplified. Deluxe is part of your account on every device.':'Handy extras on top of the full free tracker. Everything you need to log and improve stays free.');
+ set('deluxeSalesNote',owned?'Deluxe is linked to your account. Sign in on any device to use it.':!signedIn?'Deluxe is linked to your Gymplified account. Sign in to buy it or restore an earlier purchase.':open?'One-time payment of '+DELUXE_PRICE_LABEL+' through Stripe. No subscription. Bought it before? Tap Restore purchase.':'Deluxe is not on sale yet. No payment is taken on this page.');
+ // TODO(owner/legal): add the approved EU/UK withdrawal-right and refund wording here and in terms.html before sales open.
+ set('deluxeLockedTitle',open?'Unlock Deluxe to use these tools.':'Deluxe tools are locked.');
+ set('deluxeLockedText',open?'A one-time '+DELUXE_PRICE_LABEL+' purchase unlocks them on your account.':!signedIn?'Sign in to see whether Deluxe is available for your account.':'Deluxe is not on sale yet, so these tools cannot be unlocked.');
+ if(toggle)toggle.textContent=demo?'Demo unlocked on this device':deluxeAccess.offline&&owned?'Offline — using your saved Deluxe status':'';
+ if(demoBox)demoBox.hidden=!deluxeDemoAllowed();if(demoBtn)demoBtn.textContent=deluxeDemoOn()?'Turn off demo unlock':'Enable demo unlock';
  if(locked)locked.hidden=enabled;if(tools)tools.hidden=!enabled;
  document.querySelectorAll('.deluxe-feature .lock').forEach(el=>el.textContent=enabled?'✨':'🔒');
- if(enabled){renderDeluxeAnalytics();renderDeluxePerformanceOptions();renderDeluxePlanLibrary();renderDeluxeCustomisation();}
+ if(enabled){renderDeluxeAnalytics();renderDeluxePerformanceOptions();renderDeluxePlanLibrary();renderDeluxeCustomisation();renderPlannerExerciseList();}
 }
 function updateDeluxeUI(){renderDeluxeUI();}
 function toggleDeluxeDemo(){
  if(!deluxeDemoAllowed()){showToast('Deluxe is currently preview-only');return;}
- try{localStorage.setItem(DELUXE_DEMO_KEY,deluxeEnabled()?'0':'1');renderDeluxeUI();showToast(deluxeEnabled()?'Deluxe demo unlocked on this device':'Deluxe demo lock restored');}
+ try{localStorage.setItem(DELUXE_DEMO_KEY,deluxeDemoOn()?'0':'1');renderDeluxeUI();showToast(deluxeDemoOn()?'Deluxe demo unlocked on this device':'Deluxe demo lock restored');}
  catch(e){showToast('Could not save demo setting on this device');}
 }
 function openDeluxeDemo(){if(!deluxeEnabled()){previewDeluxeFeature('Gymplified Deluxe');return;}renderDeluxeAnalytics();$('deluxeTools')?.scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'start'});}
@@ -4483,7 +4613,7 @@ const DELUXE_PREVIEW_COPY={
  'Performance lab':'Compare personal records, best sets and estimated one-rep max changes for each exercise.',
  'Complete data tools':'Generate detailed workout reports and manage comprehensive backups and exports.',
  'Deluxe customisation':'Unlock exclusive Deluxe profile flair, premium themes and additional appearance settings.',
- 'Gymplified Deluxe':'Gymplified Deluxe is a €9.99 one-time lifetime upgrade. Payment will be added later.'
+ 'Gymplified Deluxe':'Gymplified Deluxe is a €9.99 one-time upgrade with handy extras. The free tracker stays complete.'
 };
 function previewDeluxeFeature(name){
  if(deluxeEnabled()){
@@ -4492,7 +4622,7 @@ function previewDeluxeFeature(name){
   if(actions[name]){actions[name]();return;}
  }
  $('deluxeModalTitle').textContent=name;
- $('deluxeModalText').textContent=(DELUXE_PREVIEW_COPY[name]||'This tool is part of Gymplified Deluxe.')+' Deluxe is preview-only: the payment system has not been connected.';
+ $('deluxeModalText').textContent=(DELUXE_PREVIEW_COPY[name]||'This tool is part of Gymplified Deluxe.')+(deluxeAccess.salesOpen?' Unlock Deluxe with a one-time '+DELUXE_PRICE_LABEL+' purchase to use it.':' Deluxe is not on sale yet.');
  const dialog=$('deluxeModal');if(dialog&&!dialog.open)dialog.showModal();
 }
 function closeDeluxeModal(){const dialog=$('deluxeModal');if(dialog&&dialog.open)dialog.close();}
@@ -4553,6 +4683,7 @@ function renderDeluxePerformance(){
 function addDeluxePlanExercise(){
  const name=$('deluxePlanExercise').value.trim(),sets=Number($('deluxePlanSets').value),reps=Number($('deluxePlanReps').value),kg=Math.round(displayToKg(Number($('deluxePlanKg').value))*1000)/1000;
  if(!name)return showToast('Enter an exercise name for your plan');
+ if(!exerciseByName(name))showToast('“'+name+'” is not in the library; it is added as typed');
  if(!(sets>=1&&sets<=20&&reps>=1&&reps<=100&&kg>=0&&kg<=1000))return showToast('Check the planned sets, reps and weight');
  const day=$('deluxePlanDay').value;
  let target=deluxePlanDraft.find(x=>x.day===day);if(!target){target={day,exercises:[]};deluxePlanDraft.push(target);}
@@ -4560,19 +4691,21 @@ function addDeluxePlanExercise(){
 }
 function renderDeluxePlanDraft(){
  const host=$('deluxePlanDraft');if(!host)return;
- host.innerHTML=deluxePlanDraft.length?deluxePlanDraft.map((d,i)=>'<div class="deluxe-plan-row"><strong>'+esc(d.day)+'</strong>'+d.exercises.map((e,j)=>'<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>'+esc(e.name)+' · '+e.sets+' × '+e.reps+' · '+esc(fmtWeight(e.kg,2))+'</span><button class="btn" onclick="removeDeluxeDraftExercise('+i+','+j+')">Remove</button></div>').join('')+'</div>').join(''):'<p class="sub">Your plan is empty. Add exercises to start building it.</p>';
+ host.innerHTML=deluxePlanDraft.length?deluxePlanDraft.map((d,i)=>'<div class="deluxe-plan-row"><div class="plan-day-head"><strong>'+esc(d.day)+'</strong><span class="row-wrap"><button type="button" class="btn btn-icon-only" data-plan-action="up" data-i="'+i+'" aria-label="Move '+esc(d.day)+' earlier"'+(i===0?' disabled':'')+'>↑</button><button type="button" class="btn btn-icon-only" data-plan-action="down" data-i="'+i+'" aria-label="Move '+esc(d.day)+' later"'+(i===deluxePlanDraft.length-1?' disabled':'')+'>↓</button></span></div>'+d.exercises.map((e,j)=>'<div style="display:flex;justify-content:space-between;gap:8px;margin-top:6px"><span>'+esc(e.name)+' · '+e.sets+' × '+e.reps+' · '+esc(fmtWeight(e.kg,2))+'</span><button class="btn" onclick="removeDeluxeDraftExercise('+i+','+j+')">Remove</button></div>').join('')+'</div>').join(''):'<p class="sub">Your plan is empty. Add exercises to start building it.</p>';
 }
 function removeDeluxeDraftExercise(i,j){if(deluxePlanDraft[i]){deluxePlanDraft[i].exercises.splice(j,1);if(!deluxePlanDraft[i].exercises.length)deluxePlanDraft.splice(i,1);renderDeluxePlanDraft();}}
 function saveDeluxePlan(){
  const name=$('deluxePlanName').value.trim();if(!name)return showToast('Give your training plan a name');
  if(!deluxePlanDraft.length)return showToast('Add at least one exercise to your plan');
  state.deluxe=state.deluxe||{plans:[]};state.deluxe.plans=Array.isArray(state.deluxe.plans)?state.deluxe.plans:[];
- state.deluxe.plans.unshift({id:newRecordId('deluxe-plan'),name,createdAt:new Date().toISOString(),days:JSON.parse(JSON.stringify(deluxePlanDraft))});
- state.deluxe.plans=state.deluxe.plans.slice(0,50);deluxePlanDraft=[];$('deluxePlanName').value='';renderDeluxePlanLibrary();renderDeluxePlanDraft();saveState();showToast('Deluxe training plan saved');
+ const days=JSON.parse(JSON.stringify(deluxePlanDraft)),existing=deluxeEditingPlanId?state.deluxe.plans.findIndex(p=>p.id===deluxeEditingPlanId):-1;
+ if(existing>=0)state.deluxe.plans[existing]=Object.assign({},state.deluxe.plans[existing],{name,days});
+ else state.deluxe.plans.unshift({id:newRecordId('deluxe-plan'),name,createdAt:new Date().toISOString(),days});
+ state.deluxe.plans=state.deluxe.plans.slice(0,50);deluxePlanDraft=[];deluxeEditingPlanId=null;$('deluxePlanName').value='';renderDeluxePlanLibrary();renderDeluxePlanDraft();saveState();showToast('Deluxe training plan saved');
 }
 function renderDeluxePlanLibrary(){
  const host=$('deluxePlanLibrary');if(!host)return;const plans=state.deluxe&&Array.isArray(state.deluxe.plans)?state.deluxe.plans:[];
- host.innerHTML=plans.length?'<div class="sub-h">Saved plans</div>'+plans.map((p,i)=>'<div class="deluxe-plan-row"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(p.name)+'</strong><span class="sub">'+p.days.reduce((n,d)=>n+d.exercises.length,0)+' planned exercises</span></div><div class="row-wrap" style="margin-top:9px"><button class="btn btn-primary" onclick="loadDeluxePlan('+i+')">Load a day</button><button class="btn" onclick="deleteDeluxePlan('+i+')">Delete</button></div></div>').join(''):'<p class="sub">Your saved training plans will appear here.</p>';
+ host.innerHTML=plans.length?'<div class="sub-h">Saved plans</div>'+plans.map((p,i)=>'<div class="deluxe-plan-row"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><strong>'+esc(p.name)+'</strong><span class="sub">'+p.days.reduce((n,d)=>n+d.exercises.length,0)+' planned exercises</span></div><div class="row-wrap" style="margin-top:9px"><button class="btn btn-primary" onclick="loadDeluxePlan('+i+')">Load a day</button><button type="button" class="btn" data-plan-edit="'+i+'">Edit</button><button class="btn" onclick="deleteDeluxePlan('+i+')">Delete</button></div></div>').join(''):'<p class="sub">Your saved training plans will appear here.</p>';
  renderDeluxePlanDraft();
 }
 let deluxePendingPlanIndex=null;
@@ -4586,15 +4719,13 @@ function loadDeluxePlan(index){
 }
 function showLegacyLocalDataDialog(){const dialog=$('legacyLocalDataDialog');if(dialog&&!dialog.open)dialog.showModal();}
 function downloadLegacyLocalBackup(){try{const raw=localStorage.getItem(ACCOUNT_STATE_PREFIX+'unassigned');if(!raw)return showToast('No recovery copy is available');const a=document.createElement('a'),url=URL.createObjectURL(new Blob([raw],{type:'application/json'}));a.href=url;a.download='gymplified-local-recovery-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showToast('Recovery copy downloaded');}catch(error){showToast('Could not download the recovery copy');}}
-async function resolveLegacyLocalData(merge){const id=pendingLegacyAccountId;if(!id||!currentUser||currentUser.id!==id)return;const dialog=$('legacyLocalDataDialog');if(dialog&&dialog.open)dialog.close();pendingLegacyAccountId=null;if(!merge)state=JSON.parse(JSON.stringify(cleanState));else clearLegacyBackupAfterSync=true;state.accountOwnerId=id;try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);}catch(_){}persistLocalState(false);await syncUserAppState(!merge);loadSupportTickets();renderAll();}
+async function resolveLegacyLocalData(merge){const id=pendingLegacyAccountId;if(!id||!currentUser||currentUser.id!==id)return;const dialog=$('legacyLocalDataDialog');if(dialog&&dialog.open)dialog.close();pendingLegacyAccountId=null;if(!merge)state=blankAccountState();else clearLegacyBackupAfterSync=true;state.accountOwnerId=id;try{localStorage.setItem(ACCOUNT_OWNER_KEY,id);}catch(_){}persistLocalState(false);await syncUserAppState(!merge);loadSupportTickets();renderAll();}
 function closeDeluxePlanDayDialog(){const dialog=$('deluxePlanDayDialog');if(dialog&&dialog.open)dialog.close();deluxePendingPlanIndex=null;}
 function confirmLoadDeluxePlan(){
  const plan=state.deluxe?.plans?.[deluxePendingPlanIndex],select=$('deluxePlanDaySelect');
  if(!plan||!select)return closeDeluxePlanDayDialog();
  const selected=(plan.days||[])[Number(select.value)];if(!selected)return showToast('Choose a valid training day');
- (state.workouts||[]).forEach(x=>markRecordDeleted('workouts',x));
- state.workouts=selected.exercises.map(e=>syncW({name:e.name,muscle:'',setList:Array.from({length:e.sets},()=>({kg:e.kg,reps:e.reps,done:false}))}));
- closeDeluxePlanDayDialog();saveState();showToast(selected.day+' loaded into Training Log');showScreen('training',document.querySelector('nav button[data-screen="training"]'));
+ closeDeluxePlanDayDialog();loadPlanDay(plan,selected,false);
 }
 function deleteDeluxePlan(index){
  const plans=state.deluxe?.plans;if(!plans||!plans[index]||!confirm('Delete this training plan?'))return;
@@ -4638,6 +4769,7 @@ initFriendsControls();
 initNutritionControls();
 initAccessibilityControls();
 initLibraryControls();
+initDeluxeControls();
 initGoals();
 if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();

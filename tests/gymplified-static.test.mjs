@@ -296,11 +296,15 @@ test('A4: the local Deluxe demo unlock only works behind the ?demo=1 developer f
   assert.doesNotMatch(html, /onclick="toggleDeluxeDemo\(\)"/);
   assert.match(html, /id="deluxeDemoControls"[^>]*\shidden>/);
   assert.match(js, /TODO\(H3\)/);
-  const build = (search, stored) => new Function('location', 'localStorage', "const DELUXE_DEMO_KEY='gymplified_deluxe_demo';" + extractFunctions(js, ['deluxeDemoAllowed', 'deluxeEnabled']) + ';return deluxeEnabled();')({ search }, { getItem: () => stored });
+  const build = (search, stored, access = { deluxe: false, userId: '' }, user = null) => new Function('location', 'localStorage', 'deluxeAccess', 'currentUser', "const DELUXE_DEMO_KEY='gymplified_deluxe_demo';" + extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return deluxeEnabled();')({ search }, { getItem: () => stored }, access, user);
   assert.equal(build('', '1'), false, 'console-set flag must not unlock production');
   assert.equal(build('?demo=0', '1'), false);
   assert.equal(build('?demo=1', null), false);
   assert.equal(build('?demo=1', '1'), true);
+  // Batch 9: the server entitlement unlocks Deluxe, but only for the account it was fetched for
+  assert.equal(build('', null, { deluxe: true, userId: 'u1' }, { id: 'u1' }), true);
+  assert.equal(build('', null, { deluxe: true, userId: 'u1' }, { id: 'u2' }), false, 'another account after switching');
+  assert.equal(build('', null, { deluxe: true, userId: 'u1' }, null), false, 'signed out');
 });
 
 test('A5: dashboard markup has no hard-coded targets and renders goals from state', async () => {
@@ -369,7 +373,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 19);
+  assert.ok(version >= 20);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -1009,7 +1013,7 @@ test('I8/I9/I10: motion settings, non-colour cues and narrow-screen layout', asy
   assert.match(css, /html\[data-motion="reduced"\] \*, html\[data-motion="reduced"\] \*::before, html\[data-motion="reduced"\] \*::after \{\s*animation: none !important;\s*transition: none !important;/);
   assert.match(css, /\.lb-tab\[aria-selected=true\]::before,\.range-btn\[aria-pressed=true\]::before\{content:"✓ "\}/);
   assert.match(js, /\(hit\?'<span class="water-hit" aria-hidden="true">✓<\/span>':''\)/);
-  assert.match(js, /status\.textContent=enabled\?'✓ DEMO UNLOCKED':'PREVIEW MODE'/);
+  assert.match(js, /status\.textContent=owned\?'✓ DELUXE UNLOCKED':demo\?'✓ DEMO UNLOCKED':/);
   // bottom navigation: seven columns, short labels on phones (it was six, pushing Settings off-screen)
   assert.doesNotMatch(css, /nav\{grid-template-columns:repeat\(6,/);
   assert.match(css, / nav\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);gap:2px\}/);
@@ -1115,4 +1119,109 @@ test('B25: exercise sheet with muscle map, records, last five sessions and an ac
   assert.ok(block.length > 8000);
   assert.doesNotMatch(block, /\son[a-z]+=/, 'Batch 8 UI uses listeners, not inline handlers');
   for (const field of ['esc(x.eq)', 'esc(x.pm)', 'esc(a.name)', 'esc(e.name)', 'esc(tip)', 'esc(summary)']) assert.ok(block.includes(field), field + ' is escaped');
+});
+
+// ===== Batch 9: Deluxe entitlement, Stripe payment, free tier, planner =====
+const stripeHelpers = () => import(new URL('supabase/functions/_shared/stripe.js', root).href);
+const signStripe = async (payload, secret, t) => {
+  const { createHmac } = await import('node:crypto');
+  return 't=' + t + ',v1=' + createHmac('sha256', secret).update(t + '.' + payload).digest('hex');
+};
+
+test('H3: Stripe webhook signatures are verified with a timestamp tolerance', async () => {
+  const { verifyStripeWebhook } = await stripeHelpers();
+  const secret = 'whsec_test', body = '{"id":"evt_1","type":"checkout.session.completed"}', now = 1_800_000_000;
+  const ok = (b, h, k, t) => verifyStripeWebhook(b, h, k, { nowSeconds: t }).then(() => true, () => false);
+  const good = await signStripe(body, secret, now);
+  assert.deepEqual(await verifyStripeWebhook(body, good, secret, { nowSeconds: now + 10 }), { id: 'evt_1', type: 'checkout.session.completed' });
+  assert.equal(await ok(body + ' ', good, secret, now), false, 'a changed body fails');
+  assert.equal(await ok(body, good, 'whsec_other', now), false, 'a different secret fails');
+  assert.equal(await ok(body, good, secret, now + 301), false, 'old signatures are rejected');
+  assert.equal(await ok(body, good.replace('v1=', 'v0='), secret, now), false, 'v0 signatures are ignored');
+  assert.equal(await ok(body, '', secret, now), false);
+  assert.equal(await ok(body, good, '', now), false, 'a missing secret never verifies');
+  assert.equal(await ok(body, good + ',v1=' + '0'.repeat(64), secret, now), true, 'any matching v1 (secret rotation) is accepted');
+});
+
+test('H1/H3: checkout parameters and paid-session checks bind the purchase to one account', async () => {
+  const { formEncode, entitlementFromCheckoutSession, deluxeCheckoutParams, DELUXE_PRODUCT_TAG } = await stripeHelpers();
+  const user = '0f8fad5b-d9cb-469f-a165-70867728950e';
+  const params = formEncode(deluxeCheckoutParams({ priceId: 'price_123', userId: user, email: 'a@b.co', siteUrl: 'https://gymplified.com' }));
+  assert.equal(params.get('mode'), 'payment', 'one-time payment, not a subscription');
+  assert.equal(params.get('line_items[0][price]'), 'price_123');
+  assert.equal(params.get('client_reference_id'), user);
+  assert.equal(params.get('metadata[user_id]'), user);
+  assert.equal(params.get('payment_intent_data[metadata][product]'), DELUXE_PRODUCT_TAG);
+  assert.equal(params.get('payment_intent_data[metadata][user_id]'), user);
+  assert.equal(params.get('success_url'), 'https://gymplified.com/?deluxe=success&session_id={CHECKOUT_SESSION_ID}');
+  assert.equal(params.get('automatic_tax[enabled]'), null, 'tax collection is an owner decision and stays off unless configured');
+  assert.equal(params.get('consent_collection[terms_of_service]'), null);
+  const withTerms = formEncode(deluxeCheckoutParams({ priceId: 'p', userId: user, siteUrl: 'https://gymplified.com', termsRequired: true, automaticTax: true }));
+  assert.equal(withTerms.get('consent_collection[terms_of_service]'), 'required');
+  assert.equal(withTerms.get('automatic_tax[enabled]'), 'true');
+  const paid = { object: 'checkout.session', id: 'cs_test_1', mode: 'payment', payment_status: 'paid', client_reference_id: user, payment_intent: 'pi_1', amount_total: 999, currency: 'eur', metadata: { product: DELUXE_PRODUCT_TAG, user_id: user } };
+  assert.equal(entitlementFromCheckoutSession(paid).userId, user);
+  assert.equal(entitlementFromCheckoutSession({ ...paid, payment_status: 'unpaid' }), null, 'unpaid sessions grant nothing');
+  assert.equal(entitlementFromCheckoutSession({ ...paid, mode: 'subscription' }), null);
+  assert.equal(entitlementFromCheckoutSession({ ...paid, metadata: { product: 'other', user_id: user } }), null, 'other products grant nothing');
+  assert.equal(entitlementFromCheckoutSession({ ...paid, client_reference_id: '1f8fad5b-d9cb-469f-a165-70867728950e' }), null, 'mismatched account ids grant nothing');
+  assert.equal(entitlementFromCheckoutSession({ ...paid, client_reference_id: 'not-a-uuid', metadata: { product: DELUXE_PRODUCT_TAG, user_id: 'not-a-uuid' } }), null);
+});
+
+test('H2/H4: entitlement lives on the server, is granted only by the service role and is never trusted from the client', async () => {
+  const sql = await read('supabase/migrations/20261111120000_gymplified_deluxe_entitlements.sql');
+  assert.match(sql, /alter table public\.deluxe_entitlements enable row level security/i);
+  assert.match(sql, /revoke all on (table )?public\.deluxe_entitlements from public, anon, authenticated/i);
+  assert.match(sql, /grant execute on function public\.gymplified_grant_deluxe\([^)]*\) to service_role/i);
+  assert.doesNotMatch(sql, /grant execute on function public\.gymplified_grant_deluxe\([^)]*\) to [^;]*authenticated/i);
+  assert.match(sql, /grant execute on function public\.gymplified_revoke_deluxe_by_payment\(text\) to service_role/i);
+  for (const f of sql.matchAll(/create or replace function[\s\S]*?\$\$;/gi)) assert.match(f[0], /security definer[\s\S]*set search_path = pg_catalog, public/i);
+  const webhook = await read('supabase/functions/gymplified-stripe-webhook/index.ts');
+  assert.match(webhook, /verifyStripeWebhook\(/);
+  assert.match(webhook, /charge\.refunded/);
+  const fn = await read('supabase/functions/gymplified-deluxe/index.ts');
+  assert.match(fn, /auth\.getUser\(/, 'checkout and restore need a signed-in user');
+  assert.doesNotMatch(fn, /Access-Control-Allow-Origin['"]?\s*:\s*['"]\*/, 'no wildcard CORS');
+  const html = await read('index.html'), js = appScript(html);
+  const sanitize = new Function('state', 'currentUser', 'localStorage', 'location', extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return {deluxeEnabled,deluxeOwned};');
+  assert.match(js, /\/\/ TODO\(owner\/legal\): add the approved EU\/UK withdrawal-right and refund wording/);
+  assert.match(await read('terms.html'), /TODO\(owner\/legal\): before Gymplified Deluxe goes on sale/);
+  assert.ok(sanitize, 'entitlement helpers extract');
+  // The browser never stores a "paid" flag in synced state.
+  assert.doesNotMatch(extractFunctions(js, ['sanitizeStateSnapshot']), /deluxeOwned|entitlement/);
+});
+
+test('H5/H6: free routine limit, plan for today, planned-vs-completed and safe plan fields', async () => {
+  const html = await read('index.html'), js = appScript(html);
+  assert.match(js, /const FREE_ROUTINE_LIMIT=5;/);
+  const canSave = (enabled, n) => new Function('deluxeEnabled', 'state', 'FREE_ROUTINE_LIMIT', extractFunctions(js, ['canSaveRoutine']) + ';return canSaveRoutine();')(() => enabled, { routines: Array(n).fill({}) }, 5);
+  assert.equal(canSave(false, 4), true);
+  assert.equal(canSave(false, 5), false, 'free accounts stop at five routines');
+  assert.equal(canSave(true, 50), true, 'Deluxe is unlimited (up to the storage cap)');
+  const forDate = new Function(extractFunctions(js, ['planDayForDate']) + ';return planDayForDate;')();
+  const plans = [{ name: 'A', days: [{ day: 'Day 1 · Monday', exercises: [{ name: 'Squat' }] }, { day: 'Day 2 · Wednesday', exercises: [] }] }];
+  assert.equal(forDate(plans, '2026-11-09T12:00:00').day.day, 'Day 1 · Monday');
+  assert.equal(forDate(plans, '2026-11-11T12:00:00'), null, 'an empty day is not offered');
+  assert.equal(forDate([], '2026-11-09T12:00:00'), null);
+  const outcome = new Function('setTypeOf', extractFunctions(js, ['planOutcome']) + ';return planOutcome;')(s => s.type || 'normal');
+  const ws = [
+    { plan: { sets: 2, reps: 8, name: 'A', day: 'Mon' }, setList: [{ done: true, reps: 8 }, { done: true, reps: 10 }, { done: true, reps: 12, type: 'warmup' }] },
+    { plan: { sets: 3, reps: 5, name: 'A', day: 'Mon' }, setList: [{ done: true, reps: 5 }, { done: true, reps: 4 }, { done: true, reps: 5 }] },
+    { setList: [{ done: true, reps: 5 }] }];
+  assert.deepEqual(outcome(ws), { planned: 2, completed: 1, name: 'A', day: 'Mon' });
+  assert.equal(outcome([{ setList: [] }]), null);
+  assert.match(js, /plan:cleanPlanTarget\(x\.plan\)/);
+  assert.match(js, /plan:cleanPlanOutcome\(raw\.lastSummary\.plan\)/);
+  assert.match(js, /const cleanPlanTarget=p=>[^;]*safeStateText\(p\.name,'',50\)/);
+  assert.match(html, /id="deluxePlanExercise"[^>]*list="deluxeExerciseList"/);
+  const block = js.slice(js.indexOf('// ===== Batch 9: Deluxe entitlement'), js.indexOf('// ===== Gymplified accounts + real friend connections ====='));
+  assert.ok(block.length > 1000);
+  assert.doesNotMatch(block, /onclick=/, 'Batch 9 code uses listeners, not inline handlers');
+  assert.match(block, /data-plan-action/);
+});
+
+test('H1: a new account with no cloud copy starts from a fully shaped state', async () => {
+  const js = appScript(await read('index.html'));
+  assert.doesNotMatch(js, /state=JSON\.parse\(JSON\.stringify\(cleanState\)\)/, 'bare template has no game data and crashed the next save');
+  assert.match(js, /function blankAccountState\(\)\{return sanitizeStateSnapshot\(/);
 });

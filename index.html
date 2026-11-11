@@ -10,7 +10,7 @@
 <meta property="og:description" content="Track your workouts, personal records, nutrition and training progress with Gymplified.">
 <meta property="og:url" content="https://gymplified.com/">
 <meta property="og:site_name" content="Gymplified">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://ouwvujtsrnotnwtbvqhc.supabase.co; font-src 'self' data:; connect-src 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co wss://ouwvujtsrnotnwtbvqhc.supabase.co https://world.openfoodfacts.org; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co; script-src 'self' https://cdn.jsdelivr.net; style-src 'self'; img-src 'self' data: blob: https://ouwvujtsrnotnwtbvqhc.supabase.co; font-src 'self' data:; connect-src 'self' https://ouwvujtsrnotnwtbvqhc.supabase.co wss://ouwvujtsrnotnwtbvqhc.supabase.co https://world.openfoodfacts.org; worker-src 'self'; manifest-src 'self'; upgrade-insecure-requests">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b0f17">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -107,7 +107,7 @@
           <div class="row-wrap"><button class="btn btn-primary" type="button" data-nudge-action="train">Log a workout</button><button class="btn" type="button" data-nudge-action="dismiss">Not today</button></div>
         </div>
 
-        <div class="panel" id="gamePanel" style="margin-bottom:20px" role="region" aria-label="Progress and streaks"></div>
+        <div class="st-1 panel" id="gamePanel" role="region" aria-label="Progress and streaks"></div>
         <div class="grid-2">
           <!-- Calorie Panel -->
           <div class="panel">
@@ -118,7 +118,7 @@
               </div>
               <button class="btn" data-action="openCalorieModal">+ Add Food</button>
             </div>
-            <div class="progress-bar"><i id="dashCalBar" style="width: 0%"></i></div>
+            <div class="progress-bar"><i id="dashCalBar" class="st-2"></i></div>
             <div class="meta-row">
               <span id="dashCalRemain">—</span>
               <span id="dashCalPct">—</span>
@@ -139,15 +139,15 @@
               </div>
               
             </div>
-            <div class="progress-bar"><i id="dashWaterBar" style="width: 0%"></i></div>
+            <div class="progress-bar"><i id="dashWaterBar" class="st-2"></i></div>
             <div class="meta-row">
               <span id="waterMeta">Goal</span>
               <button aria-label="Reset water tracker" class="btn btn-icon-only" type="button" id="waterResetBtn" title="Reset Water">↺</button>
             </div>
-            <div id="waterBtns" class="water-btns" style="margin-top:12px"></div>
-<div style="margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);">
+            <div id="waterBtns" class="st-3 water-btns"></div>
+<div class="st-4">
               <div class="eyebrow">Logged Exercises</div>
-              <div style="font-size:calc(22px * var(--text-scale, 1)); font-weight: 700; font-family: var(--font-heading);" id="dashWorkoutCount">0 Exercises</div>
+              <div class="st-5" id="dashWorkoutCount">0 Exercises</div>
             </div>
           </div>
         </div>
@@ -174,7 +174,7 @@
         <div class="motivation-card">
           <div class="quote-icon">“</div>
           <div class="motivation-header">
-            <div class="eyebrow" style="color: var(--brand-text);">Daily Mindset Strategy</div>
+            <div class="st-6 eyebrow">Daily Mindset Strategy</div>
             <button class="btn btn-gold" data-action="nextQuote" title="Get New Random Quote">
               <span>New Quote</span> ↺
             </button>
@@ -186,7 +186,7 @@
         </div>
 
         <!-- Log PR Direct Form -->
-        <div class="panel" style="margin-bottom: 20px;">
+        <div class="st-1 panel">
           <div class="section-title">Record New Personal Best</div>
           <div class="form-grid">
             <div class="field">
@@ -213,7 +213,7 @@
         <div class="panel">
           <div class="section-title">
             <span>Peak Lifter Hall of Fame</span>
-            <button class="btn" data-action="clearAllPRs" style="color:var(--danger)">Reset All PRs</button>
+            <button class="st-7 btn" data-action="clearAllPRs">Reset All PRs</button>
           </div>
           <div id="prListContainer">
             <!-- Dynamic PR cards -->
@@ -226,29 +226,29 @@
         <div class="eyebrow">Execution</div>
         <h1>Workout Session</h1>
         <p class="subtitle">Start a session, pick exercises from the library, log every set, then finish to see your stats.</p>
-<div class="panel" id="sessBar" role="status" aria-live="polite" aria-atomic="true" style="margin-bottom:20px"></div>
+<div class="st-1 panel" id="sessBar" role="status" aria-live="polite" aria-atomic="true"></div>
 <div id="sessionSummary"></div>
-<div class="panel" style="margin-bottom:20px"><div class="section-title">Rest Timer & Routine</div><div class="row-wrap">
+<div class="st-1 panel"><div class="section-title">Rest Timer & Routine</div><div class="row-wrap">
 <button class="btn" data-action="rest" data-arg="60">60s</button><button class="btn" data-action="rest" data-arg="90">90s</button><button class="btn" data-action="rest" data-arg="120">2 min</button>
-<strong id="timerOut" role="timer" aria-label="Rest timer" aria-live="off" style="font:700 22px var(--font-heading);min-width:70px">–</strong>
-<button class="btn" type="button" id="restSettingsLink">⚙ Rest timer settings</button><button class="btn" data-action="reuseRoutine">↻ Reuse last routine</button><button class="btn btn-primary" data-action="saveCurrentRoutine">＋ Save routine</button></div><div id="routineLibrary" style="margin-top:12px"></div></div>
+<strong id="timerOut" role="timer" aria-label="Rest timer" aria-live="off" class="st-8">–</strong>
+<button class="btn" type="button" id="restSettingsLink">⚙ Rest timer settings</button><button class="btn" data-action="reuseRoutine">↻ Reuse last routine</button><button class="btn btn-primary" data-action="saveCurrentRoutine">＋ Save routine</button></div><div id="routineLibrary" class="st-3"></div></div>
 
         <div class="pick-grid">
  <div class="panel"><div class="section-title">Add Exercise</div>
   <label class="sr" for="exSearch">Search exercises</label>
-  <input type="search" id="exSearch" placeholder="Search exercises, machines, muscles…" data-input="renderPicker" autocomplete="off" style="width:100%">
-  <div class="row-wrap" style="margin:8px 0"><select id="exMuscle" data-change="renderPicker" aria-label="Filter by muscle"></select><select id="exEquip" data-change="renderPicker" aria-label="Filter by equipment"></select></div>
+  <input type="search" id="exSearch" placeholder="Search exercises, machines, muscles…" data-input="renderPicker" autocomplete="off" class="st-9">
+  <div class="st-10 row-wrap"><select id="exMuscle" data-change="renderPicker" aria-label="Filter by muscle"></select><select id="exEquip" data-change="renderPicker" aria-label="Filter by equipment"></select></div>
   <div id="exResults" class="ex-results" role="list"></div>
-  <details id="customBox" style="margin-top:10px"><summary>Can't find it? Add a custom exercise</summary>
-   <div class="row-wrap" style="margin-top:8px"><input type="text" id="cName" maxlength="60" placeholder="Exercise name" aria-label="Custom exercise name"><select id="cMuscle" aria-label="Primary muscle"></select><select id="cEquip" aria-label="Equipment"></select><button class="btn btn-primary" data-action="addCustom">Create & add</button></div></details>
+  <details id="customBox" class="st-11"><summary>Can't find it? Add a custom exercise</summary>
+   <div class="st-12 row-wrap"><input type="text" id="cName" maxlength="60" placeholder="Exercise name" aria-label="Custom exercise name"><select id="cMuscle" aria-label="Primary muscle"></select><select id="cEquip" aria-label="Equipment"></select><button class="btn btn-primary" data-action="addCustom">Create & add</button></div></details>
  </div>
- <div><div class="body-visualizer" style="display:block;text-align:center;padding:14px"><div class="muscle-map-legend"><span><i class="muscle-map-dot primary"></i>Primary muscle</span><span><i class="muscle-map-dot secondary"></i>Supporting muscle</span></div><div id="muscleMapMount" class="muscle-map-mount" aria-live="polite"></div><div class="muscle-image-credit">Anatomical illustration: OpenStax, Tomáš Kebert & umimeto.org · CC BY-SA 4.0 · <a href="https://commons.wikimedia.org/wiki/File:Muscles_front_and_back.svg" target="_blank" rel="noopener">Source & licence</a></div></div><div class="panel" id="exPreview" style="margin-top:12px" aria-live="polite"></div></div>
+ <div><div class="st-13 body-visualizer"><div class="muscle-map-legend"><span><i class="muscle-map-dot primary"></i>Primary muscle</span><span><i class="muscle-map-dot secondary"></i>Supporting muscle</span></div><div id="muscleMapMount" class="muscle-map-mount" aria-live="polite"></div><div class="muscle-image-credit">Anatomical illustration: OpenStax, Tomáš Kebert & umimeto.org · CC BY-SA 4.0 · <a href="https://commons.wikimedia.org/wiki/File:Muscles_front_and_back.svg" target="_blank" rel="noopener">Source & licence</a></div></div><div class="st-3 panel" id="exPreview" aria-live="polite"></div></div>
 </div>
 <div id="liveStats" role="status" aria-live="polite" aria-atomic="true"></div>
-<div class="section-title"><span>Today's Workout</span><button class="btn" data-action="clearAllWorkouts" style="color:var(--danger)">Clear all</button></div>
-<div id="trainingLogList" style="margin-bottom:20px"></div>
+<div class="section-title"><span>Today's Workout</span><button class="st-7 btn" data-action="clearAllWorkouts">Clear all</button></div>
+<div id="trainingLogList" class="st-1"></div>
 <div id="exerciseHistoryPanel"></div>
-<div class="panel"><div class="section-title">Workout History</div><p class="sub" style="margin-bottom:12px">Open any finished workout to review the exercises and sets you completed.</p><div id="sessionHistory"></div></div>
+<div class="panel"><div class="section-title">Workout History</div><p class="st-14 sub">Open any finished workout to review the exercises and sets you completed.</p><div id="sessionHistory"></div></div>
       </section>
 
       <!-- 5. NUTRITION SCREEN -->
@@ -275,7 +275,7 @@
               <label>Fat <span>g</span><input id="targetFat" type="number" min="0" max="300" step="1"></label>
             </div>
             <button class="btn btn-primary" data-action="saveNutritionTargets">Save macro goals</button>
-            <p class="sub" id="macroPercentLine" style="margin-top:10px"></p>
+            <p class="st-11 sub" id="macroPercentLine"></p>
             <details class="macro-percent"><summary>Set targets by percentage</summary>
               <p class="sub">Splits your calorie target into grams (protein and carbs 4 kcal/g, fat 9 kcal/g).</p>
               <div class="nutrition-target-fields">
@@ -285,27 +285,27 @@
               </div>
               <button type="button" class="btn" data-food-action="apply-percent">Apply split</button>
             </details>
-            <p class="sub" id="calorieEstimateLine" style="margin-top:10px"></p>
-            <p class="sub" style="margin-top:10px">Targets are personal reference points, not rules. Set a target to 0 to hide its progress.</p>
+            <p class="st-11 sub" id="calorieEstimateLine"></p>
+            <p class="st-11 sub">Targets are personal reference points, not rules. Set a target to 0 to hide its progress.</p>
           </div>
         </div>
-        <div class="panel nutrition-add" style="margin-bottom:18px">
+        <div class="st-15 panel nutrition-add">
           <div class="section-title"><span>Add food</span><span class="sub">Choose a food, then set your portion</span></div>
           <div class="nutrition-add-grid">
             <div class="field nutrition-search-field"><label for="foodSearch">Find a food</label>
               <div class="food-search-row"><input id="foodSearch" type="search" placeholder="Search chicken, rice, banana…" autocomplete="off" aria-controls="foodSuggestions"><button type="button" class="btn" id="scanButton" data-food-action="scan" aria-label="Scan a barcode">📷 Scan</button></div>
               <div id="foodSuggestions" class="food-suggestions" role="listbox" aria-label="Food suggestions"></div>
-              <div class="sub" id="foodSelectedHint" style="margin-top:8px">Choose from common foods, scan a barcode or add your own below.</div>
+              <div class="st-12 sub" id="foodSelectedHint">Choose from common foods, scan a barcode or add your own below.</div>
             </div>
             <div class="field"><label for="foodGrams">Amount</label><div class="portion-row"><input id="foodGrams" type="number" inputmode="decimal" min="0.1" max="3000" step="any" value="100"><label class="sr" for="foodUnit">Unit</label><select id="foodUnit"><option value="1">grams</option></select></div></div>
             <div class="field"><label for="foodMeal">Add to meal</label><select id="foodMeal"><option>Breakfast</option><option>Lunch</option><option>Dinner</option><option>Snacks</option></select></div>
           </div>
           <div id="foodPreview" class="food-preview"><span class="sub">Select a food to see its nutrition breakdown.</span></div>
-          <div class="row-wrap" style="margin-top:14px"><button class="btn btn-primary" id="addFoodButton" data-action="addSelectedFood" disabled>+ Add to food diary</button><button class="btn" data-action="clearFoodPicker">Clear selection</button></div>
+          <div class="st-16 row-wrap"><button class="btn btn-primary" id="addFoodButton" data-action="addSelectedFood" disabled>+ Add to food diary</button><button class="btn" data-action="clearFoodPicker">Clear selection</button></div>
           <div id="foodQuickAdd" class="food-quick-add"></div>
           <details class="custom-food-details"><summary>Can't find your food? Add a custom food</summary>
             <p class="sub">Enter the label values per 100g once. Then choose the portion you actually ate.</p>
-            <div class="form-grid" style="margin-top:12px">
+            <div class="st-3 form-grid">
               <div class="field"><label for="customFoodName">Food name</label><input id="customFoodName" maxlength="60" placeholder="e.g. Your favourite cereal"></div>
               <div class="field"><label for="customFoodCal">Calories / 100g</label><input id="customFoodCal" type="number" min="0" max="1000" step="0.1" placeholder="e.g. 380"></div>
               <div class="field"><label for="customFoodProtein">Protein / 100g</label><input id="customFoodProtein" type="number" min="0" max="100" step="0.1" placeholder="e.g. 12"></div>
@@ -315,24 +315,24 @@
             <button class="btn" data-action="saveCustomFood">Save custom food</button>
           </details>
         </div>
-        <div class="panel nutrition-diary" style="margin-bottom:18px"><div class="section-title"><span>Today's food diary</span><div class="row-wrap"><span class="sub" id="foodEntryCount">0 items</span><button class="btn" data-action="clearFoodLogs" style="color:var(--danger)">Clear day</button></div></div><div id="foodDiary"></div></div>
-        <div class="panel" id="nutritionWeek" style="margin-bottom:18px"></div>
-        <div class="panel" id="waterPanel" style="margin-bottom:18px"></div>
+        <div class="st-15 panel nutrition-diary"><div class="section-title"><span>Today's food diary</span><div class="row-wrap"><span class="sub" id="foodEntryCount">0 items</span><button class="st-7 btn" data-action="clearFoodLogs">Clear day</button></div></div><div id="foodDiary"></div></div>
+        <div class="st-15 panel" id="nutritionWeek"></div>
+        <div class="st-15 panel" id="waterPanel"></div>
       </section>
 
       <section id="friends" class="screen">
         <div class="eyebrow">Community</div><h1>Friends & Community</h1>
         <p class="subtitle">Create your Gymplified identity, add friends by username and customise your profile.</p>
-        <div class="panel account-panel" id="friendStatus" style="margin-bottom:20px"></div>
-        <div class="panel" id="friendLeaderboard" style="margin-bottom:20px" hidden></div>
-        <div class="panel" id="friendFeed" style="margin-bottom:20px" hidden></div>
-        <div id="friendConnections" class="panel" style="margin-bottom:20px;display:none"></div>
-        <div class="panel" id="friendSearchPanel" style="display:none">
+        <div class="st-1 panel account-panel" id="friendStatus"></div>
+        <div class="st-1 panel" id="friendLeaderboard" hidden></div>
+        <div class="st-1 panel" id="friendFeed" hidden></div>
+        <div id="friendConnections" class="st-17 panel"></div>
+        <div class="st-18 panel" id="friendSearchPanel">
           <div class="section-title">Find people</div>
           <label class="sr" for="friendSearch">Search usernames</label>
-          <input type="search" id="friendSearch" placeholder="Search usernames…" data-input="searchFriends" autocomplete="off" style="width:100%">
-          <div id="searchOut" style="margin:8px 0"></div>
-          <div class="sub" style="margin-top:10px">Friend codes are gone. Search for someone's username and send them a request.</div>
+          <input type="search" id="friendSearch" placeholder="Search usernames…" data-input="searchFriends" autocomplete="off" class="st-9">
+          <div id="searchOut" class="st-10"></div>
+          <div class="st-11 sub">Friend codes are gone. Search for someone's username and send them a request.</div>
         </div>
       </section>
 
@@ -362,22 +362,22 @@
           
           <div class="toggle-row">
             <label for="themeSelect">Display Theme Mode</label>
-            <select id="themeSelect" data-change="changeTheme" style="width: 170px;">
+            <select id="themeSelect" data-change="changeTheme" class="st-19">
               <option value="dark">Dark Mode (Default)</option>
               <option value="light">Light Mode</option>
             </select>
           </div>
 
-          <div style="margin-top: 14px;">
-            <label style="font-size:calc(11px * var(--text-scale, 1)); font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.08em;">UI Accent Palette</label>
+          <div class="st-16">
+            <label class="st-20">UI Accent Palette</label>
             <div class="color-picker">
-              <button type="button" class="color-dot" style="background: #2563eb;" title="Electric Blue" aria-label="Electric Blue accent" data-action="changeColor" data-arg="blue"></button>
-              <button type="button" class="color-dot" style="background: #059669;" title="Emerald Green" aria-label="Emerald Green accent" data-action="changeColor" data-arg="emerald"></button>
-              <button type="button" class="color-dot" style="background: #475569;" title="Slate Gray" aria-label="Slate Gray accent" data-action="changeColor" data-arg="slate"></button>
-              <button type="button" class="color-dot" style="background: #dc2626;" title="Crimson Red" aria-label="Crimson Red accent" data-action="changeColor" data-arg="crimson"></button>
-              <button type="button" class="color-dot" style="background: #d97706;" title="Amber" aria-label="Amber accent" data-action="changeColor" data-arg="amber"></button>
-              <button type="button" class="color-dot" style="background: linear-gradient(135deg,#f5df9b,#c9a24e 55%,#8d682b);" title="Gymplified Gold" aria-label="Gymplified Gold accent" data-action="changeColor" data-arg="gold"></button>
-              <button type="button" class="color-dot" style="background: #7c3aed;" title="Violet Purple" aria-label="Violet Purple accent" data-action="changeColor" data-arg="violet"></button>
+              <button type="button" class="st-21 color-dot" title="Electric Blue" aria-label="Electric Blue accent" data-action="changeColor" data-arg="blue"></button>
+              <button type="button" class="st-22 color-dot" title="Emerald Green" aria-label="Emerald Green accent" data-action="changeColor" data-arg="emerald"></button>
+              <button type="button" class="st-23 color-dot" title="Slate Gray" aria-label="Slate Gray accent" data-action="changeColor" data-arg="slate"></button>
+              <button type="button" class="st-24 color-dot" title="Crimson Red" aria-label="Crimson Red accent" data-action="changeColor" data-arg="crimson"></button>
+              <button type="button" class="st-25 color-dot" title="Amber" aria-label="Amber accent" data-action="changeColor" data-arg="amber"></button>
+              <button type="button" class="st-26 color-dot" title="Gymplified Gold" aria-label="Gymplified Gold accent" data-action="changeColor" data-arg="gold"></button>
+              <button type="button" class="st-27 color-dot" title="Violet Purple" aria-label="Violet Purple accent" data-action="changeColor" data-arg="violet"></button>
             </div>
           </div>
         </div>
@@ -392,7 +392,7 @@
 
           <div class="toggle-row">
             <label for="scaleSelect">Text & UI Scale</label>
-            <select id="scaleSelect" data-change="changeScale" style="width: 170px;">
+            <select id="scaleSelect" data-change="changeScale" class="st-19">
               <option value="sm">Compact (87.5%)</option>
               <option value="md" selected>Default (100%)</option>
               <option value="lg">Large (112.5%)</option>
@@ -402,7 +402,7 @@
 
           <div class="toggle-row">
             <label for="fontSelect">Typography Style</label>
-            <select id="fontSelect" data-change="changeFont" style="width: 170px;">
+            <select id="fontSelect" data-change="changeFont" class="st-19">
               <option value="default">Standard Sans-Serif</option>
               <option value="accessible">Verdana (clear sans-serif)</option>
             </select>
@@ -410,7 +410,7 @@
 
           <div class="toggle-row">
             <label for="contrastToggle">Sharp Border Contrast</label>
-            <select id="contrastToggle" data-change="changeContrast" style="width: 170px;">
+            <select id="contrastToggle" data-change="changeContrast" class="st-19">
               <option value="normal">Normal Contrast</option>
               <option value="high">High Sharp Contrast</option>
             </select>
@@ -418,7 +418,7 @@
 
           <div class="toggle-row">
             <label for="motionToggle">UI Animation / Motion</label>
-            <select id="motionToggle" data-change="changeMotion" style="width: 170px;">
+            <select id="motionToggle" data-change="changeMotion" class="st-19">
               <option value="normal">Enabled (Smooth Transitions)</option>
               <option value="reduced">Reduced Motion</option>
             </select>
@@ -426,7 +426,7 @@
         </div>
 
         <div class="settings-group">
-          <div class="toggle-row"><label for="gSpacing">Text spacing</label><select id="gSpacing" style="width: 190px;"><option value="normal">Normal</option><option value="wide">Wide (easier reading)</option></select></div>
+          <div class="toggle-row"><label for="gSpacing">Text spacing</label><select id="gSpacing" class="st-28"><option value="normal">Normal</option><option value="wide">Wide (easier reading)</option></select></div>
         </div>
         </section>
         <section class="settings-section" id="set-units" aria-labelledby="set-units-h">
@@ -434,11 +434,11 @@
         <div class="settings-group" id="unitsPanel">
           <h3>Units &amp; week</h3>
           <p>Units only change how numbers are shown. Your data is stored in kg, km, cm and ml, so switching never alters your history.</p>
-          <div class="toggle-row"><label for="weightUnitSelect">Weight</label><select id="weightUnitSelect" style="width: 190px;"><option value="kg">Kilograms (kg)</option><option value="lb">Pounds (lb)</option></select></div>
-          <div class="toggle-row"><label for="distanceUnitSelect">Distance</label><select id="distanceUnitSelect" style="width: 190px;"><option value="km">Kilometres (km)</option><option value="mi">Miles (mi)</option></select></div>
-          <div class="toggle-row"><label for="heightUnitSelect">Height</label><select id="heightUnitSelect" style="width: 190px;"><option value="cm">Centimetres (cm)</option><option value="ftin">Feet and inches</option></select></div>
-          <div class="toggle-row"><label for="waterUnitSelect">Water</label><select id="waterUnitSelect" style="width: 190px;"><option value="ml">Millilitres (ml / L)</option><option value="floz">US fluid ounces (fl oz)</option></select></div>
-          <div class="toggle-row"><label for="weekStartSelect">Week starts on</label><select id="weekStartSelect" style="width: 190px;"><option value="mon">Monday</option><option value="sun">Sunday</option></select></div>
+          <div class="toggle-row"><label for="weightUnitSelect">Weight</label><select id="weightUnitSelect" class="st-28"><option value="kg">Kilograms (kg)</option><option value="lb">Pounds (lb)</option></select></div>
+          <div class="toggle-row"><label for="distanceUnitSelect">Distance</label><select id="distanceUnitSelect" class="st-28"><option value="km">Kilometres (km)</option><option value="mi">Miles (mi)</option></select></div>
+          <div class="toggle-row"><label for="heightUnitSelect">Height</label><select id="heightUnitSelect" class="st-28"><option value="cm">Centimetres (cm)</option><option value="ftin">Feet and inches</option></select></div>
+          <div class="toggle-row"><label for="waterUnitSelect">Water</label><select id="waterUnitSelect" class="st-28"><option value="ml">Millilitres (ml / L)</option><option value="floz">US fluid ounces (fl oz)</option></select></div>
+          <div class="toggle-row"><label for="weekStartSelect">Week starts on</label><select id="weekStartSelect" class="st-28"><option value="mon">Monday</option><option value="sun">Sunday</option></select></div>
         </div>
         </section>
         <section class="settings-section" id="set-training" aria-labelledby="set-training-h">
@@ -446,7 +446,7 @@
         <div class="settings-group">
           <h3>Weekly goal</h3>
           <p>Your weekly streak counts weeks where you reach this many workouts.</p>
-          <div class="row-wrap"><label class="sr" for="gWeek">Workouts per week goal</label><input type="number" id="gWeek" inputmode="numeric" min="1" max="14" style="width:110px"><button class="btn btn-primary" type="button" data-settings-action="save-weekly">Save weekly goal</button></div>
+          <div class="row-wrap"><label class="sr" for="gWeek">Workouts per week goal</label><input type="number" id="gWeek" inputmode="numeric" min="1" max="14" class="st-29"><button class="btn btn-primary" type="button" data-settings-action="save-weekly">Save weekly goal</button></div>
         </div>
         <div class="settings-group" id="customExercisePanel" role="region" aria-label="Your custom exercises"></div>
         <div class="settings-group">
@@ -464,7 +464,7 @@
         <div class="settings-group">
           <h3>Daily calorie target</h3>
           <p>The target shown on the dashboard and Nutrition screen.</p>
-          <div class="row-wrap"><label class="sr" for="gCal">Daily calorie target in kcal</label><input type="number" id="gCal" inputmode="numeric" min="500" max="10000" style="width:130px"><button class="btn btn-primary" type="button" data-settings-action="save-calories">Save calorie target</button></div>
+          <div class="row-wrap"><label class="sr" for="gCal">Daily calorie target in kcal</label><input type="number" id="gCal" inputmode="numeric" min="500" max="10000" class="st-30"><button class="btn btn-primary" type="button" data-settings-action="save-calories">Save calorie target</button></div>
         </div>
         <div class="settings-group" id="profilePanel"></div>
         <div class="settings-group" id="waterSettings" role="region" aria-label="Water settings"></div>
@@ -488,13 +488,13 @@
             <button class="btn btn-primary" type="button" data-action="setAnalyticsConsent" data-arg="granted">Allow anonymous analytics</button>
             <button class="btn" type="button" data-action="setAnalyticsConsent" data-arg="denied">Disable analytics</button>
           </div>
-          <p id="analyticsConsentStatus" role="status" aria-live="polite" style="margin-top:8px">Analytics preference not yet set.</p>
+          <p id="analyticsConsentStatus" role="status" aria-live="polite" class="st-12">Analytics preference not yet set.</p>
         </div>
 
         <div class="settings-group" id="friendPrivacy"></div>
         <div class="settings-group">
           <h3>Legal</h3>
-          <p class="sub" style="margin:0"><a href="./privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="./terms.html" target="_blank" rel="noopener">Terms of service</a></p>
+          <p class="st-31 sub"><a href="./privacy.html" target="_blank" rel="noopener">Privacy policy</a> · <a href="./terms.html" target="_blank" rel="noopener">Terms of service</a></p>
         </div>
         </section>
         <section class="settings-section" id="set-data" aria-labelledby="set-data-h">
@@ -502,23 +502,23 @@
         <div class="settings-group">
           <h3>Backup</h3>
           <p>A backup is one file with everything: workouts, nutrition, records and settings. Without an account, your data lives only in this browser.</p>
-          <p id="backupStatus" class="sub" role="status" style="margin-bottom:12px"></p>
+          <p id="backupStatus" class="st-14 sub" role="status"></p>
           <div class="row-wrap"><button class="btn btn-primary" type="button" data-settings-action="export-backup">⬇ Export backup</button><button class="btn" type="button" data-settings-action="import-backup">⬆ Import backup</button><input type="file" id="importFile" accept="application/json" hidden aria-label="Choose a Gymplified backup file"></div>
         </div>
         <div class="settings-group">
           <h3>Workout history CSV</h3>
           <p>Export workout history as a portable CSV, or import workout-history CSV exports from other gym apps. CSV backups always use kg and km so they restore exactly.</p>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="st-32">
             <button class="btn btn-primary" data-action="exportGymplifiedCSV">↓ Export all data (CSV)</button>
             <button class="btn" data-action="pickCsvFile">↑ Import from another app (CSV)</button>
             <input id="gymplifiedCsvInput" type="file" accept=".csv,text/csv,.txt" hidden aria-label="Choose a workout history CSV file" data-change="importGymplifiedCSV">
           </div>
-          <p id="csvBackupStatus" class="sub" aria-live="polite" style="margin-top:12px">Supports Hevy, Strong, FitNotes and standard exercise/set CSVs. Imported history is merged without replacing existing logs.</p>
+          <p id="csvBackupStatus" class="st-3 sub" aria-live="polite">Supports Hevy, Strong, FitNotes and standard exercise/set CSVs. Imported history is merged without replacing existing logs.</p>
         </div>
         <div class="settings-group">
           <h3>Reset</h3>
           <p>Gymplified starts with a clean slate. You can reset your saved progress from this device and your synced account.</p>
-          <button class="btn" data-action="resetAllData" style="color:var(--danger);border-color:var(--danger)">Reset All My Progress</button>
+          <button class="st-33 btn" data-action="resetAllData">Reset All My Progress</button>
         </div>
         </section>
         <section class="settings-section" id="set-account" aria-labelledby="set-account-h">
@@ -526,12 +526,12 @@
         <div class="settings-group">
           <h3>Your account</h3>
           <p>Sign-in, your profile, username and avatar are on the Friends screen.</p>
-          <div class="row-wrap"><button class="btn" type="button" data-settings-action="open-account">Open account</button><button class="btn" data-action="deleteGymplifiedAccount" style="color:var(--danger);border-color:var(--danger)">Delete my account permanently</button></div>
+          <div class="row-wrap"><button class="btn" type="button" data-settings-action="open-account">Open account</button><button class="st-33 btn" data-action="deleteGymplifiedAccount">Delete my account permanently</button></div>
         </div>
         </section>
         <section class="settings-section" id="set-help" aria-labelledby="set-help-h">
           <h2 id="set-help-h" tabindex="-1">Help</h2>
-<div class="panel" id="supportPanel" style="margin-bottom:20px">
+<div class="st-1 panel" id="supportPanel">
 <div class="section-title">Help & support <span class="sub">WE'RE HERE TO HELP</span></div>
 <p class="account-hint">Something not working? Send us a message and follow the conversation here.</p>
 <form id="supportForm" data-submit="submitSupportTicket">
@@ -539,10 +539,10 @@
 <div class="field"><label for="supportSubject">Subject</label><input id="supportSubject" maxlength="120" minlength="4" required placeholder="Briefly describe the issue"></div>
 <div class="field"><label for="supportMessage">Message</label><textarea id="supportMessage" maxlength="5000" minlength="10" required rows="4" placeholder="Tell us what happened and what you expected…"></textarea></div>
 <button class="btn btn-primary" id="supportSubmit" type="submit">Send support request</button> <span class="account-hint" id="supportFormStatus" role="status"></span>
-</form><div style="height:1px;background:var(--line);margin:18px 0"></div><div class="section-title">Your support requests</div><div id="supportTicketList"><p class="sub">Sign in to see your support requests.</p></div><div id="supportConversation" style="margin-top:12px"></div></div>
+</form><div class="st-34"></div><div class="section-title">Your support requests</div><div id="supportTicketList"><p class="sub">Sign in to see your support requests.</p></div><div id="supportConversation" class="st-3"></div></div>
         <div class="settings-group">
           <h3>Keyboard shortcuts</h3>
-          <p style="margin:0">Press 1–6 to switch screens and W to add water.</p>
+          <p class="st-31">Press 1–6 to switch screens and W to add water.</p>
         </div>
         </section>
 
@@ -569,20 +569,20 @@
         <div class="section-title">What's included <span class="sub" id="deluxeIncludedNote">ONE-TIME · NO SUBSCRIPTION</span></div>
         <p class="sub deluxe-free-note">Always free: workout and food logging, PRs, up to 5 saved routines, streaks, badges, friends and leaderboards, progress lines, backups and CSV export.</p>
         <div class="deluxe-grid">
-          <article class="deluxe-feature"><div class="lock">📈</div><h3>Advanced analytics</h3><p>Track strength trends, volume progression, estimated 1RM and training consistency with detailed charts.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Advanced analytics">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">🧠</div><h3>Smart training insights</h3><p>See muscle-group workload, identify neglected areas and get useful recovery guidance from your logged sessions.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Smart training insights">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">🗓️</div><h3>Workout planner</h3><p>Build multi-week training plans, organise training days and compare planned sessions with completed workouts.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Workout planner">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">🏆</div><h3>Performance lab</h3><p>Compare exercise history, personal records, estimated one-rep max and best-set performance over time.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Performance lab">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">📦</div><h3>Complete data tools</h3><p>Advanced exports, full backup options and detailed training reports for keeping your data portable.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Complete data tools">Preview feature</button></article>
-          <article class="deluxe-feature"><div class="lock">🎨</div><h3>Deluxe customisation</h3><p>Exclusive profile accents, premium themes, profile presentation options and Deluxe account flair.</p><button class="btn" style="margin-top:12px" data-action="previewDeluxeFeature" data-arg="Deluxe customisation">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">📈</div><h3>Advanced analytics</h3><p>Track strength trends, volume progression, estimated 1RM and training consistency with detailed charts.</p><button class="st-3 btn" data-action="previewDeluxeFeature" data-arg="Advanced analytics">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🧠</div><h3>Smart training insights</h3><p>See muscle-group workload, identify neglected areas and get useful recovery guidance from your logged sessions.</p><button class="st-3 btn" data-action="previewDeluxeFeature" data-arg="Smart training insights">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🗓️</div><h3>Workout planner</h3><p>Build multi-week training plans, organise training days and compare planned sessions with completed workouts.</p><button class="st-3 btn" data-action="previewDeluxeFeature" data-arg="Workout planner">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🏆</div><h3>Performance lab</h3><p>Compare exercise history, personal records, estimated one-rep max and best-set performance over time.</p><button class="st-3 btn" data-action="previewDeluxeFeature" data-arg="Performance lab">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">📦</div><h3>Complete data tools</h3><p>Advanced exports, full backup options and detailed training reports for keeping your data portable.</p><button class="st-3 btn" data-action="previewDeluxeFeature" data-arg="Complete data tools">Preview feature</button></article>
+          <article class="deluxe-feature"><div class="lock">🎨</div><h3>Deluxe customisation</h3><p>Exclusive profile accents, premium themes, profile presentation options and Deluxe account flair.</p><button class="st-3 btn" data-action="previewDeluxeFeature" data-arg="Deluxe customisation">Preview feature</button></article>
         </div>
-        <div id="deluxeLockedNotice" class="panel" style="margin-bottom:16px">
+        <div id="deluxeLockedNotice" class="st-35 panel">
           <strong id="deluxeLockedTitle">Deluxe tools are locked.</strong>
-          <p class="sub" style="margin:6px 0 0" id="deluxeLockedText">Deluxe is not on sale yet, so these tools cannot be unlocked.</p>
+          <p class="st-36 sub" id="deluxeLockedText">Deluxe is not on sale yet, so these tools cannot be unlocked.</p>
         </div>
-        <div id="deluxeDemoControls" class="panel" style="margin-bottom:16px" hidden>
+        <div id="deluxeDemoControls" class="st-35 panel" hidden>
           <strong>Developer demo</strong>
-          <p class="sub" style="margin:6px 0 10px">Shown only with <code>?demo=1</code>. The demo unlock is stored on this device, is not a purchase and is not an entitlement.</p>
+          <p class="st-37 sub">Shown only with <code>?demo=1</code>. The demo unlock is stored on this device, is not a purchase and is not an entitlement.</p>
           <button class="btn btn-primary" type="button" id="deluxeDemoUnlockBtn">Enable demo unlock</button>
         </div>
         <div id="deluxeTools" hidden>
@@ -592,7 +592,7 @@
             <article class="deluxe-feature"><div class="eyebrow">Workouts · 28 days</div><div class="metric-num" id="deluxeWorkoutMetric">0</div><p class="sub" id="deluxeWorkoutCompare">Completed sessions</p></article>
             <article class="deluxe-feature"><div class="eyebrow">Estimated strength</div><div class="metric-num" id="deluxeStrengthMetric">—</div><p class="sub" id="deluxeStrengthCompare">Best estimated 1RM across saved lifts</p></article>
           </div>
-          <div class="panel" style="margin-bottom:16px">
+          <div class="st-35 panel">
             <div class="section-title">Volume progression <span class="sub">KG · COMPLETED SETS</span></div>
             <div id="deluxeVolumeChart" class="deluxe-chart" role="img" aria-label="Weekly training volume chart"></div>
             <div id="deluxeVolumeLabels" class="meta-row"></div>
@@ -601,12 +601,12 @@
             <div class="panel"><div class="section-title">Muscle-group workload</div><div id="deluxeMuscleBreakdown"></div></div>
             <div class="panel"><div class="section-title">Smart training insights</div><div id="deluxeInsights"></div></div>
           </div>
-          <div class="panel" style="margin:16px 0">
+          <div class="st-38 panel">
             <div class="section-title">Performance lab</div>
             <div class="form-grid"><div class="field"><label for="deluxeExerciseSelect">Exercise</label><select id="deluxeExerciseSelect" data-change="renderDeluxePerformance"></select></div><div class="field"><label>Best estimated 1RM</label><div class="metric-num" id="deluxeExerciseBest">—</div></div><div class="field"><label>Change since first logged</label><div class="metric-num" id="deluxeExerciseChange">—</div></div></div>
             <div id="deluxePerformanceRows"></div>
           </div>
-          <div class="panel" style="margin:16px 0">
+          <div class="st-38 panel">
             <div class="section-title">Workout planner <span class="sub">CREATE AND SAVE YOUR OWN PLANS</span></div>
             <div class="form-grid">
               <div class="field"><label for="deluxePlanName">Plan name</label><input id="deluxePlanName" maxlength="50" placeholder="e.g. 4-day strength split"></div>
@@ -617,23 +617,23 @@
               <div class="field"><label for="deluxePlanKg">Suggested weight (<span data-weight-unit>kg</span>)</label><input id="deluxePlanKg" type="number" min="0" max="1000" step="0.5" value="0"></div>
             </div>
             <div class="row-wrap"><button class="btn btn-primary" data-action="addDeluxePlanExercise">Add exercise to plan</button><button class="btn" data-action="saveDeluxePlan">Save plan</button></div>
-            <div id="deluxePlanDraft" style="margin-top:12px"></div>
-            <div id="deluxePlanLibrary" style="margin-top:16px"></div>
+            <div id="deluxePlanDraft" class="st-3"></div>
+            <div id="deluxePlanLibrary" class="st-39"></div>
           </div>
-          <div class="panel" style="margin:16px 0">
+          <div class="st-38 panel">
             <div class="section-title">Data tools</div>
-            <p class="sub" style="margin-bottom:12px">Export detailed training data, download a report, or use Gymplified's full JSON backup to move all your data.</p>
+            <p class="st-14 sub">Export detailed training data, download a report, or use Gymplified's full JSON backup to move all your data.</p>
             <div class="row-wrap"><button class="btn btn-primary" data-action="exportDeluxeCSV">Export workout CSV</button><button class="btn" data-action="exportDeluxeReport">Download progress report</button><button class="btn" data-action="exportData">Full JSON backup</button></div>
-            <div class="sub" id="deluxeExportStatus" style="margin-top:10px" aria-live="polite"></div>
+            <div class="st-11 sub" id="deluxeExportStatus" aria-live="polite"></div>
           </div>
-          <div class="panel" style="margin:16px 0">
+          <div class="st-38 panel">
             <div class="section-title">Deluxe customisation</div>
             <div class="form-grid">
               <div class="field"><label for="deluxeAccent">Premium accent colour</label><select id="deluxeAccent" data-change="saveDeluxeCustomisation"><option value="gold">Gold</option><option value="violet">Violet</option><option value="blue">Blue</option><option value="emerald">Emerald</option><option value="crimson">Crimson</option><option value="amber">Amber</option></select></div>
               <div class="field"><label for="deluxeTheme">App appearance</label><select id="deluxeTheme" data-change="saveDeluxeCustomisation"><option value="dark">Dark</option><option value="light">Light</option></select></div>
             </div>
-            <label style="display:flex;gap:9px;align-items:center;font-size:calc(13px * var(--text-scale, 1))"><input id="deluxeProfileFlair" type="checkbox" data-change="saveDeluxeCustomisation"> Show Deluxe flair on my profile</label>
-            <p class="sub" style="margin-top:8px">These preferences sync with your Gymplified account when signed in.</p>
+            <label class="st-40"><input id="deluxeProfileFlair" type="checkbox" data-change="saveDeluxeCustomisation"> Show Deluxe flair on my profile</label>
+            <p class="st-12 sub">These preferences sync with your Gymplified account when signed in.</p>
           </div>
         </div>
       </section>
@@ -648,7 +648,7 @@
 </dialog>
 <dialog id="deluxeModal" class="app-dialog deluxe-dialog" aria-labelledby="deluxeModalTitle" aria-describedby="deluxeModalText">
   <span class="deluxe-pill">DELUXE PREVIEW</span>
-  <h2 id="deluxeModalTitle" style="margin-top:12px">Explore Gymplified Deluxe</h2>
+  <h2 id="deluxeModalTitle" class="st-3">Explore Gymplified Deluxe</h2>
   <p id="deluxeModalText"></p>
   <div class="app-dialog-actions"><button class="btn btn-primary" type="button" id="deluxeModalClose">Close</button></div>
 </dialog>
@@ -657,9 +657,9 @@
   <div id="scanVideoWrap" class="scan-video" hidden><video id="scanVideo" playsinline muted aria-label="Camera preview"></video><span class="scan-frame" aria-hidden="true"></span></div>
   <p id="scanStatus" role="status" class="sub"></p>
   <label for="scanManual">Or type the barcode number</label>
-  <div class="row-wrap"><input id="scanManual" inputmode="numeric" autocomplete="off" maxlength="14" pattern="[0-9]*" placeholder="e.g. 5000159484695" style="flex:1;min-width:0"><button type="button" class="btn" data-scan-action="lookup">Look up</button></div>
-  <div id="scanResult" aria-live="polite" style="margin-top:12px"></div>
-  <p id="scanPrivacy" class="sub" style="margin-top:12px">Only the barcode number is sent to Open Food Facts, a free public food database. The camera image stays on your device.</p>
+  <div class="row-wrap"><input id="scanManual" inputmode="numeric" autocomplete="off" maxlength="14" pattern="[0-9]*" placeholder="e.g. 5000159484695" class="st-41"><button type="button" class="btn" data-scan-action="lookup">Look up</button></div>
+  <div id="scanResult" aria-live="polite" class="st-3"></div>
+  <p id="scanPrivacy" class="st-3 sub">Only the barcode number is sent to Open Food Facts, a free public food database. The camera image stays on your device.</p>
   <div class="app-dialog-actions"><button class="btn" type="button" data-scan-action="close">Close</button></div>
 </dialog>
 <dialog id="recipeDialog" class="app-dialog" aria-labelledby="recipeTitle" aria-describedby="recipeSummary">
@@ -680,7 +680,7 @@
   <h2 id="celebrationTitle">Well done</h2>
   <p id="celebrationText"></p>
   <ul class="celebration-list" id="celebrationList"></ul>
-  <div class="app-dialog-actions" style="justify-content:center"><button class="btn btn-primary" id="celebrationClose" type="button" autofocus>Nice!</button></div>
+  <div class="st-42 app-dialog-actions"><button class="btn btn-primary" id="celebrationClose" type="button" autofocus>Nice!</button></div>
 </dialog>
 <dialog id="deleteAccountDialog" class="app-dialog" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountDescription">
   <h2 id="deleteAccountTitle">Permanently delete your account?</h2>
@@ -692,13 +692,13 @@
 <dialog id="resetProgressDialog" class="app-dialog" aria-labelledby="resetProgressTitle" aria-describedby="resetProgressDescription">
   <h2 id="resetProgressTitle">Reset all progress?</h2>
   <p id="resetProgressDescription">This clears workouts, nutrition, goals and personal records on this device and in your synced account. This cannot be undone.</p>
-  <div class="app-dialog-actions"><button class="btn" type="button" data-action="closeAccountDialogs">Cancel</button><button class="btn" type="button" style="color:var(--danger)" data-action="confirmResetAllData">Reset progress</button></div>
+  <div class="app-dialog-actions"><button class="btn" type="button" data-action="closeAccountDialogs">Cancel</button><button class="st-7 btn" type="button" data-action="confirmResetAllData">Reset progress</button></div>
 </dialog>
 
 <dialog id="legacyLocalDataDialog" class="app-dialog" aria-labelledby="legacyLocalDataTitle" aria-describedby="legacyLocalDataDescription">
   <h2 id="legacyLocalDataTitle">Local progress found</h2>
   <p id="legacyLocalDataDescription">This device has workout data but no saved account owner. It could belong to a different account. Choose whether to merge it into the account you just signed into. A recovery copy will be kept on this device.</p>
-  <div class="app-dialog-actions" style="justify-content:space-between"><button class="btn" type="button" data-action="downloadLegacyLocalBackup">Download recovery copy</button><span style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" type="button" data-action="resolveLegacyLocalData" data-arg="false">Use cloud data</button><button class="btn btn-primary" type="button" data-action="resolveLegacyLocalData" data-arg="true">Merge local data</button></span></div>
+  <div class="st-43 app-dialog-actions"><button class="btn" type="button" data-action="downloadLegacyLocalBackup">Download recovery copy</button><span class="st-44"><button class="btn" type="button" data-action="resolveLegacyLocalData" data-arg="false">Use cloud data</button><button class="btn btn-primary" type="button" data-action="resolveLegacyLocalData" data-arg="true">Merge local data</button></span></div>
 </dialog>
 <dialog id="deluxePlanDayDialog" class="app-dialog" aria-labelledby="deluxePlanDayTitle" aria-describedby="deluxePlanDayDescription">
   <h2 id="deluxePlanDayTitle">Load a training day</h2>

@@ -383,7 +383,7 @@ test('I4: controls meet the 44px minimum touch target', async () => {
 test('service worker cache name was bumped with the index.html change', async () => {
   const sw = await read('sw.js');
   const version = Number(sw.match(/const CACHE_NAME = 'gymplified-shell-v(\d+)'/)[1]);
-  assert.ok(version >= 22);
+  assert.ok(version >= 23);
 });
 
 test('dark theme accent tint stays dark enough for body text on every accent', async () => {
@@ -1293,4 +1293,28 @@ test('K3: no inline event handlers, an explicit action allowlist, and no unsafe-
   assert.doesNotMatch(js, /getAttribute\('on[a-z]+'\)/, 'no code reads old handler attributes');
   assert.match(js, /document\.querySelectorAll\('\.color-dot'\)\.forEach\(d=>\{const on=d\.dataset\.arg===c;/);
   assert.match(js, /data-action="goToTraining"/, 'the dashboard "Open Training Log" button works (its old inline handler had broken quoting)');
+});
+
+test('K3: no inline styles anywhere, so the CSP allows styles only from files', async () => {
+  const shell = await readRaw('index.html'), js = await readRaw('app.js'), css = await readRaw('app.css'), svg = await readRaw('assets/muscle-map-template.svg');
+  const csp = shell.match(/http-equiv="Content-Security-Policy" content="([^"]+)"/)[1];
+  assert.match(csp, /style-src 'self';/);
+  assert.doesNotMatch(csp, /unsafe-inline|unsafe-hashes/);
+  assert.equal(count(shell, /\sstyle\s*=/g), 0, 'no style attributes in the page');
+  assert.equal(count(js, /\sstyle=\\?["']/g), 0, 'no style attributes in generated markup');
+  assert.doesNotMatch(js, /createElement(NS)?\([^)]*'style'\)|setAttribute\('style'|insertAdjacentHTML\([^)]*<style/, 'no style elements created at run time');
+  assert.equal(count(svg, /\sstyle="/g) + count(svg, /<style/g), 0, 'the muscle map uses presentation attributes, not styles');
+  // Every class the conversion created exists in app.css, and every rule is used.
+  const used = new Set([...(shell + js).matchAll(/\b(st-\d+)\b/g)].map(m => m[1]));
+  const defined = new Set([...css.matchAll(/\.(st-\d+)\.\1\{/g)].map(m => m[1]));
+  assert.ok(used.size >= 60);
+  assert.deepEqual([...used].filter(c => !defined.has(c)), []);
+  assert.deepEqual([...defined].filter(c => !used.has(c)), []);
+  // No element ends up with two class attributes (the second would be ignored).
+  for (const m of js.matchAll(/<[a-z][^<>]*?\sclass=\\?"[^"]*"[^<>]*?\sclass=/gi)) assert.fail('duplicate class attribute: ' + m[0].slice(0, 120));
+  // Computed sizes go through the CSSOM, clamped to 0–100%.
+  assert.match(js, /function applyComputedSizes\(root\)\{/);
+  assert.match(js, /Math\.max\(0,Math\.min\(100,n\)\)\+'%'/);
+  assert.match(js, /new MutationObserver\(list=>list\.forEach\(m=>m\.addedNodes\.forEach/);
+  assert.match(css, /#layer2 path\.active\{fill:#d9531e!important;fill-opacity:\.9!important;stroke:#a8390f!important/, 'primary muscles keep the orange that rendered before');
 });

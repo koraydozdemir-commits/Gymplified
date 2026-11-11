@@ -229,15 +229,7 @@ html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
 .pr-metric { font-family: var(--font-heading); font-size:calc(26px * var(--text-scale, 1)); font-weight: 700; color: var(--ink); margin-bottom: 4px; }
 .pr-subtext { font-size:calc(11px * var(--text-scale, 1)); color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
-/* Machine Library & Muscle Diagram Visualizer */
-.machine-grid { display: grid; grid-template-columns: 1fr; gap: 10px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
-.machine-card { border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; background: var(--panel); cursor: pointer; transition: all 0.2s var(--ease-out); position: relative; }
-.machine-card:hover { border-color: var(--brand); transform: translateX(3px); background: var(--panel-hover); }
-.machine-card.active { border-color: var(--brand); background: var(--brand-light); }
-.machine-card.active::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--brand); border-radius: 3px 0 0 3px; }
-.machine-card h3 { font-size:calc(14px * var(--text-scale, 1)); margin-bottom: 4px; font-weight: 700; }
-.machine-card p { font-size:calc(12px * var(--text-scale, 1)); color: var(--muted); margin-bottom: 10px; line-height: 1.4; }
-
+/* Muscle Diagram Visualizer */
 .tag-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { font-size:calc(10px * var(--text-scale, 1)); font-weight: 700; padding: 3px 8px; border-radius: 4px; background: var(--bg); border: 1px solid var(--line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 .tag.primary { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
@@ -304,7 +296,7 @@ html[data-theme="light"] .panel:hover { border-color: rgba(0, 0, 0, 0.2); }
   nav button { text-align: center; font-size:calc(9px * var(--text-scale, 1)); padding: 6px 2px; flex-direction: column; gap: 4px; justify-content: center; margin: 0; }
   nav button svg { width: 16px; height: 16px; }
   main { padding: 18px 16px calc(108px + env(safe-area-inset-bottom)); }
-  .grid-2, .machine-grid { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
 }
 
 .skip{position:absolute;left:-999px;top:8px;background:var(--brand);color:var(--brand-ink);padding:8px 12px;border-radius:6px;z-index:999}.skip:focus{left:8px}
@@ -345,9 +337,9 @@ body{background:radial-gradient(ellipse at 12% 0%,color-mix(in srgb,var(--brand)
 main{padding:clamp(18px,3vw,34px) clamp(14px,3vw,34px) 72px}
 h1{font-size:clamp(25px,3vw,34px);line-height:1.12;letter-spacing:-.045em}
 .subtitle{max-width:66ch;line-height:1.65}
-.panel,.settings-group,.pr-card,.machine-card,.body-visualizer,.empty-box{border-radius:12px;box-shadow:var(--shadow-soft)}
+.panel,.settings-group,.pr-card,.body-visualizer,.empty-box{border-radius:12px;box-shadow:var(--shadow-soft)}
 .panel{padding:clamp(15px,2vw,22px)}
-.panel:hover,.pr-card:hover,.machine-card:hover{box-shadow:0 14px 34px rgba(0,0,0,.18)}
+.panel:hover,.pr-card:hover{box-shadow:0 14px 34px rgba(0,0,0,.18)}
 .btn{min-height:38px;border-radius:8px;transition:transform .16s ease,border-color .16s ease,background .16s ease}
 .btn:focus-visible,nav button:focus-visible,.field input:focus-visible,.field select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .btn-primary{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 22%,transparent)}
@@ -430,7 +422,7 @@ nav button.active{box-shadow:0 5px 14px color-mix(in srgb,var(--brand) 20%,trans
 /* Installed-app polish, safe areas and touch-first controls */
 html,body{min-height:100%;min-height:100dvh;overscroll-behavior-y:contain}
 body{padding:0;margin:0}
-button,.btn,.check-btn,nav button,.machine-card,.food-suggestion{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button,.btn,.check-btn,nav button,.food-suggestion{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
 button:disabled{opacity:.55;cursor:not-allowed;transform:none!important}
 input,select,textarea{font-size:calc(16px * var(--text-scale, 1))!important}
 .app{width:100%}
@@ -449,7 +441,7 @@ input,select,textarea{font-size:calc(16px * var(--text-scale, 1))!important}
  .topbar{padding-left:16px;padding-right:16px}
  .top-actions{gap:6px}
  .date-tag{display:none}
- .topbar .btn{min-height:40px}
+ .topbar .btn{min-height:44px}
  aside{height:calc(64px + env(safe-area-inset-bottom));padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
  nav{height:100%;align-items:center}
  nav button{min-height:48px;font-size:calc(10px * var(--text-scale, 1));padding:5px 1px;gap:3px}
@@ -465,14 +457,34 @@ input,select,textarea{font-size:calc(16px * var(--text-scale, 1))!important}
  h1{font-size:calc(25px * var(--text-scale, 1))}
  .panel{padding:15px}
  .form-grid{grid-template-columns:1fr}
- .setrow{grid-template-columns:28px minmax(0,1fr) minmax(0,1fr) 38px 34px;gap:4px}
 }
 @media(display-mode:standalone){body,.app{min-height:100dvh}.topbar{position:sticky;top:0}}
-@media(hover:none){.btn:hover,.panel:hover,.machine-card:hover{transform:none}}
+@media(hover:none){.btn:hover,.panel:hover{transform:none}}
  
 .ex-preview-button{border:0;background:transparent;color:inherit;text-align:left;flex:1;min-width:0;cursor:pointer;padding:4px;font:inherit}
-.ex-preview-button:focus-visible,.machine-card:focus-visible{outline:3px solid var(--brand);outline-offset:3px}
-button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+/* I3: one visible focus ring for every interactive element. --focus-ring keeps >=3:1 against --bg, --panel
+   and --panel-hover in both themes; the halo separates it from accent-coloured surfaces. */
+:root{--focus-ring:#ffd76a;--focus-halo:#0b0f17}
+html[data-theme=light]{--focus-ring:#7a3c00;--focus-halo:#ffffff}
+html :is(a,button,input,select,textarea,summary,label,[tabindex],[role=button]):focus-visible{outline:3px solid var(--focus-ring)!important;outline-offset:2px!important;box-shadow:0 0 0 7px var(--focus-halo)!important}
+/* I4: 44x44px minimum touch targets */
+.btn,.check-btn,nav button{min-height:44px}
+.btn-icon-only,.check-btn{min-width:44px}
+.check-btn,.setrow .check-btn{width:44px;height:44px}
+.color-dot{width:44px;height:44px}
+:where(input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=hidden]),select){min-height:44px}
+.field input,.field select,.setrow input{min-height:44px}
+input[type=checkbox],input[type=radio]{width:24px;height:24px;margin:10px}
+.setrow{grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 44px 44px}
+@media(max-width:420px){.setrow{grid-template-columns:26px minmax(0,1fr) minmax(0,1fr) 44px 44px;gap:4px}.topbar .btn-icon-only{width:44px}.topbar .install-trigger{white-space:normal;max-width:92px;line-height:1.15;padding:0 8px}}
+.color-picker{flex-wrap:wrap}.color-dot{flex:0 0 44px}
+summary{padding-block:13px}
+#exSearch{min-height:44px}
+/* C2: water preset editor */
+.water-preset-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.water-preset-row:last-child{border-bottom:0}
+.water-preset-row strong{flex:1;min-width:0;font-size:calc(14px * var(--text-scale, 1))}
+.water-btns input{width:96px}
 .app-dialog{width:min(92vw,480px);border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:22px;box-shadow:0 24px 90px #0009}
 .app-dialog::backdrop{background:#0009;backdrop-filter:blur(3px)}
 .app-dialog h2{margin:0 0 8px;font:700 20px var(--font-heading)}
@@ -554,14 +566,14 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
             <div class="metric-head">
               <div>
                 <div class="eyebrow">Energy Intake</div>
-                <div class="metric-num"><span id="dashCal">0</span> <span class="metric-unit">/ <span id="dashCalTarget">2500</span> kcal</span></div>
+                <div class="metric-num"><span id="dashCal">—</span> <span class="metric-unit">/ <span id="dashCalTarget">—</span> kcal</span></div>
               </div>
               <button class="btn" onclick="openCalorieModal()">+ Add Food</button>
             </div>
             <div class="progress-bar"><i id="dashCalBar" style="width: 0%"></i></div>
             <div class="meta-row">
-              <span id="dashCalRemain">2,500 kcal remaining</span>
-              <span id="dashCalPct">0%</span>
+              <span id="dashCalRemain">—</span>
+              <span id="dashCalPct">—</span>
             </div>
             <div class="macro-pills">
               <div class="macro-pill"><strong id="dashProtein">0g</strong><span>Protein</span></div>
@@ -575,14 +587,14 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
             <div class="metric-head">
               <div>
                 <div class="eyebrow">Hydration Target</div>
-                <div class="metric-num"><span id="dashWater">0.00</span> <span class="metric-unit">/ <span id="dashWaterGoal">2.50</span> L</span></div>
+                <div class="metric-num"><span id="dashWater">—</span> <span class="metric-unit">/ <span id="dashWaterGoal">—</span> <span id="dashWaterUnit">L</span></span></div>
               </div>
               
             </div>
             <div class="progress-bar"><i id="dashWaterBar" style="width: 0%"></i></div>
             <div class="meta-row">
               <span id="waterMeta">Goal</span>
-              <button aria-label="Reset water tracker" class="btn btn-icon-only" style="height:22px; width:22px; font-size:calc(10px * var(--text-scale, 1))" onclick="resetWater()" title="Reset Water">↺</button>
+              <button aria-label="Reset water tracker" class="btn btn-icon-only" type="button" id="waterResetBtn" title="Reset Water">↺</button>
             </div>
             <div id="waterBtns" class="water-btns" style="margin-top:12px"></div>
 <div style="margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line);">
@@ -698,9 +710,9 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
         <div class="nutrition-summary">
           <div class="panel nutrition-calories">
             <div class="nutrition-topline"><span class="sub-h">DAILY ENERGY</span><span class="nutrition-date" id="nutritionDate"></span></div>
-            <div class="nutrition-cal-number"><strong id="nutritionCal">0</strong><span> / <b id="nutritionCalTarget">2500</b> kcal</span></div>
+            <div class="nutrition-cal-number"><strong id="nutritionCal">—</strong><span> / <b id="nutritionCalTarget">—</b> kcal</span></div>
             <div class="progress-bar nutrition-progress"><i id="nutritionCalBar"></i></div>
-            <div class="meta-row"><span id="nutritionCalLeft">2,500 kcal remaining</span><span id="nutritionCalPercent">0%</span></div>
+            <div class="meta-row"><span id="nutritionCalLeft">—</span><span id="nutritionCalPercent">—</span></div>
             <div class="nutrition-macro-grid">
               <div><span>PROTEIN</span><strong id="nutritionProtein">0g</strong><i class="macro-track"><b id="proteinTrack"></b></i><small id="proteinMeta">0 / 150g</small></div>
               <div><span>CARBS</span><strong id="nutritionCarbs">0g</strong><i class="macro-track"><b id="carbsTrack"></b></i><small id="carbsMeta">0 / 250g</small></div>
@@ -766,6 +778,7 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
         <h1>Settings</h1>
         <p class="subtitle">Make Gymplified work the way you like.</p>
 <div class="panel" id="goalsPanel" style="margin-bottom:20px"></div>
+        <div class="settings-group" id="waterSettings" aria-label="Water settings"></div>
 
         <!-- Dark Mode & Appearance -->
         <div class="settings-group">
@@ -924,8 +937,12 @@ button.machine-card{display:block;width:100%;text-align:left;font:inherit;color:
         </div>
         <div id="deluxeLockedNotice" class="panel" style="margin-bottom:16px">
           <strong>Deluxe tools are locked in preview mode.</strong>
-          <p class="sub" style="margin:6px 0 10px">Turn on the local demo unlock above to use the working tools. No payment is taken and this is not a real purchase.</p>
-          <button class="btn btn-primary" onclick="toggleDeluxeDemo()">Enable demo unlock</button>
+          <p class="sub" style="margin:6px 0 0">Payments are not connected yet, so Deluxe tools cannot be unlocked. No payment is taken on this page.</p>
+        </div>
+        <div id="deluxeDemoControls" class="panel" style="margin-bottom:16px" hidden>
+          <strong>Developer demo</strong>
+          <p class="sub" style="margin:6px 0 10px">Shown only with <code>?demo=1</code>. The demo unlock is stored on this device, is not a purchase and is not an entitlement.</p>
+          <button class="btn btn-primary" type="button" id="deluxeDemoUnlockBtn">Enable demo unlock</button>
         </div>
         <div id="deluxeTools" hidden>
           <div class="section-title">Your training intelligence <span class="deluxe-pill">LIVE ACCOUNT DATA</span></div>
@@ -1117,6 +1134,12 @@ const MOTIVATIONAL_QUOTES = [
 
 // --- APP STATE & STORAGE ---
 const STORAGE_KEY = 'gymplified_app_v2';
+// Water limits and units. Amounts are always stored in millilitres/litres; fl oz is display-only.
+const WATER_ENTRY_MAX_ML = 5000;
+const WATER_PRESET_MAX = 6;
+const WATER_GOAL_MIN_L = 0.5, WATER_GOAL_MAX_L = 10;
+const ML_PER_US_FL_OZ = 29.5735295625;
+const DEFAULT_WATER_PRESETS = [150, 250, 500, 750];
 
 const cleanState = {
   cal: 0,
@@ -1138,94 +1161,12 @@ const cleanState = {
     scale: 'md',
     font: 'default',
     contrast: 'normal',
-    motion: 'normal'
+    motion: 'normal',
+    waterUnit: 'ml'
   }
 };
 
 let state = bootState();
-
-// Popular Gym Machines Dataset
-const GYM_MACHINES = [
-  {
-    id: 'leg-press',
-    name: 'Leg Press Machine',
-    desc: 'Plate-loaded compound machine targeting the quadriceps, glutes, and hamstring complex.',
-    primary: ['quadriceps'],
-    secondary: ['hamstrings']
-  },
-  {
-    id: 'lat-pulldown',
-    name: 'Lat Pulldown Machine',
-    desc: 'Cable machine targeting latissimus dorsi width and upper back thickness.',
-    primary: ['lats'],
-    secondary: ['biceps']
-  },
-  {
-    id: 'pec-deck',
-    name: 'Pec Deck Fly Machine',
-    desc: 'Chest isolation equipment providing constant tension across pectoralis major.',
-    primary: ['chest'],
-    secondary: ['shoulders']
-  },
-  {
-    id: 'seated-row',
-    name: 'Seated Cable Row',
-    desc: 'Horizontal pulling equipment targeting mid-back thickness, rhomboids, and lats.',
-    primary: ['lats'],
-    secondary: ['biceps']
-  },
-  {
-    id: 'shoulder-press-m',
-    name: 'Seated Shoulder Press Machine',
-    desc: 'Guided overhead press machine targeting anterior and lateral deltoid heads.',
-    primary: ['shoulders'],
-    secondary: ['triceps']
-  },
-  {
-    id: 'leg-extension',
-    name: 'Leg Extension Machine',
-    desc: 'Isolation machine focusing directly on quadriceps muscle isolation.',
-    primary: ['quadriceps'],
-    secondary: []
-  },
-  {
-    id: 'hamstring-curl',
-    name: 'Seated Hamstring Curl',
-    desc: 'Knee flexion isolation equipment for posterior thigh hamstrings.',
-    primary: ['hamstrings'],
-    secondary: []
-  },
-  {
-    id: 'triceps-pushdown',
-    name: 'Cable Triceps Pushdown',
-    desc: 'High-pulley cable machine isolation exercise for triceps extensions.',
-    primary: ['triceps'],
-    secondary: []
-  },
-  {
-    id: 'cable-curl',
-    name: 'Cable Biceps Curl Machine',
-    desc: 'Low-pulley constant tension cable machine targeting biceps brachii.',
-    primary: ['biceps'],
-    secondary: []
-  },
-  {
-    id: 'calf-raise-m',
-    name: 'Standing Calf Raise Machine',
-    desc: 'Ankle plantarflexion machine targeting gastrocnemius and soleus calf muscles.',
-    primary: ['calves'],
-    secondary: []
-  },
-  {
-    id: 'ab-crunch-m',
-    name: 'Abdominal Crunch Machine',
-    desc: 'Resisted spinal flexion equipment targeting rectus abdominis.',
-    primary: ['abs'],
-    secondary: []
-  }
-];
-
-let selectedMachine = null;
 
 // --- TOAST NOTIFICATIONS ---
 function showToast(message) {
@@ -1437,9 +1378,7 @@ function renderDashboard() {
   document.getElementById('dashCarbs').textContent = state.carbs + 'g';
   document.getElementById('dashFat').textContent = state.fat + 'g';
 
-  document.getElementById('dashWater').textContent = state.water.toFixed(2);
-  const waterPct = Math.min(100, Math.round((state.water / 2.5) * 100));
-  document.getElementById('dashWaterBar').style.width = waterPct + '%';
+  renderWaterSummary();
 
   document.getElementById('dashWorkoutCount').textContent = state.workouts.length + ' Exercises';
 
@@ -1482,7 +1421,7 @@ function renderPRs() {
         <div class="pr-title">${esc(pr.name)}</div>
         <div class="pr-metric">${Number(pr.weight)||0} <span style="font-size:calc(14px * var(--text-scale, 1)); color:var(--muted);">KG</span> × ${Number(pr.reps)||1} <span style="font-size:calc(14px * var(--text-scale, 1)); color:var(--muted);">REPS</span></div>
         <div class="pr-subtext">Achieved: ${esc(pr.date || 'Today')}</div>
-        <button class="btn btn-icon-only" style="position:absolute; bottom:12px; right:12px; color:var(--danger); height:28px; width:28px; font-size:calc(11px * var(--text-scale, 1));" onclick="deletePR(${i})" title="Delete PR">✕</button>
+        <button class="btn btn-icon-only" style="position:absolute; bottom:8px; right:8px; color:var(--danger);" onclick="deletePR(${i})" title="Delete PR" aria-label="Delete PR for ${esc(pr.name)}">✕</button>
       </div>
     `;
   }).join('') + `</div>`;
@@ -1511,63 +1450,6 @@ function renderNutrition() {
     return '<div class="meal-group"><div class="meal-group-head"><strong>'+esc(meal)+'</strong><small>'+Math.round(total.cal)+' kcal · P '+total.p.toFixed(1)+'g · C '+total.c.toFixed(1)+'g · F '+total.f.toFixed(1)+'g</small></div>'+
       items.map(({f,i})=>'<div class="food-entry"><div><div class="food-entry-name">'+esc(f.name)+'</div><div class="food-entry-meta">'+(f.grams?f.grams+'g portion · ':'')+Math.round(f.cal)+' kcal</div><div class="food-entry-macros"><span><b>'+Number(f.protein||0).toFixed(1)+'g</b> protein</span><span><b>'+Number(f.carbs||0).toFixed(1)+'g</b> carbs</span><span><b>'+Number(f.fat||0).toFixed(1)+'g</b> fat</span></div></div><div class="food-entry-actions"><button class="btn" onclick="deleteFood('+i+')" style="color:var(--danger)">Delete</button></div></div>').join('')+'</div>';
   }).join('');
-}
-
-function renderMachines() {
-  const list = document.getElementById('machineList');
-  list.innerHTML = GYM_MACHINES.map(m => `
-    <button type="button" class="machine-card ${selectedMachine && selectedMachine.id === m.id ? 'active' : ''}" aria-pressed="${!!(selectedMachine && selectedMachine.id === m.id)}" onclick="selectMachine(${jsArg(m.id)})">
-      <h3>${esc(m.name)}</h3>
-      <p>${esc(m.desc)}</p>
-      <div class="tag-list">
-        ${m.primary.map(p => `<span class="tag primary">${p}</span>`).join('')}
-        ${m.secondary.map(s => `<span class="tag">${s}</span>`).join('')}
-      </div>
-    </button>
-  `).join('');
-}
-
-function selectMachine(id) {
-  selectedMachine = GYM_MACHINES.find(m => m.id === id);
-  renderMachines();
-
-  document.querySelectorAll('.muscle-path').forEach(el => {
-    el.classList.remove('active', 'secondary');
-  });
-
-  if (selectedMachine) {
-    document.getElementById('selectedMachineTitle').textContent = selectedMachine.name;
-    document.getElementById('selectedMachineDesc').textContent = selectedMachine.desc;
-    document.getElementById('selectedMachineTags').innerHTML = `
-      <strong>Primary:</strong> ${selectedMachine.primary.map(p => `<span class="tag primary">${p}</span>`).join(' ')}
-      <strong style="margin-left:8px;">Secondary:</strong> ${selectedMachine.secondary.length ? selectedMachine.secondary.map(s => `<span class="tag">${s}</span>`).join(' ') : 'None'}
-    `;
-    document.getElementById('addMachineToWorkoutBtn').style.display = 'block';
-
-    selectedMachine.primary.forEach(p => {
-      const svgEl = document.getElementById('svg-' + p);
-      if (svgEl) svgEl.classList.add('active');
-    });
-    selectedMachine.secondary.forEach(s => {
-      const svgEl = document.getElementById('svg-' + s);
-      if (svgEl) svgEl.classList.add('secondary');
-    });
-  }
-}
-
-function addSelectedMachineToLog() {
-  if (!selectedMachine) return;
-  const previous=previousExercisePerformance(selectedMachine.name);
-  const best=previous&&previous.sets.length?bestPreviousSet(previous.sets):null;
-  const kg=best?Number(best.kg):(state.lastKg[selectedMachine.name]||20);
-  const reps=best?Number(best.reps):10;
-  state.workouts.push(syncW({
-    name:selectedMachine.name,
-    muscle:selectedMachine.primary[0]?selectedMachine.primary[0].toUpperCase():'GENERAL',
-    setList:[0,1,2].map(()=>({kg,reps,done:false}))
-  }));
-  saveState();
-  showToast(previous?'Previous performance loaded':'Exercise added to workout');
 }
 
 function renderAll() {
@@ -2046,7 +1928,7 @@ function sanitizeStateSnapshot(raw){
  const settings=raw.settings&&typeof raw.settings==='object'?raw.settings:{};
  const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:list(rawGame.badges,100).map(x=>safeStateText(x,'',40)).filter(Boolean),day:gameDay};
  if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
- const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,5000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:list(raw.presets,10).map(x=>safeStateNumber(x,1,5000,250)).filter(x=>x>0),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,.5,10,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now())}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,accountOwnerId:safeStateText(raw.accountOwnerId,'',80),resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
+ const state=Object.assign(JSON.parse(JSON.stringify(cleanState)),{cal:safeStateNumber(raw.cal,0,100000,0),calTarget:safeStateNumber(raw.calTarget,500,10000,2500),protein:safeStateNumber(raw.protein,0,10000,0),carbs:safeStateNumber(raw.carbs,0,10000,0),fat:safeStateNumber(raw.fat,0,10000,0),nutritionTargets:{protein:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.protein,0,1000,0),carbs:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.carbs,0,2000,0),fat:safeStateNumber(raw.nutritionTargets&&raw.nutritionTargets.fat,0,1000,0)},water:safeStateNumber(raw.water,0,20,0),waterEntries,waterLog:waterEntries.filter(x=>x.day===today).map(x=>x.amount),workouts,foods,prs,sessions:list(raw.sessions,5000).map(cleanSession).filter(Boolean),customEx,customFoods,routines,lastSession:list(raw.lastSession,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean),game,history,dailyHistory,presets:[...new Set(list(raw.presets,10).map(x=>Math.round(safeStateNumber(x,1,WATER_ENTRY_MAX_ML,250))).filter(x=>x>0))].slice(0,WATER_PRESET_MAX),lastWaterMl:Math.round(safeStateNumber(raw.lastWaterMl,0,WATER_ENTRY_MAX_ML,0)),weeklyGoal:safeStateNumber(raw.weeklyGoal,1,14,3),waterGoal:safeStateNumber(raw.waterGoal,WATER_GOAL_MIN_L,WATER_GOAL_MAX_L,2.5),lastKg:{},session:raw.session&&typeof raw.session==='object'?{start:safeStateNumber(raw.session.start,0,Number.MAX_SAFE_INTEGER,Date.now())}:null,lastSummary:raw.lastSummary&&typeof raw.lastSummary==='object'?{date:safeStateDay(raw.lastSummary.date,today),mins:safeStateNumber(raw.lastSummary.mins,0,1440,0),vol:safeStateNumber(raw.lastSummary.vol,0,100000000,0),sets:safeStateNumber(raw.lastSummary.sets,0,10000,0),reps:safeStateNumber(raw.lastSummary.reps,0,100000,0),ex:safeStateNumber(raw.lastSummary.ex,0,100,0),names:list(raw.lastSummary.names,100).map(n=>safeStateText(n,'Exercise',80))}:null,recent:list(raw.recent,20).filter(x=>x&&typeof x==='object').map(x=>({name:safeStateText(x.name,'Food',100),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0)})),friends:list(raw.friends,100).map(x=>safeStateText(x,'',100)).filter(Boolean),lbOn:!!raw.lbOn,accountOwnerId:safeStateText(raw.accountOwnerId,'',80),resetAt:safeStateNumber(raw.resetAt,0,Number.MAX_SAFE_INTEGER,0),deletedRecordIds:list(raw.deletedRecordIds,10000).map(x=>safeStateText(x,'',180)).filter(x=>/^(workouts|foods|prs|sessions|routines|customEx|customFoods|waterEntries):[A-Za-z0-9_-]{1,120}$/.test(x))});
  const rawDeluxe=raw.deluxe&&typeof raw.deluxe==='object'?raw.deluxe:{};
  state.deluxe={
   plans:list(rawDeluxe.plans,100).filter(p=>p&&typeof p==='object'&&!Array.isArray(p)).map((p,i)=>({
@@ -2071,6 +1953,7 @@ function sanitizeStateSnapshot(raw){
  if(['normal','high'].includes(settings.contrast))state.settings.contrast=settings.contrast;
  if(['normal','reduced'].includes(settings.motion))state.settings.motion=settings.motion;
  if(['normal','wide'].includes(settings.spacing))state.settings.spacing=settings.spacing;
+ if(['ml','floz'].includes(settings.waterUnit))state.settings.waterUnit=settings.waterUnit;
  if(foods.some(x=>x.day===today)){const a=foods.filter(x=>x.day===today);state.cal=a.reduce((n,x)=>n+x.cal,0);state.protein=a.reduce((n,x)=>n+x.protein,0);state.carbs=a.reduce((n,x)=>n+x.carbs,0);state.fat=a.reduce((n,x)=>n+x.fat,0);}
  if(waterEntries.some(x=>x.day===today))state.water=waterEntries.filter(x=>x.day===today).reduce((n,x)=>n+x.amount,0);
  return state;
@@ -2100,7 +1983,7 @@ function bootState(){
   t.deluxe.plans=Array.isArray(t.deluxe.plans)?t.deluxe.plans:[];
   t.nutritionTargets=Object.assign({protein:0,carbs:0,fat:0},t.nutritionTargets||{});
   t.calTarget=t.calTarget>0?t.calTarget:2500; t.waterGoal=t.waterGoal>0?t.waterGoal:2.5;
-  t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:[150,250,500,750];
+  t.presets=Array.isArray(t.presets)&&t.presets.length?t.presets:DEFAULT_WATER_PRESETS.slice();t.lastWaterMl=Number(t.lastWaterMl)||0;
   t.history=t.history||{};t.dailyHistory=t.dailyHistory||{};
   t.game=Object.assign({xp:0,total:0,waterWon:'',claimed:{},badges:[],day:''},t.game||{}); delete t.game.streak;delete t.game.best;delete t.game.lastDay;delete t.game.freezes;
   const d=dayKey();
@@ -2136,11 +2019,23 @@ function rewards(){
   QUESTS.forEach(q=>{if(q.v()>=q.n&&!g.claimed[q.id]){g.claimed[q.id]=1;gainXP(25,'Quest: '+q.t);}});
   BADGES.forEach(b=>{if(b[3]()&&!g.badges.includes(b[0])){g.badges.push(b[0]);showToast(b[1]+' Badge unlocked: '+b[2]);confetti();}});
 }
-function confetti(){if(state.settings.motion==='reduced'||matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+function reducedMotion(){return !!(state.settings&&state.settings.motion==='reduced')||matchMedia('(prefers-reduced-motion:reduce)').matches;}
+function confetti(){if(reducedMotion())return;
   for(let i=0;i<36;i++){const e=document.createElement('i');e.className='cf';e.textContent=['🎉','✨','💪','🔥'][i%4];e.setAttribute('aria-hidden','true');e.style.cssText='left:'+Math.random()*100+'vw;animation-delay:'+Math.random()*.4+'s';document.body.appendChild(e);setTimeout(()=>e.remove(),2500);}}
-function addWater(l){l=+l;if(!(l>0))return;const entry={id:newRecordId('water'),amount:+l.toFixed(3),day:dayKey(),createdAt:Date.now()};state.waterEntries=Array.isArray(state.waterEntries)?state.waterEntries:[];state.waterEntries.push(entry);state.water=+(state.water+l).toFixed(3);state.waterLog=state.waterEntries.filter(x=>x.day===dayKey()).map(x=>x.amount);saveState();showToast('Added '+Math.round(l*1000)+' ml');}
-function addCustomWater(){const v=parseFloat($('customWater').value);if(!(v>0&&v<=5000))return showToast('Enter 1–6000 ml');addWater(v/1000);$('customWater').value='';}
-function undoWater(){const entry=(state.waterEntries||[]).filter(x=>x.day===dayKey()).pop();if(!entry)return showToast('Nothing to undo');markRecordDeleted('waterEntries',entry);state.waterEntries=state.waterEntries.filter(x=>x.id!==entry.id);state.water=state.waterEntries.filter(x=>x.day===dayKey()).reduce((n,x)=>n+x.amount,0);state.waterLog=state.waterEntries.filter(x=>x.day===dayKey()).map(x=>x.amount);saveState();showToast('Undid '+Math.round(entry.amount*1000)+' ml');}
+function waterUnit(){return state.settings&&state.settings.waterUnit==='floz'?'floz':'ml';}
+function waterUnitLabel(){return waterUnit()==='floz'?'fl oz':'ml';}
+function waterMlToDisplay(ml){return waterUnit()==='floz'?Math.round(ml/ML_PER_US_FL_OZ*10)/10:Math.round(ml);}
+function waterDisplayToMl(value){return waterUnit()==='floz'?value*ML_PER_US_FL_OZ:value;}
+function formatWaterAmount(ml){return waterMlToDisplay(ml).toLocaleString()+' '+waterUnitLabel();}
+function waterTotalUnitLabel(){return waterUnit()==='floz'?'fl oz':'L';}
+function formatWaterTotal(litres){return waterUnit()==='floz'?(Math.round(litres*1000/ML_PER_US_FL_OZ*10)/10).toLocaleString():Number(litres).toFixed(2);}
+function waterEntryMaxDisplay(){return waterUnit()==='floz'?Math.floor(WATER_ENTRY_MAX_ML/ML_PER_US_FL_OZ):WATER_ENTRY_MAX_ML;}
+function waterEntryMinDisplay(){return waterUnit()==='floz'?0.1:1;}
+function waterEntryRangeText(){return waterEntryMinDisplay()+'–'+waterEntryMaxDisplay().toLocaleString()+' '+waterUnitLabel();}
+function parseWaterEntryMl(raw){const v=parseFloat(raw);if(!(v>=waterEntryMinDisplay()&&v<=waterEntryMaxDisplay()))return 0;return Math.max(1,Math.min(WATER_ENTRY_MAX_ML,Math.round(waterDisplayToMl(v))));}
+function addWater(l){l=+l;if(!(l>0))return;const entry={id:newRecordId('water'),amount:+l.toFixed(3),day:dayKey(),createdAt:Date.now()};state.waterEntries=Array.isArray(state.waterEntries)?state.waterEntries:[];state.waterEntries.push(entry);state.water=+(state.water+l).toFixed(3);state.waterLog=state.waterEntries.filter(x=>x.day===dayKey()).map(x=>x.amount);state.lastWaterMl=Math.max(1,Math.min(WATER_ENTRY_MAX_ML,Math.round(l*1000)));saveState();showToast('Added '+formatWaterAmount(l*1000));}
+function addCustomWater(){const field=$('customWater'),ml=parseWaterEntryMl(field&&field.value);if(!ml)return showToast('Enter '+waterEntryRangeText());addWater(ml/1000);if($('customWater'))$('customWater').value='';}
+function undoWater(){const entry=(state.waterEntries||[]).filter(x=>x.day===dayKey()).pop();if(!entry)return showToast('Nothing to undo');markRecordDeleted('waterEntries',entry);state.waterEntries=state.waterEntries.filter(x=>x.id!==entry.id);state.water=state.waterEntries.filter(x=>x.day===dayKey()).reduce((n,x)=>n+x.amount,0);state.waterLog=state.waterEntries.filter(x=>x.day===dayKey()).map(x=>x.amount);saveState();showToast('Undid '+formatWaterAmount(entry.amount*1000));}
 let tI=null;
 function rest(n){clearInterval(tI);const o=$('timerOut');o.textContent=n+'s';tI=setInterval(()=>{n--;o.textContent=n>0?n+'s':'Go! 💪';if(n<=0){clearInterval(tI);navigator.vibrate&&navigator.vibrate(200);showToast('Rest over — next set!');}},1000);}
 function markNav(){document.querySelectorAll('nav button').forEach(b=>b.setAttribute('aria-current',b.classList.contains('active')?'page':'false'));}
@@ -2167,7 +2062,7 @@ function renderRoutineLibrary(){
  const host=$('routineLibrary');if(!host)return;
  state.routines=(Array.isArray(state.routines)?state.routines:[]).filter(r=>r&&typeof r==='object').map((r,i)=>({id:String(r.id||'legacy-routine-'+i),name:String(r.name||'Saved routine'),exercises:Array.isArray(r.exercises)?r.exercises:[]}));
  const routines=state.routines;
- host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="btn" style="height:25px;padding:0 7px;margin-left:5px" onclick="loadSavedRoutine('+i+')">Load</button> <button class="btn" style="height:25px;padding:0 7px" aria-label="Delete '+esc(r.name)+'" onclick="deleteSavedRoutine('+i+')">×</button></span>').join('')+'</div>':'<p class="sub" style="margin-top:8px">Save your favourite workout combinations here so you can reuse them anytime.</p>';
+ host.innerHTML=routines.length?'<div class="sub-h">Saved routines</div><div class="row-wrap">'+routines.map((r,i)=>'<span class="badge">'+esc(r.name)+' · '+r.exercises.length+' exercises <button class="btn" style="padding:0 10px;margin-left:5px" onclick="loadSavedRoutine('+i+')">Load</button> <button class="btn btn-icon-only" style="padding:0" aria-label="Delete '+esc(r.name)+'" onclick="deleteSavedRoutine('+i+')">×</button></span>').join('')+'</div>':'<p class="sub" style="margin-top:8px">Save your favourite workout combinations here so you can reuse them anytime.</p>';
 }
 function saveCurrentRoutine(){
  if(!state.workouts.length)return showToast('Add exercises before saving a routine');
@@ -2184,14 +2079,81 @@ function loadSavedRoutine(index){
  saveState();showToast(routine.name+' loaded');
 }
 function deleteSavedRoutine(index){const routine=(state.routines||[])[index];if(!routine||!confirm('Delete saved routine "'+routine.name+'"?'))return;markRecordDeleted('routines',routine);state.routines.splice(index,1);saveState();showToast('Routine deleted');}
+function renderWaterSummary(){
+  const goal=state.waterGoal>0?state.waterGoal:2.5,wp=Math.min(100,Math.round(state.water/goal*100));
+  $('dashWater').textContent=formatWaterTotal(state.water);$('dashWaterGoal').textContent=formatWaterTotal(goal);$('dashWaterUnit').textContent=waterTotalUnitLabel();
+  $('dashWaterBar').style.width=wp+'%';$('waterMeta').textContent='Goal: '+formatWaterTotal(goal)+' '+waterTotalUnitLabel()+' · '+wp+'%';
+  setBar('dashWaterBar',wp,'Hydration progress');
+}
+function renderWaterButtons(){
+  const host=$('waterBtns');if(!host)return;
+  const typed=$('customWater')?$('customWater').value:'',hadFocus=document.activeElement===$('customWater');
+  const presets=state.presets,last=Number(state.lastWaterMl)||0,floz=waterUnit()==='floz';
+  host.innerHTML=presets.map(p=>'<button class="btn" type="button" data-water-ml="'+Number(p)+'">+'+esc(formatWaterAmount(p))+'</button>').join('')+
+   (last>0&&!presets.includes(last)?'<button class="btn" type="button" data-water-ml="'+last+'" aria-label="Add last used amount, '+esc(formatWaterAmount(last))+'">↻ Last: '+esc(formatWaterAmount(last))+'</button>':'')+
+   '<input type="number" id="customWater" inputmode="decimal" min="'+waterEntryMinDisplay()+'" max="'+waterEntryMaxDisplay()+'" step="'+(floz?'0.1':'1')+'" placeholder="'+waterUnitLabel()+'" aria-label="Custom water amount in '+(floz?'US fluid ounces':'millilitres')+'"><button class="btn" type="button" data-water-action="custom">Add</button><button class="btn" type="button" data-water-action="undo" aria-label="Undo last water entry">↶ Undo</button>';
+  if(typed)$('customWater').value=typed;if(hadFocus)$('customWater').focus();
+}
+function initWaterControls(){
+  const host=$('waterBtns');
+  if(host){
+    host.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!host.contains(b))return;
+      if(b.dataset.waterMl)addWater(Number(b.dataset.waterMl)/1000);else if(b.dataset.waterAction==='custom')addCustomWater();else if(b.dataset.waterAction==='undo')undoWater();});
+    host.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='customWater'){e.preventDefault();addCustomWater();}});
+  }
+  $('waterResetBtn')?.addEventListener('click',resetWater);
+  const panel=$('waterSettings');
+  if(panel){
+    panel.addEventListener('click',e=>{const b=e.target.closest('button[data-water-setting]');if(!b)return;const i=Number(b.dataset.index),a=b.dataset.waterSetting;
+      if(a==='save-goal')saveWaterGoal();else if(a==='add-preset')addWaterPreset();else if(a==='remove')removeWaterPreset(i);else if(a==='up')moveWaterPreset(i,-1);else if(a==='down')moveWaterPreset(i,1);});
+    panel.addEventListener('change',e=>{if(e.target.id==='waterUnitSelect')setWaterUnit(e.target.value);});
+    panel.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='waterPresetNew'){e.preventDefault();addWaterPreset();}else if(e.target.id==='waterGoalInput'){e.preventDefault();saveWaterGoal();}});
+  }
+}
+function initWaterSettings(focusSelector){
+  const panel=$('waterSettings');if(!panel)return;
+  const floz=waterUnit()==='floz',presets=state.presets,goal=floz?Math.round(state.waterGoal*1000/ML_PER_US_FL_OZ):state.waterGoal;
+  const goalMin=floz?Math.ceil(WATER_GOAL_MIN_L*1000/ML_PER_US_FL_OZ):WATER_GOAL_MIN_L,goalMax=floz?Math.floor(WATER_GOAL_MAX_L*1000/ML_PER_US_FL_OZ):WATER_GOAL_MAX_L;
+  panel.innerHTML='<h3>Water</h3><p>Choose your unit, daily goal and the quick-add amounts shown on the dashboard. Amounts are stored in millilitres, so switching unit never changes your history.</p>'+
+   '<div class="form-grid">'+
+   '<div class="field"><label for="waterUnitSelect">Water unit</label><select id="waterUnitSelect"><option value="ml"'+(floz?'':' selected')+'>Millilitres (ml / L)</option><option value="floz"'+(floz?' selected':'')+'>US fluid ounces (fl oz)</option></select></div>'+
+   '<div class="field"><label for="waterGoalInput">Daily water goal ('+(floz?'fl oz':'litres')+')</label><input type="number" id="waterGoalInput" inputmode="decimal" step="'+(floz?'1':'0.1')+'" min="'+goalMin+'" max="'+goalMax+'" value="'+goal+'"></div>'+
+   '</div><div class="row-wrap" style="margin-bottom:16px"><button class="btn btn-primary" type="button" data-water-setting="save-goal">Save water goal</button></div>'+
+   '<div class="sub-h" id="waterPresetHeading">Quick-add amounts ('+presets.length+' of '+WATER_PRESET_MAX+')</div>'+
+   '<div role="list" aria-labelledby="waterPresetHeading">'+presets.map((p,i)=>{const label=esc(formatWaterAmount(p));return '<div class="water-preset-row" role="listitem"><strong>'+label+'</strong>'+
+     '<button class="btn btn-icon-only" type="button" data-water-setting="up" data-index="'+i+'" aria-label="Move '+label+' up"'+(i===0?' disabled':'')+'>↑</button>'+
+     '<button class="btn btn-icon-only" type="button" data-water-setting="down" data-index="'+i+'" aria-label="Move '+label+' down"'+(i===presets.length-1?' disabled':'')+'>↓</button>'+
+     '<button class="btn btn-icon-only" type="button" data-water-setting="remove" data-index="'+i+'" aria-label="Remove '+label+'"'+(presets.length<=1?' disabled':'')+' style="color:var(--danger)">✕</button></div>';}).join('')+'</div>'+
+   '<div class="row-wrap" style="margin-top:12px"><input type="number" id="waterPresetNew" inputmode="decimal" min="'+waterEntryMinDisplay()+'" max="'+waterEntryMaxDisplay()+'" step="'+(floz?'0.1':'1')+'" placeholder="'+waterUnitLabel()+'" aria-label="New quick-add amount in '+(floz?'US fluid ounces':'millilitres')+'" style="width:120px"'+(presets.length>=WATER_PRESET_MAX?' disabled':'')+'>'+
+   '<button class="btn" type="button" data-water-setting="add-preset"'+(presets.length>=WATER_PRESET_MAX?' disabled':'')+'>+ Add amount</button></div>';
+  if(focusSelector){const target=panel.querySelector(focusSelector);if(target&&!target.disabled)target.focus();else panel.querySelector('#waterPresetNew:not(:disabled),button[data-water-setting="up"]:not(:disabled),button[data-water-setting="down"]:not(:disabled)')?.focus();}
+}
+function setWaterUnit(unit){state.settings.waterUnit=unit==='floz'?'floz':'ml';saveState();initWaterSettings('#waterUnitSelect');showToast('Water shown in '+(waterUnit()==='floz'?'US fluid ounces':'millilitres'));}
+function saveWaterGoal(){
+  const v=parseFloat($('waterGoalInput').value),litres=waterUnit()==='floz'?v*ML_PER_US_FL_OZ/1000:v;
+  if(!(litres>=WATER_GOAL_MIN_L&&litres<=WATER_GOAL_MAX_L))return showToast('Water goal must be '+formatWaterTotal(WATER_GOAL_MIN_L)+'–'+formatWaterTotal(WATER_GOAL_MAX_L)+' '+waterTotalUnitLabel());
+  state.waterGoal=+litres.toFixed(3);saveState();initWaterSettings('#waterGoalInput');showToast('Water goal saved');
+}
+function addWaterPreset(){
+  if(state.presets.length>=WATER_PRESET_MAX)return showToast('You can keep up to '+WATER_PRESET_MAX+' quick amounts');
+  const ml=parseWaterEntryMl($('waterPresetNew').value);if(!ml)return showToast('Enter '+waterEntryRangeText());
+  if(state.presets.includes(ml))return showToast(formatWaterAmount(ml)+' is already a quick amount');
+  state.presets=state.presets.concat(ml);saveState();initWaterSettings('#waterPresetNew');showToast('Added '+formatWaterAmount(ml)+' quick amount');
+}
+function removeWaterPreset(index){
+  if(state.presets.length<=1)return showToast('Keep at least one quick amount');if(!(index>=0&&index<state.presets.length))return;
+  const removed=state.presets[index];state.presets=state.presets.filter((_,i)=>i!==index);saveState();
+  initWaterSettings('button[data-water-setting="remove"][data-index="'+Math.min(index,state.presets.length-1)+'"]');showToast('Removed '+formatWaterAmount(removed));
+}
+function moveWaterPreset(index,delta){
+  const to=index+delta;if(!(index>=0&&index<state.presets.length&&to>=0&&to<state.presets.length))return;
+  const next=state.presets.slice();next.splice(to,0,next.splice(index,1)[0]);state.presets=next;saveState();
+  initWaterSettings('button[data-water-setting="'+(delta<0?'up':'down')+'"][data-index="'+to+'"]');
+}
 function renderExtras(){
   const g=state.game,L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),wi=weekInfo();
-  const wp=Math.min(100,Math.round(state.water/state.waterGoal*100));
-  $('dashWater').textContent=state.water.toFixed(2);$('dashWaterGoal').textContent=state.waterGoal.toFixed(2);$('dashWaterBar').style.width=wp+'%';
-  $('waterMeta').textContent='Goal: '+state.waterGoal.toFixed(2)+' L · '+wp+'%';
-  setBar('dashWaterBar',wp,'Hydration progress');setBar('dashCalBar',Math.min(100,Math.round(state.cal/state.calTarget*100)),'Calorie progress');
-  $('waterBtns').innerHTML=state.presets.map(p=>'<button class="btn" onclick="addWater('+p/1000+')">+'+p+' ml</button>').join('')+
-   '<input type="number" id="customWater" min="1" max="5000" placeholder="ml" aria-label="Custom water amount in millilitres" onkeydown="if(event.key===\'Enter\')addCustomWater()"><button class="btn" onclick="addCustomWater()">Add</button><button class="btn" onclick="undoWater()" aria-label="Undo last water entry">↶ Undo</button>';
+  renderWaterSummary();setBar('dashCalBar',Math.min(100,Math.round(state.cal/state.calTarget*100)),'Calorie progress');
+  renderWaterButtons();
   const days=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dayKey(d),h=state.history[k];
     const on=i===0?isActive():!!(h&&(h.done>0||h.cal>0||h.water>0));days.push('<span class="wd '+(on?'on':'')+'" aria-label="'+d.toLocaleDateString(undefined,{weekday:'long'})+(on?': active':': no activity')+'">'+d.toLocaleDateString(undefined,{weekday:'narrow'})+'</span>');}
   $('gamePanel').innerHTML='<div class="section-title"><span>Your Progress</span></div><div class="stat-row">'+
@@ -2207,23 +2169,21 @@ function renderExtras(){
   markNav();
 }
 function initGoals(){
-  $('goalsPanel').innerHTML='<div class="section-title">Goals, Quick Amounts & Backup</div><div class="form-grid">'+
+  $('goalsPanel').innerHTML='<div class="section-title">Goals &amp; Backup</div><div class="form-grid">'+
   '<div class="field"><label for="gCal">Daily calorie target (kcal)</label><input type="number" id="gCal" min="500" max="10000" value="'+state.calTarget+'"></div>'+
-  '<div class="field"><label for="gWater">Daily water goal (litres)</label><input type="number" id="gWater" step="0.1" min="0.5" max="10" value="'+state.waterGoal+'"></div>'+
-  '<div class="field"><label for="gWeek">Workouts per week goal</label><input type="number" id="gWeek" min="1" max="14" value="'+state.weeklyGoal+'"></div>'+'<div class="field"><label for="gPresets">Quick water buttons (ml, comma separated)</label><input type="text" id="gPresets" value="'+state.presets.join(', ')+'"></div>'+
+  '<div class="field"><label for="gWeek">Workouts per week goal</label><input type="number" id="gWeek" min="1" max="14" value="'+state.weeklyGoal+'"></div>'+
   '<div class="field"><label for="gSpacing">Text spacing</label><select id="gSpacing"><option value="normal">Normal</option><option value="wide">Wide (easier reading)</option></select></div></div>'+
   '<div class="row-wrap"><button class="btn btn-primary" onclick="saveGoals()">Save goals</button><button class="btn" onclick="exportData()">⬇ Export backup</button>'+
   '<label class="btn" for="importFile" tabindex="0" onkeydown="if(event.key===\'Enter\')this.click()">⬆ Import backup</label><input type="file" id="importFile" accept="application/json" hidden onchange="importData(this.files[0])"></div>'+
   '<p class="subtitle" style="margin-top:10px">Shortcuts: press 1–6 to switch screens, W to add water. Data is stored only in this browser — export a backup to move devices.</p>';
   $('gSpacing').value=state.settings.spacing||'normal';
+  initWaterSettings();
 }
 function saveGoals(){
-  const c=parseInt($('gCal').value),w=parseFloat($('gWater').value);
-  const p=$('gPresets').value.split(',').map(x=>Math.round(parseFloat(x))).filter(x=>x>0&&x<=5000).slice(0,6);
+  const c=parseInt($('gCal').value);
   if(!(c>=500&&c<=10000))return showToast('Calories must be 500–10000');
-  if(!(w>=0.5&&w<=10))return showToast('Water goal must be 0.5–10 L');
-  if(!p.length)return showToast('Add at least one valid ml amount');const wk=parseInt($('gWeek').value);if(!(wk>=1&&wk<=14))return showToast('Weekly goal must be 1–14');state.weeklyGoal=wk;
-  state.calTarget=c;state.waterGoal=w;state.presets=p;state.settings.spacing=$('gSpacing').value;saveState();initGoals();showToast('Goals saved');
+  const wk=parseInt($('gWeek').value);if(!(wk>=1&&wk<=14))return showToast('Weekly goal must be 1–14');state.weeklyGoal=wk;
+  state.calTarget=c;state.settings.spacing=$('gSpacing').value;saveState();initGoals();showToast('Goals saved');
 }
 function exportData(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:'application/json'}));a.download='gymplified-backup-'+dayKey()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
 function importData(file){
@@ -2683,36 +2643,14 @@ updateInstallUI();
 window.addEventListener('pageshow',updateInstallUI);
 
 
-function deluxeDemoEnabled(){return false;}
-function updateDeluxeUI(){
- const enabled=deluxeDemoEnabled(),status=$('deluxeStatus'),toggle=$('deluxeDemoToggle');
- if(status){status.textContent=enabled?'DEMO UNLOCKED':'PREVIEW MODE';status.style.background=enabled?'rgba(16,185,129,.12)':'';status.style.borderColor=enabled?'#10b981':'#b99342';status.style.color=enabled?'#10b981':'#d6b15e';}
- if(toggle)toggle.textContent=enabled?'Turn off demo unlock':'Enable demo unlock';
- document.querySelectorAll('.deluxe-feature .lock').forEach(function(el){el.textContent=enabled?'✨':'🔒';});
-}
-function toggleDeluxeDemo(){showToast('Deluxe is currently preview-only');}
-function openDeluxeDemo(){previewDeluxeFeature('Gymplified Deluxe');}
-function previewDeluxeFeature(name){
- const copy={
- 'Advanced analytics':'Explore weekly volume trends, strength progression, estimated 1RM charts and exercise comparisons.',
- 'Smart training insights':'Review muscle-group workload, training balance and recovery signals based on your workout history.',
- 'Workout planner':'Create structured training blocks, organise weekly sessions and track plan completion.',
- 'Performance lab':'Compare personal records, best sets and estimated one-rep max changes for each exercise.',
- 'Complete data tools':'Generate detailed workout reports and manage comprehensive backups and exports.',
- 'Deluxe customisation':'Unlock exclusive Deluxe profile flair, premium themes and additional appearance settings.',
- 'Gymplified Deluxe':'Gymplified Deluxe is a €9.99 one-time lifetime upgrade. Payment will be added later.'
- };
- $('deluxeModalTitle').textContent=name;
- $('deluxeModalText').textContent=copy[name]||'Explore this premium feature in the Deluxe prototype.';
- $('deluxeModal').classList.add('open');
-}
-function closeDeluxeModal(){$('deluxeModal').classList.remove('open');}
-updateDeluxeUI();
-
-
 /* ===== Gymplified Deluxe: real, data-driven tools ===== */
 let deluxePlanDraft=[];
-function deluxeEnabled(){try{return localStorage.getItem('gymplified_deluxe_demo')==='1';}catch(e){return false;}}
+// TODO(H3): this is NOT a paywall. Before any payment goes live, Deluxe entitlement must come from a
+// server-side column (e.g. profiles.deluxe_until / profiles.deluxe_lifetime) enforced in RLS/RPC.
+// Until then the local demo flag is only honoured behind the ?demo=1 developer flag.
+const DELUXE_DEMO_KEY='gymplified_deluxe_demo';
+function deluxeDemoAllowed(){try{return new URLSearchParams(location.search).get('demo')==='1';}catch(e){return false;}}
+function deluxeEnabled(){if(!deluxeDemoAllowed())return false;try{return localStorage.getItem(DELUXE_DEMO_KEY)==='1';}catch(e){return false;}}
 function deluxeDownload(filename,content,type){
  const blob=new Blob([content],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
  a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
@@ -2726,29 +2664,42 @@ function deluxeRecentWeeks(count){
  return out.map(w=>Object.assign(w,{volume:w.sessions.reduce((n,s)=>n+deluxeSessionVolume(s),0),workouts:w.sessions.length,sets:w.sessions.reduce((n,s)=>n+(Number(s.sets)||0),0)}));
 }
 function renderDeluxeUI(){
- const enabled=deluxeEnabled(),status=$('deluxeStatus'),toggle=$('deluxeDemoToggle'),locked=$('deluxeLockedNotice'),tools=$('deluxeTools');
+ const enabled=deluxeEnabled(),status=$('deluxeStatus'),toggle=$('deluxeDemoToggle'),locked=$('deluxeLockedNotice'),tools=$('deluxeTools'),demo=$('deluxeDemoControls'),demoBtn=$('deluxeDemoUnlockBtn');
  if(status){status.textContent=enabled?'DEMO UNLOCKED':'PREVIEW MODE';status.style.background=enabled?'rgba(16,185,129,.12)':'';status.style.borderColor=enabled?'#10b981':'#b99342';status.style.color=enabled?'#10b981':'#d6b15e';}
- if(toggle)toggle.textContent=enabled?'Turn off demo unlock':'Enable demo unlock';
+ if(toggle)toggle.textContent=enabled?'Demo unlocked on this device':'Preview only';
+ if(demo)demo.hidden=!deluxeDemoAllowed();if(demoBtn)demoBtn.textContent=enabled?'Turn off demo unlock':'Enable demo unlock';
  if(locked)locked.hidden=enabled;if(tools)tools.hidden=!enabled;
  document.querySelectorAll('.deluxe-feature .lock').forEach(el=>el.textContent=enabled?'✨':'🔒');
  if(enabled){renderDeluxeAnalytics();renderDeluxePerformanceOptions();renderDeluxePlanLibrary();renderDeluxeCustomisation();}
 }
 function updateDeluxeUI(){renderDeluxeUI();}
 function toggleDeluxeDemo(){
- try{localStorage.setItem('gymplified_deluxe_demo',deluxeEnabled()?'0':'1');renderDeluxeUI();showToast(deluxeEnabled()?'Deluxe demo unlocked on this device':'Deluxe demo lock restored');}
+ if(!deluxeDemoAllowed()){showToast('Deluxe is currently preview-only');return;}
+ try{localStorage.setItem(DELUXE_DEMO_KEY,deluxeEnabled()?'0':'1');renderDeluxeUI();showToast(deluxeEnabled()?'Deluxe demo unlocked on this device':'Deluxe demo lock restored');}
  catch(e){showToast('Could not save demo setting on this device');}
 }
-function openDeluxeDemo(){if(!deluxeEnabled()){showToast('Enable the demo unlock to explore the working tools');return;}renderDeluxeAnalytics();}
+function openDeluxeDemo(){if(!deluxeEnabled()){previewDeluxeFeature('Gymplified Deluxe');return;}renderDeluxeAnalytics();$('deluxeTools')?.scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'start'});}
+const DELUXE_PREVIEW_COPY={
+ 'Advanced analytics':'Explore weekly volume trends, strength progression, estimated 1RM charts and exercise comparisons.',
+ 'Smart training insights':'Review muscle-group workload, training balance and recovery signals based on your workout history.',
+ 'Workout planner':'Create structured training blocks, organise weekly sessions and track plan completion.',
+ 'Performance lab':'Compare personal records, best sets and estimated one-rep max changes for each exercise.',
+ 'Complete data tools':'Generate detailed workout reports and manage comprehensive backups and exports.',
+ 'Deluxe customisation':'Unlock exclusive Deluxe profile flair, premium themes and additional appearance settings.',
+ 'Gymplified Deluxe':'Gymplified Deluxe is a €9.99 one-time lifetime upgrade. Payment will be added later.'
+};
 function previewDeluxeFeature(name){
  if(deluxeEnabled()){
-  const actions={'Advanced analytics':()=>renderDeluxeAnalytics(),'Smart training insights':()=>{$('deluxeInsights')?.scrollIntoView({behavior:'smooth',block:'center'});},'Workout planner':()=>{$('deluxePlanName')?.focus();},'Performance lab':()=>{$('deluxeExerciseSelect')?.focus();},'Complete data tools':()=>{$('deluxeExportStatus')?.scrollIntoView({behavior:'smooth',block:'center'});},'Deluxe customisation':()=>{$('deluxeAccent')?.focus();}};
+  const smooth=reducedMotion()?'auto':'smooth';
+  const actions={'Advanced analytics':()=>renderDeluxeAnalytics(),'Smart training insights':()=>{$('deluxeInsights')?.scrollIntoView({behavior:smooth,block:'center'});},'Workout planner':()=>{$('deluxePlanName')?.focus();},'Performance lab':()=>{$('deluxeExerciseSelect')?.focus();},'Complete data tools':()=>{$('deluxeExportStatus')?.scrollIntoView({behavior:smooth,block:'center'});},'Deluxe customisation':()=>{$('deluxeAccent')?.focus();}};
   if(actions[name]){actions[name]();return;}
  }
  $('deluxeModalTitle').textContent=name;
- $('deluxeModalText').textContent='This tool is part of the Gymplified Deluxe prototype. Enable the local demo unlock to use the working version. The €9.99 payment system has not been connected.';
+ $('deluxeModalText').textContent=(DELUXE_PREVIEW_COPY[name]||'This tool is part of Gymplified Deluxe.')+' Deluxe is preview-only: the payment system has not been connected.';
  $('deluxeModal').classList.add('open');
 }
 function closeDeluxeModal(){$('deluxeModal').classList.remove('open');}
+$('deluxeDemoUnlockBtn')?.addEventListener('click',toggleDeluxeDemo);
 function renderDeluxeAnalytics(){
  if(!deluxeEnabled())return;
  const sessions=deluxeAllSessions(),weeks=deluxeRecentWeeks(8),recent=weeks.slice(-4),previous=weeks.slice(0,4);
@@ -2882,6 +2833,7 @@ function renderDeluxeCustomisation(){
 // Boot initial render
 initPicker();
 initSocial();
+initWaterControls();
 initGoals();
 if(state._rolloverPending){delete state._rolloverPending;saveState();}
 renderAll();

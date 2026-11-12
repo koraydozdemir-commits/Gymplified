@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Confirm your Gymplified account</title>
+</head>
+<body style="margin:0;padding:0;background:#f6f1e7;">
+<!-- Preview text shown next to the subject line in most inboxes. -->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">One tap to confirm your email and start training with Gymplified.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f6f1e7;">
+  <tr>
+    <td align="center" style="padding:32px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;background:#ffffff;border:1px solid #e7ddcf;border-radius:16px;">
+        <tr>
+          <td style="padding:32px 32px 8px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+            <img src="https://gymplified.com/gymplified-app-icon.jpg" width="56" height="56" alt="Gymplified" style="display:block;border:0;border-radius:14px;">
+            <p style="margin:20px 0 0;font-size:12px;font-weight:800;letter-spacing:.16em;color:#7c5a12;">GYMPLIFIED</p>
+            <h1 style="margin:8px 0 0;font-size:26px;line-height:1.25;color:#1f1a14;">Confirm your email</h1>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:12px 32px 0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#3d342a;">
+            <p style="margin:0;">Welcome to Gymplified! Tap the button below to confirm <strong>{{ .Email }}</strong> and finish setting up your account.</p>
+          </td>
+        </tr>
+        <tr>
+          <td align="left" style="padding:28px 32px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="border-radius:10px;background:#c9a24e;">
+                  <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:14px 28px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:#1f1a14;text-decoration:none;border-radius:10px;">Confirm my email</a>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:0 32px 28px;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#5f5446;">
+            <p style="margin:0 0 12px;">The button not working? Copy this link into your browser:</p>
+            <p style="margin:0;word-break:break-all;"><a href="{{ .ConfirmationURL }}" style="color:#7c5a12;">{{ .ConfirmationURL }}</a></p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:20px 32px 28px;border-top:1px solid #eee4d6;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#5f5446;">
+            <p style="margin:0;">Didn’t sign up for Gymplified? You can ignore this email and no account will be activated.</p>
+            <p style="margin:12px 0 0;">Questions? Email us at <a href="mailto:gymplifiedsupport@gmail.com" style="color:#7c5a12;">gymplifiedsupport@gmail.com</a>.</p>
+          </td>
+        </tr>
+      </table>
+      <p style="margin:20px 0 0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:12px;color:#5f5446;">Gymplified · Train, eat and track, simplified · <a href="https://gymplified.com" style="color:#5f5446;">gymplified.com</a></p>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

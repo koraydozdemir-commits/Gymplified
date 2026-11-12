@@ -300,17 +300,19 @@ test('A3: dead Gym Machines code is gone and every machine is in the exercise li
   for (const [machine, exercise] of Object.entries(machines)) assert.ok(names.includes(exercise), machine + ' needs library entry ' + exercise);
 });
 
-test('A4: the local Deluxe demo unlock only works behind the ?demo=1 developer flag', async () => {
+test('A4: the local Deluxe demo unlock only works behind ?demo=1 on a local dev host', async () => {
   const html = await read('index.html');
   const js = appScript(html);
   assert.doesNotMatch(html, /onclick="toggleDeluxeDemo\(\)"/);
   assert.match(html, /id="deluxeDemoControls"[^>]*\shidden>/);
-  assert.match(js, /TODO\(H3\)/);
-  const build = (search, stored, access = { deluxe: false, userId: '' }, user = null) => new Function('location', 'localStorage', 'deluxeAccess', 'currentUser', "const DELUXE_DEMO_KEY='gymplified_deluxe_demo';" + extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return deluxeEnabled();')({ search }, { getItem: () => stored }, access, user);
+  const build = (search, stored, access = { deluxe: false, userId: '' }, user = null, hostname = 'localhost') => new Function('location', 'localStorage', 'deluxeAccess', 'currentUser', "const DELUXE_DEMO_KEY='gymplified_deluxe_demo';" + extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return deluxeEnabled();')({ search, hostname }, { getItem: () => stored }, access, user);
   assert.equal(build('', '1'), false, 'console-set flag must not unlock production');
   assert.equal(build('?demo=0', '1'), false);
   assert.equal(build('?demo=1', null), false);
   assert.equal(build('?demo=1', '1'), true);
+  for (const host of ['gymplified.com', 'www.gymplified.com', 'localhost.gymplified.com', ''])
+    assert.equal(build('?demo=1', '1', undefined, null, host), false, 'the demo flag must never unlock Deluxe on ' + (host || 'an unknown host'));
+  assert.equal(build('?demo=1', '1', undefined, null, '127.0.0.1'), true);
   // Batch 9: the server entitlement unlocks Deluxe, but only for the account it was fetched for
   assert.equal(build('', null, { deluxe: true, userId: 'u1' }, { id: 'u1' }), true);
   assert.equal(build('', null, { deluxe: true, userId: 'u1' }, { id: 'u2' }), false, 'another account after switching');
@@ -829,7 +831,7 @@ test('F1: barcode lookup sends only the barcode and validates Open Food Facts da
   assert.match(js, /new BarcodeDetector\(\{formats:\['ean_13','ean_8','upc_a','upc_e'\]\}\)/);
   assert.match(js, /scanStream\.getTracks\(\)\.forEach\(t=>t\.stop\(\)\)/, 'camera is released');
   assert.match(html, /Only the barcode number is sent to Open Food Facts/);
-  assert.match(await read('privacy.html'), /TODO\(owner\/legal\): The barcode scanner/);
+  assert.match(await read('privacy.html'), /only the barcode number is sent from your browser to Open Food Facts/);
   const api = new Function(extractFunctions(js, ['validBarcode', 'offProductToFood']) + ';return {validBarcode,offProductToFood};')();
   assert.equal(api.validBarcode('5000159484695'), true);
   assert.equal(api.validBarcode('1234567'), false);
@@ -1204,8 +1206,17 @@ test('H2/H4: entitlement lives on the server, is granted only by the service rol
   assert.doesNotMatch(fn, /Access-Control-Allow-Origin['"]?\s*:\s*['"]\*/, 'no wildcard CORS');
   const html = await read('index.html'), js = appScript(html);
   const sanitize = new Function('state', 'currentUser', 'localStorage', 'location', extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return {deluxeEnabled,deluxeOwned};');
-  assert.match(js, /\/\/ TODO\(owner\/legal\): add the approved EU\/UK withdrawal-right and refund wording/);
-  assert.match(await read('terms.html'), /TODO\(owner\/legal\): before Gymplified Deluxe goes on sale/);
+  // Purchase wording: the terms, the privacy policy and the Deluxe screen agree on seller and refund window.
+  const terms = await read('terms.html'), privacy = await read('privacy.html');
+  assert.match(terms, /<h2 id="deluxe">9\. Gymplified Deluxe \(paid purchase\)<\/h2>/);
+  assert.match(terms, /full refund within 14 days of the purchase, for any reason/);
+  assert.match(terms, /Nothing in these terms limits the rights you have under the consumer law/);
+  assert.match(terms, /Stripe is the merchant of record/);
+  assert.match(privacy, /Stripe \(Deluxe purchases\)/);
+  assert.match(privacy, /never receives or stores your card or bank details/);
+  assert.match(js, /Get a full refund within 14 days/);
+  assert.match(html, /href="\.\/terms\.html#deluxe"/);
+  assert.doesNotMatch(terms + privacy, /TODO\(owner\/legal\)/, 'no unfinished legal placeholders are published');
   assert.ok(sanitize, 'entitlement helpers extract');
   // The browser never stores a "paid" flag in synced state.
   assert.doesNotMatch(extractFunctions(js, ['sanitizeStateSnapshot']), /deluxeOwned|entitlement/);
@@ -1511,7 +1522,7 @@ test('DX2: purchase states — opening checkout, confirming payment, test-mode b
   assert.match(js, /title:'Welcome to Deluxe!'/);
   assert.match(html, /<span class="deluxe-mode-badge" id="deluxeModeBadge" hidden>Test mode · no real money is taken<\/span>/);
   assert.match(js, /badge\.hidden=!\(open&&deluxeAccess\.mode==='test'\)/);
-  assert.match(js, /Any tax is shown at checkout, and Stripe emails your receipt\./);
+  assert.match(js, /Sold through Link \(Stripe\), which shows any tax at checkout and emails your receipt\./);
 });
 
 test('DX3: the Account screen shows how Deluxe was obtained', async () => {

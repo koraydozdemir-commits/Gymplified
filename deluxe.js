@@ -1,6 +1,6 @@
 // Gymplified Deluxe tools. Loaded after app.js and plus.js, so it can use the app's state and helpers.
-// The numbers come from pure functions in lib.js (GymLib); this file turns them into the six Deluxe
-// tools and into the sample previews shown before purchase.
+// The numbers come from pure functions in lib.js (GymLib); this file turns them into the Deluxe tools
+// and into the previews shown before purchase (built from the person's own log once it is big enough).
 // Markup here never uses inline handlers or inline styles. Controls name an action with data-dx
 // (clicks) or data-dx-change, and only DELUXE_ACTIONS can run.
 
@@ -9,6 +9,7 @@ const DX_TABS = [
   { id: 'coach', label: 'Coach', feature: 'Smart training insights' },
   { id: 'lab', label: 'Lift lab', feature: 'Performance lab' },
   { id: 'planner', label: 'Planner', feature: 'Workout planner' },
+  { id: 'nutrition', label: 'Nutrition', feature: 'Nutrition coach' },
   { id: 'data', label: 'Reports', feature: 'Complete data tools' },
   { id: 'style', label: 'Style', feature: 'Deluxe customisation' }
 ];
@@ -135,7 +136,10 @@ const DX_TONE = { good: ['▲', 'Going well'], warn: ['◆', 'Worth a look'], in
 const DX_STATUS = { rising: 'Rising', steady: 'Steady', plateau: 'Levelled off', falling: 'Dipped' };
 function dxCoachMarkup(ctx) {
   const insights = GymLib.coachInsights(ctx.sessions, ctx.today, { weekStart: ctx.weekStart, weeklyGoal: ctx.weeklyGoal });
-  const cards = '<div class="dx-insights">' + insights.map(x => '<article class="dx-insight is-' + x.tone + '"><span class="dx-insight-tag"><span aria-hidden="true">' + DX_TONE[x.tone][0] + ' </span>' + DX_TONE[x.tone][1] + '</span><h3>' + esc(x.title) + '</h3><p>' + esc(x.detail) + '</p></article>').join('') + '</div>';
+  // An own-log preview shows the first two notes and says how many more there are.
+  const shown = ctx.mine ? insights.slice(0, 2) : insights, more = insights.length - shown.length;
+  const cards = '<div class="dx-insights">' + shown.map(x => '<article class="dx-insight is-' + x.tone + '"><span class="dx-insight-tag"><span aria-hidden="true">' + DX_TONE[x.tone][0] + ' </span>' + DX_TONE[x.tone][1] + '</span><h3>' + esc(x.title) + '</h3><p>' + esc(x.detail) + '</p></article>').join('') + '</div>' +
+    (more > 0 ? '<p class="dx-locked"><span aria-hidden="true">🔒 </span>' + esc(plural(more, 'more note')) + ' about your training unlock with Deluxe.</p>' : '');
   if (ctx.sessions.length < 3) return cards;
   const bal = GymLib.muscleBalance(ctx.sessions, ctx.today, 28), trends = GymLib.liftTrends(ctx.sessions, ctx.today, 84), splitTotal = bal.split.push + bal.split.pull + bal.split.legs, top = Math.max(1, ...bal.groups.map(g => g.sets));
   const split = splitTotal ? '<div class="dx-split" role="img" aria-label="Push ' + bal.split.push + ' sets, pull ' + bal.split.pull + ' sets, legs ' + bal.split.legs + ' sets.">' + ['push', 'pull', 'legs'].map(k => '<span class="dx-split-' + k + '" data-w="' + (bal.split[k] / splitTotal * 100) + '"></span>').join('') + '</div>' +
@@ -186,8 +190,9 @@ function dxLabMarkup(ctx, liftName) {
 // ---------- Workout planner ----------
 function dxPlanSummary(program) {
   const p = GymLib.sanitizePlanProgram(program);
-  if (!p.weeks) return 'Open-ended plan';
-  return p.weeks + '-week programme · ' + (p.mode === 'weight' ? '+' + fmtWeight(p.stepKg, 2) + ' each week' : p.mode === 'reps' ? '+1 rep each week' : 'same targets each week') + (p.deload && p.weeks >= 4 ? ' · lighter final week' : '');
+  const adapts = p.adaptive ? ' · adapts to each session' : '';
+  if (!p.weeks) return 'Open-ended plan' + adapts;
+  return p.weeks + '-week programme · ' + (p.mode === 'weight' ? '+' + fmtWeight(p.stepKg, 2) + ' each week' : p.mode === 'reps' ? '+1 rep each week' : 'same targets each week') + (p.deload && p.weeks >= 4 ? ' · lighter final week' : '') + adapts;
 }
 // One saved plan as a card. Also used, without buttons, in the planner preview.
 function dxPlanCard(plan, i, sessions, today, preview) {
@@ -213,6 +218,7 @@ function useTemplate(id) {
   deluxePlanDraft = t.plan.map(([day, list]) => ({ day, exercises: list.map(([name, sets, reps]) => ({ name, sets, reps, kg: dxStartKg(name) })) }));
   deluxeEditingPlanId = null;
   $('deluxePlanName').value = t.name; $('deluxePlanWeeks').value = String(t.weeks); $('deluxePlanMode').value = t.mode; $('deluxePlanDeload').checked = true;
+  if ($('deluxePlanAdaptive')) $('deluxePlanAdaptive').checked = true;
   $('deluxePlanStep').value = weightUnit() === 'lb' ? 5 : 2.5;
   syncPlanProgramFields(); renderDeluxePlanDraft();
   const known = deluxePlanDraft.reduce((n, d) => n + d.exercises.filter(e => e.kg > 0).length, 0);
@@ -228,13 +234,13 @@ function syncPlanProgramFields() {
 // Reads the programme settings from the planner form. A plan keeps its start date while it is edited.
 function readPlanProgram(existing) {
   const weeks = Number($('deluxePlanWeeks').value) || 0, old = GymLib.sanitizePlanProgram(existing);
-  return GymLib.sanitizePlanProgram({ weeks, mode: weeks ? $('deluxePlanMode').value : 'none', stepKg: displayToKg(Number($('deluxePlanStep').value) || 0), deload: weeks >= 4 && $('deluxePlanDeload').checked,
+  return GymLib.sanitizePlanProgram({ weeks, mode: weeks ? $('deluxePlanMode').value : 'none', stepKg: displayToKg(Number($('deluxePlanStep').value) || 0), deload: weeks >= 4 && $('deluxePlanDeload').checked, adaptive: !$('deluxePlanAdaptive') || $('deluxePlanAdaptive').checked,
     start: weeks ? (old.weeks && old.start ? old.start : GymLib.weeklySeries([], dxToday(), 1, dxWeekStart())[0].week) : '' });
 }
 function fillPlanProgram(program) {
   const p = GymLib.sanitizePlanProgram(program);
   $('deluxePlanWeeks').value = [0, 4, 6, 8, 12].includes(p.weeks) ? String(p.weeks) : '0'; $('deluxePlanMode').value = p.mode; $('deluxePlanDeload').checked = p.deload;
-  $('deluxePlanStep').value = kgToDisplay(p.stepKg || 2.5, 2); syncPlanProgramFields();
+  $('deluxePlanStep').value = kgToDisplay(p.stepKg || 2.5, 2); if ($('deluxePlanAdaptive')) $('deluxePlanAdaptive').checked = p.adaptive; syncPlanProgramFields();
 }
 function restartPlan(i) {
   const plan = state.deluxe && state.deluxe.plans && state.deluxe.plans[i]; if (!plan) return;
@@ -246,6 +252,100 @@ function renderPlannerExtras() {
   const host = $('deluxeTemplates'); if (host && !host.childElementCount) host.innerHTML = dxTemplateCards(false);
   if ($('deluxePlanStep') && !$('deluxePlanStep').value) $('deluxePlanStep').value = weightUnit() === 'lb' ? 5 : 2.5;
   syncPlanProgramFields();
+}
+
+// Adaptive targets: the calendar target checked against the last time this exercise came up in the plan.
+function dxAdaptiveWhy(res) {
+  const r = res.reason || {}, at = r.kg > 0 ? ' at ' + fmtWeight(r.kg, 2) : '';
+  if (r.code === 'progress') return res.kg > r.kg || res.reps > r.reps ? 'All ' + r.of + ' sets of ' + r.reps + at + ' done last time, so today moves up.' : 'All ' + r.of + ' sets done last time. Same target today to lock it in.';
+  if (r.code === 'hold') return 'Last time ' + r.hit + ' of ' + r.of + ' sets reached ' + r.reps + ' reps' + at + '. Repeat it today before moving on.';
+  if (r.code === 'reset') return 'Two sessions short of ' + r.of + ' × ' + r.reps + at + ', so about 10% lighter today to build back up.';
+  if (r.code === 'deload') return 'Lighter week: fewer sets at about 90% of the weight.';
+  if (r.code === 'break') return 'First time back in over six weeks, so today follows the plan.';
+  return '';
+}
+function dxAdaptiveTarget(plan, name, scheduled, deload) {
+  const p = GymLib.sanitizePlanProgram(plan && plan.program);
+  const res = GymLib.adaptiveTarget(scheduled, GymLib.planExerciseResults(dxSessions(), plan && plan.name, name, 3), { mode: p.mode, stepKg: p.stepKg, roundKg: weightUnit() === 'lb' ? KG_PER_LB : 0.5, deload: !!deload, today: dxToday() });
+  return { sets: res.sets, reps: res.reps, kg: res.kg, adapt: res.action === 'schedule' ? '' : res.action, why: dxAdaptiveWhy(res) };
+}
+
+// ---------- Nutrition coach ----------
+// Maintenance calories from the food log and the weight trend (GymLib.energyBalance), then a target and
+// macros for the chosen goal. Nothing changes until the person taps "Use these targets".
+const DX_RATES = { lose: [0.25, 0.5, 0.75, 1], gain: [0.25, 0.5] };
+const DX_GOAL_LABELS = { lose: 'Lose weight', maintain: 'Keep my weight', gain: 'Gain weight' };
+function dxIntakeMap(today) {
+  const out = {}, daily = state.dailyHistory || {}, hist = state.history || {};
+  for (let i = 1; i <= 60; i++) { const k = GymLib.addDays(today, -i), d = daily[k], h = hist[k], cal = Number(d && d.cal) || Number(h && h.cal) || 0; if (cal > 0) out[k] = cal; }
+  return out;
+}
+function dxWeightMap() { const log = (state.extras && state.extras.bodyLog) || {}, out = {}; Object.keys(log).forEach(k => { const v = Number(log[k]); if (v > 0) out[k] = v; }); return out; }
+function dxLatestWeight(weights) { const days = Object.keys(weights).sort(); return days.length ? Number(weights[days[days.length - 1]]) : 0; }
+function dxNutritionContext() {
+  const today = dxToday(), weights = dxWeightMap();
+  return { today, intake: dxIntakeMap(today), weights, bodyKg: dxLatestWeight(weights) || Number(state.profile && state.profile.weightKg) || 0, calTarget: Number(state.calTarget) || 0, sample: false };
+}
+// Four weeks of a believable log: about 2,300 kcal a day while drifting down roughly 0.4 kg a week.
+function dxNutritionSample() {
+  const today = dxToday(), intake = {}, weights = {};
+  for (let i = 1; i <= 28; i++) { const k = GymLib.addDays(today, -i); if (i % 9 !== 4) intake[k] = 2300 + ((i * 37) % 9 - 4) * 45; if (i % 3 === 0) weights[k] = Math.round((80 + i * 0.057 + ((i * 13) % 5 - 2) * 0.12) * 10) / 10; }
+  weights[today] = 80;
+  return { today, intake, weights, bodyKg: 80, calTarget: 2500, sample: true };
+}
+function dxNutritionPrefs(ctx) {
+  if (ctx.sample) return { goal: 'lose', rate: 0.5 };
+  const n = (state.deluxe && state.deluxe.nutrition) || {}, goal = GymLib.CALORIE_GOALS.includes(n.goal) ? n.goal : 'maintain', rates = DX_RATES[goal] || [];
+  return { goal, rate: rates.includes(Number(n.rate)) ? Number(n.rate) : rates.includes(0.5) ? 0.5 : rates[0] || 0 };
+}
+function dxNutritionPlan(ctx) {
+  const e = GymLib.energyBalance(ctx.intake, ctx.weights, ctx.today);
+  if (!e.ready) return { e };
+  const pref = dxNutritionPrefs(ctx), t = GymLib.calorieTarget(e.maintenance, pref.goal, pref.rate, ctx.bodyKg);
+  return { e, pref, t, m: GymLib.macroTargets(t.kcal, ctx.bodyKg, pref.goal) };
+}
+function dxMeter(label, have, need, extra) {
+  const done = have >= need;
+  return '<div class="dx-row"><div class="meta-row"><strong>' + esc(label) + '</strong><span>' + (done ? '✓ ' : '') + Math.min(have, need) + ' of ' + need + (extra ? ' · ' + esc(extra) : '') + '</span></div><div class="progress-bar"><i data-w="' + Math.min(100, have / need * 100) + '"></i></div></div>';
+}
+function dxSignedWeight(kg) { return (kg > 0 ? '+' : kg < 0 ? '−' : '') + fmtWeight(Math.abs(kg), 2); }
+function dxNutritionMarkup(ctx) {
+  const { e, pref, t, m } = dxNutritionPlan(ctx), off = ctx.sample ? ' disabled' : '';
+  const how = '<p class="sub dx-foot">How it works: over the last four weeks, what you ate minus the energy in your weight change (about 7,700 kcal per kg) is what your body used. Days under 800 kcal count as unfinished logs. This is an estimate for healthy adults, not medical or dietary advice. If you are under 18, pregnant or managing a health condition, talk to a professional first.</p>';
+  if (!e.ready) {
+    const links = ctx.sample ? '' : '<div class="row-wrap st-3"><button type="button" class="btn" data-action="showScreen" data-arg="nutrition">Log food</button><button type="button" class="btn" data-action="showScreen" data-arg="progress">Log your weight</button></div>';
+    return '<div class="panel dx-block"><div class="section-title"><span>Building your estimate</span><span class="sub">LAST 4 WEEKS</span></div>' +
+      (e.implausible ? '<p class="account-message">The food log and the scale do not agree yet (they suggest about ' + esc(dxInt(e.avgIntake)) + ' kcal a day with ' + esc(dxSignedWeight(e.kgPerWeek)) + ' a week). Check that whole days are logged and weigh in at the same time of day.</p>'
+        : '<p class="sub">Your real maintenance calories appear once there is enough to go on. Log your food on most days and weigh in a couple of times a week.</p>') +
+      dxMeter('Days with food logged', e.foodDays, e.needFoodDays) + dxMeter('Weigh-ins', e.weighIns, e.needWeighIns, e.spanDays >= e.needSpanDays ? '' : 'spread over ' + e.needSpanDays + '+ days') + links + '</div>' + how;
+  }
+  const trend = e.kgPerWeek === 0 ? 'holding steady' : e.kgPerWeek < 0 ? 'losing' : 'gaining', rates = DX_RATES[pref.goal] || [];
+  const goals = GymLib.CALORIE_GOALS.map(g => '<label class="dx-option"><input type="radio" name="dxCalGoal" value="' + g + '"' + (g === pref.goal ? ' checked' : '') + (ctx.sample ? off : ' data-dx-change="setNutritionGoal"') + '><span><strong>' + DX_GOAL_LABELS[g] + '</strong></span></label>').join('');
+  const pace = rates.length ? '<div class="field dx-pick"><label for="dxCalRate">Pace</label><select id="dxCalRate"' + (ctx.sample ? off : ' data-dx-change="setNutritionRate"') + '>' + rates.map(r => '<option value="' + r + '"' + (r === pref.rate ? ' selected' : '') + '>' + r + '% of body weight a week' + (ctx.bodyKg > 0 ? ' (about ' + esc(fmtWeight(ctx.bodyKg * r / 100, 2)) + ')' : '') + '</option>').join('') + '</select></div>' : '';
+  const same = !ctx.sample && Math.round(ctx.calTarget) === t.kcal && state.nutritionTargets && Number(state.nutritionTargets.protein) === m.protein && Number(state.nutritionTargets.carbs) === m.carbs && Number(state.nutritionTargets.fat) === m.fat;
+  const action = ctx.sample ? '' : same ? '<p class="sub st-3" role="status">✓ These are your current targets.</p>' : '<div class="row-wrap st-3"><button type="button" class="btn btn-primary" data-dx="applyNutritionTargets">Use these targets</button></div>';
+  return '<div class="dx-tiles">' +
+      dxTile('Maintenance', esc(dxInt(e.maintenance)) + ' kcal', '<span class="dx-chip is-' + (e.confidence === 'high' ? 'rising' : 'steady') + '">' + (e.confidence === 'high' ? 'Solid estimate' : 'Early estimate') + '</span> <span>a day</span>') +
+      dxTile('Average eaten', esc(dxInt(e.avgIntake)) + ' kcal', '<span>on ' + esc(plural(e.foodDays, 'logged day')) + '</span>') +
+      dxTile('Weight trend', esc(dxSignedWeight(e.kgPerWeek)), '<span>a week · ' + trend + '</span>') +
+      dxTile('Current target', esc(dxInt(ctx.calTarget)) + ' kcal', '<span>' + (ctx.calTarget ? (ctx.calTarget > e.maintenance ? dxInt(ctx.calTarget - e.maintenance) + ' above' : ctx.calTarget < e.maintenance ? dxInt(e.maintenance - ctx.calTarget) + ' below' : 'right at') + ' maintenance' : 'not set') + '</span>') +
+    '</div>' +
+    '<div class="dx-two">' +
+      '<div class="panel dx-block"><div class="section-title"><span>Your goal</span></div><fieldset class="dx-confetti"><legend class="sr">Weight goal</legend>' + goals + '</fieldset>' + pace + '</div>' +
+      '<div class="panel dx-block"><div class="section-title"><span>Daily target</span><span class="sub">RECOMMENDED</span></div>' +
+        '<p class="dx-kcal"><strong>' + esc(dxInt(t.kcal)) + '</strong> kcal a day</p>' +
+        '<p class="sub">' + (t.perDay ? esc(dxInt(Math.abs(t.perDay))) + ' kcal ' + (t.perDay < 0 ? 'below' : 'above') + ' maintenance, for about ' + esc(dxSignedWeight(t.kgPerWeek)) + ' a week.' : 'Matches your maintenance, to keep your weight steady.') + (pref.goal === 'lose' && t.kcal === 1200 ? ' Held at 1,200 kcal, the lowest target Gymplified suggests.' : '') + '</p>' +
+        '<div class="stat-row dx-macros"><div class="stat"><b>' + m.protein + ' g</b><span>protein</span></div><div class="stat"><b>' + m.carbs + ' g</b><span>carbs</span></div><div class="stat"><b>' + m.fat + ' g</b><span>fat</span></div></div>' + action + '</div>' +
+    '</div>' + how;
+}
+function setNutritionGoal(el) { if (!GymLib.CALORIE_GOALS.includes(el.value)) return; state.deluxe = state.deluxe || {}; const rates = DX_RATES[el.value] || []; state.deluxe.nutrition = { goal: el.value, rate: rates.includes(0.5) ? 0.5 : rates[0] || 0 }; saveState(); renderDeluxeTools(deluxeEnabled()); }
+function setNutritionRate(el) { const n = Number(el.value), pref = dxNutritionPrefs({ sample: false }); if (!(DX_RATES[pref.goal] || []).includes(n)) return; state.deluxe.nutrition = { goal: pref.goal, rate: n }; saveState(); renderDeluxeTools(deluxeEnabled()); }
+function applyNutritionTargets() {
+  const plan = dxNutritionPlan(dxNutritionContext()); if (!plan.t) return showToast('Keep logging food and weigh-ins: your estimate is not ready yet');
+  const before = { cal: state.calTarget, macros: Object.assign({}, state.nutritionTargets) };
+  state.calTarget = plan.t.kcal; state.nutritionTargets = { protein: plan.m.protein, carbs: plan.m.carbs, fat: plan.m.fat };
+  saveState(); renderDeluxeTools(deluxeEnabled());
+  showToast('Daily target set to ' + dxInt(plan.t.kcal) + ' kcal with matching macros', { actionLabel: 'Undo', onAction: () => { state.calTarget = before.cal; state.nutritionTargets = before.macros; saveState(); renderDeluxeTools(deluxeEnabled()); } });
 }
 
 // ---------- Complete data tools ("Reports") ----------
@@ -386,6 +486,7 @@ function dxPanelHtml(tab, ctx) {
   if (tab === 'coach') return dxCoachMarkup(ctx);
   if (tab === 'lab') return dxLabMarkup(ctx, dxLift);
   if (tab === 'data') return dxDataMarkup(ctx);
+  if (tab === 'nutrition') return dxNutritionMarkup(dxNutritionContext());
   if (tab === 'style') return dxStyleMarkup(false);
   return '';
 }
@@ -446,35 +547,56 @@ function dxSampleSessions(today) {
   return out;
 }
 function dxSampleContext() { const today = dxToday(); return { sessions: dxSampleSessions(today), today, weekStart: 'mon', weeklyGoal: 3, bodyKg: 78, sample: true }; }
-function dxPreviewHtml(name) {
-  const ctx = dxSampleContext();
+// With six or more finished workouts, the training previews are built from the person's own log.
+const DX_MINE_MIN = 6, DX_OWN_PREVIEWS = ['Advanced analytics', 'Smart training insights', 'Performance lab', 'Complete data tools'];
+function dxPreviewContext() { return dxSessions().length >= DX_MINE_MIN ? Object.assign(dxContext(), { sample: true, mine: true }) : dxSampleContext(); }
+function dxNutritionPreview() {
+  const mine = dxNutritionContext(), e = GymLib.energyBalance(mine.intake, mine.weights, mine.today);
+  const teaser = e.ready ? '<p class="dx-locked"><span aria-hidden="true">🔒 </span>Your own estimate is ready, built from ' + esc(plural(e.foodDays, 'day')) + ' of food and ' + esc(plural(e.weighIns, 'weigh-in')) + '. It appears here the moment you unlock.</p>' : '';
+  return teaser + dxNutritionMarkup(dxNutritionSample());
+}
+function dxPreviewHtml(name, ctx) {
   if (name === 'Advanced analytics') return dxAnalyticsMarkup(ctx, 12);
   if (name === 'Smart training insights') return dxCoachMarkup(ctx);
-  if (name === 'Performance lab') return dxLabMarkup(ctx, 'Barbell Back Squat');
+  if (name === 'Performance lab') return dxLabMarkup(ctx, ctx.mine ? (dxTopLifts(ctx.sessions, ctx.today, 1)[0] || {}).name : 'Barbell Back Squat');
+  if (name === 'Nutrition coach') return dxNutritionPreview();
+  if (name === 'Friend challenges') return typeof challengePreviewMarkup === 'function' ? challengePreviewMarkup() : '';
   if (name === 'Complete data tools') return dxDataMarkup(ctx);
   if (name === 'Deluxe customisation') return dxStyleMarkup(true);
   if (name === 'Workout planner') {
-    const t = GymLib.PLAN_TEMPLATES[2], plan = { name: t.name, program: { weeks: 8, start: GymLib.addDays(GymLib.weeklySeries([], ctx.today, 1, 'mon')[0].week, -35), mode: 'reps', deload: true }, days: t.plan.map(([day, list]) => ({ day, exercises: list.map(([n, sets, reps]) => ({ name: n, sets, reps, kg: 0 })) })) };
-    return '<div class="sub-h">A programme in progress</div>' + dxPlanCard(plan, 0, ctx.sessions, ctx.today, true) + '<div class="sub-h">Ready-made programmes</div>' + dxTemplateCards(true);
+    const sample = dxSampleContext(), t = GymLib.PLAN_TEMPLATES[2], plan = { name: t.name, program: { weeks: 8, start: GymLib.addDays(GymLib.weeklySeries([], sample.today, 1, 'mon')[0].week, -35), mode: 'reps', deload: true }, days: t.plan.map(([day, list]) => ({ day, exercises: list.map(([n, sets, reps]) => ({ name: n, sets, reps, kg: 0 })) })) };
+    return '<div class="sub-h">A programme in progress</div>' + dxPlanCard(plan, 0, sample.sessions, sample.today, true) +
+      '<div class="plan-line"><span>📋 Planned 3 × 8 · ' + esc(fmtWeight(62.5, 2)) + '</span><small class="plan-why is-progress">All 3 sets of 8 at ' + esc(fmtWeight(60, 2)) + ' done last time, so today moves up.</small></div>' +
+      '<div class="plan-line"><span>📋 Planned 3 × 10 · ' + esc(fmtWeight(40, 2)) + '</span><small class="plan-why is-hold">Last time 1 of 3 sets reached 10 reps at ' + esc(fmtWeight(40, 2)) + '. Repeat it today before moving on.</small></div>' +
+      '<div class="sub-h">Ready-made programmes</div>' + dxTemplateCards(true);
   }
   return '';
 }
 function renderDeluxePreview(name) {
   const host = $('deluxeModalPreview'), note = $('deluxeModalSample'); if (!host) return;
-  const html = dxPreviewHtml(name);
-  host.innerHTML = html; host.hidden = !html; if (note) note.hidden = !html;
-  if (html) dxDrawCards(host, dxSampleContext());
+  const ctx = dxPreviewContext(), html = dxPreviewHtml(name, ctx), own = !!ctx.mine && DX_OWN_PREVIEWS.includes(name);
+  host.innerHTML = html; host.hidden = !html;
+  if (note) { note.hidden = !html; note.textContent = own ? 'Built from your own log. Unlock to explore every number, every lift and every week.' : 'Sample data. Yours appears here the moment you unlock.'; note.classList.toggle('is-own', own); }
+  if (html) dxDrawCards(host, own ? ctx : dxSampleContext());
 }
 // "Your log is ready": what Deluxe would show this person right now, counted from their own data.
+function renderFounderLine(enabled) {
+  const el = $('deluxeFounder'); if (!el) return;
+  const until = deluxeAccess.founderUntil, open = until && Date.parse(until) > Date.now();
+  if (deluxeOwned() && deluxeAccess.founder) { el.hidden = false; el.innerHTML = '<span class="deluxe-pill is-founder">FOUNDING MEMBER</span> You backed Gymplified early. The badge is yours for good. Thank you!'; return; }
+  if (!enabled && open && deluxeAccess.salesOpen) { el.hidden = false; el.innerHTML = '<strong>Founding member offer.</strong> Unlock Deluxe by ' + esc(dxLongDay(dayKey(new Date(until)))) + ' and keep a <span class="deluxe-pill is-founder">FOUNDING MEMBER</span> badge on your profile and your friends’ leaderboards, for good.'; return; }
+  el.hidden = true; el.textContent = '';
+}
 function renderDeluxeSales(enabled) {
   const sales = $('deluxeSales'), ready = $('deluxeReady');
+  renderFounderLine(enabled);
   if (sales) sales.hidden = !!enabled;
   if (!ready || enabled) return;
   const sessions = dxSessions();
   if (sessions.length < 3) { ready.hidden = true; return; }
-  const today = dxToday(), lifts = GymLib.exerciseNames(sessions).length, notes = GymLib.coachInsights(sessions, today, { weekStart: dxWeekStart(), weeklyGoal: state.weeklyGoal }).length, tracked = GymLib.liftTrends(sessions, today, 84).length;
+  const today = dxToday(), n = dxNutritionContext(), energy = GymLib.energyBalance(n.intake, n.weights, n.today), lifts = GymLib.exerciseNames(sessions).length, notes = GymLib.coachInsights(sessions, today, { weekStart: dxWeekStart(), weeklyGoal: state.weeklyGoal }).length, tracked = GymLib.liftTrends(sessions, today, 84).length;
   ready.hidden = false;
-  ready.innerHTML = '<strong>Your log is ready for it.</strong> <span>' + esc(plural(sessions.length, 'workout')) + ' and ' + esc(plural(lifts, 'lift')) + ' on record: enough for ' + esc(plural(notes, 'coach note')) + (tracked ? ', ' + esc(plural(tracked, 'lift trend')) : '') + ' and a strength curve for every exercise, the moment you unlock.</span>';
+  ready.innerHTML = '<strong>Your log is ready for it.</strong> <span>' + esc(plural(sessions.length, 'workout')) + ' and ' + esc(plural(lifts, 'lift')) + ' on record: enough for ' + esc(plural(notes, 'coach note')) + (tracked ? ', ' + esc(plural(tracked, 'lift trend')) : '') + ', a strength curve for every exercise' + (energy.ready ? ' and your real maintenance calories' : '') + ', the moment you unlock.</span>';
 }
 
 // ---------- actions ----------
@@ -484,7 +606,8 @@ const DELUXE_ACTIONS = Object.freeze({
   setLift: el => { dxLift = el.value; renderDeluxeTools(deluxeEnabled()); },
   useTemplate: el => useTemplate(el.dataset.arg), restartPlan: el => restartPlan(Number(el.dataset.i)), syncPlanProgramFields: () => syncPlanProgramFields(),
   shareShareCard: () => shareShareCard(), downloadShareCard: () => downloadShareCard(), exportDeluxeReport: () => exportDeluxeReport(), exportDeluxeCSV: () => exportDeluxeCSV(), exportDeluxeLifts: () => exportDeluxeLifts(),
-  setSkin: el => setSkin(el), setConfetti: el => setConfetti(el), setFlair: el => setFlair(el)
+  setSkin: el => setSkin(el), setConfetti: el => setConfetti(el), setFlair: el => setFlair(el),
+  setNutritionGoal: el => setNutritionGoal(el), setNutritionRate: el => setNutritionRate(el), applyNutritionTargets: () => applyNutritionTargets()
 });
 function bindDeluxeActions() {
   [['click', 'data-dx'], ['change', 'data-dx-change']].forEach(([type, attr]) => {

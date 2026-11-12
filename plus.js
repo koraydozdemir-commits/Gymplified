@@ -36,7 +36,8 @@ function previousExerciseNote(name) {
   return null;
 }
 function overloadFor(w) {
-  if (state.settings.overload === false || overloadDismissed.has(w.id) || w.setList.some(x => x.done)) return null;
+  // A programme target that already adapted to last session (w.plan.adapt) says the same thing, so only one shows.
+  if (state.settings.overload === false || overloadDismissed.has(w.id) || w.setList.some(x => x.done) || (w.plan && w.plan.adapt)) return null;
   const previous = previousExercisePerformance(w.name); if (!previous) return null;
   const stepKg = displayToKg(weightStep());
   return GymLib.overloadSuggestion(previous.sets, { stepKg, topReps: state.settings.overloadReps || 8 });

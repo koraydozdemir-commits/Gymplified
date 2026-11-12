@@ -152,7 +152,8 @@ const cleanState = {
     weightUnit: 'kg',
     distanceUnit: 'km',
     heightUnit: 'cm',
-    weekStart: 'mon'
+    weekStart: 'mon',
+    deluxeTips: true
   }
 };
 
@@ -395,6 +396,7 @@ function renderDashboard() {
   renderWaterSummary();
   renderWorkoutHero();
   renderHydrationNudge();
+  if (typeof renderDeluxeTip === 'function') renderDeluxeTip();
 
   document.getElementById('dashWorkoutCount').textContent = state.workouts.length + ' Exercises';
 
@@ -483,6 +485,7 @@ function renderAll() {
   renderExtras();
   syncSettingsControls();renderBackupReminder();renderOnboarding();
   if(typeof renderPlus==='function')renderPlus();
+  if(typeof renderGrowth==='function')renderGrowth();
   if(typeof renderDeluxeUI==='function')renderDeluxeUI();
   if(typeof renderAccountChrome==='function')renderAccountChrome();
 
@@ -906,13 +909,14 @@ function sanitizeStateSnapshot(raw){
   if(!a.length){const n=Math.max(1,Math.min(20,Math.round(Number(count)||3)));return Array.from({length:n},(_,i)=>({id:'legacy-set-'+i,kg:safeStateNumber(weight,0,1000,0),reps:safeStateNumber(reps,1,1000,10),done:false}));}
   return a.filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-set-'+i),kg:safeStateNumber(x.kg,0,1000,0),reps:safeStateNumber(x.reps,0,1000,10),done:!!x.done,type:SET_TYPES.includes(x.type)?x.type:'normal',auto:!!x.auto&&!x.done,duration:safeStateNumber(x.duration,0,86400,0),distance:safeStateNumber(x.distance,0,1000,0),notes:safeStateText(x.notes,'',500),order:safeStateNumber(x.order,0,1000,i+1),rpe:safeStateNumber(x.rpe,0,10,0)}));
  };
- const cleanPlanTarget=p=>p&&typeof p==='object'&&!Array.isArray(p)?{sets:Math.round(safeStateNumber(p.sets,1,20,3)),reps:Math.round(safeStateNumber(p.reps,1,100,8)),kg:safeStateNumber(p.kg,0,1000,0),name:safeStateText(p.name,'',50),day:safeStateText(p.day,'',30)}:null;
+ const cleanPlanTarget=p=>p&&typeof p==='object'&&!Array.isArray(p)?{sets:Math.round(safeStateNumber(p.sets,1,20,3)),reps:Math.round(safeStateNumber(p.reps,1,100,8)),kg:safeStateNumber(p.kg,0,1000,0),name:safeStateText(p.name,'',50),day:safeStateText(p.day,'',30),why:safeStateText(p.why,'',200),adapt:['progress','hold','reset','deload'].includes(p.adapt)?p.adapt:''}:null;
+ const cleanExerciseTarget=t=>t&&typeof t==='object'&&!Array.isArray(t)?{sets:Math.round(safeStateNumber(t.sets,1,20,3)),reps:Math.round(safeStateNumber(t.reps,1,100,8)),kg:safeStateNumber(t.kg,0,1000,0)}:null;
  const cleanPlanOutcome=p=>p&&typeof p==='object'&&!Array.isArray(p)?{planned:Math.round(safeStateNumber(p.planned,0,100,0)),completed:Math.round(safeStateNumber(p.completed,0,100,0)),name:safeStateText(p.name,'',50),day:safeStateText(p.day,'',30)}:null;
  const cleanWorkout=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const name=safeStateText(x.name||x.exercise,'Exercise',80);return{id:safeRecordId(x.id,'legacy-workout-'+i+'-'+name.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,24)),name,muscle:safeStateText(x.muscle,'',40),day:safeStateDay(x.day,day),setList:cleanSets(x.setList,x.sets,x.weight,x.reps),xp:safeStateNumber(x.xp,0,1,0),plan:cleanPlanTarget(x.plan),note:safeStateText(x.note,'',300),group:safeRecordId(x.group,'')};};
  const cleanFood=(x,i,day)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const meals=['Breakfast','Lunch','Dinner','Snacks'];return{id:safeRecordId(x.id,'legacy-food-'+i),name:safeStateText(x.name,'Food',100),meal:meals.includes(x.meal)?x.meal:'Snacks',day:safeStateDay(x.day,day),grams:safeStateNumber(x.grams,0,10000,0),portion:safeStateText(x.portion,'',60),cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),createdAt:safeStateNumber(x.createdAt,0,Number.MAX_SAFE_INTEGER,Date.now()),xp:safeStateNumber(x.xp,0,1,0)};};
  const cleanWater=(x,i,day)=>{if(typeof x==='number')return{id:'legacy-water-'+i,amount:safeStateNumber(x,0,10,0),day,createdAt:0};if(!x||typeof x!=='object'||Array.isArray(x))return null;return{id:safeRecordId(x.id,'legacy-water-'+i),amount:safeStateNumber(x.amount,0,10,0),day:safeStateDay(x.day,day),createdAt:safeStateNumber(x.createdAt,0,Number.MAX_SAFE_INTEGER,0)};};
  const cleanPrList=v=>list(v,100).filter(p=>p&&typeof p==='object'&&!Array.isArray(p)).map(p=>({name:safeStateText(p.name,'Exercise',80),kg:safeStateNumber(p.kg,0,1000,0),reps:safeStateNumber(p.reps,0,1000,0)}));
- const cleanSession=(x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const exercises=list(x.exercises,100).map((ex,j)=>{if(!ex||typeof ex!=='object'||Array.isArray(ex))return null;const sets=list(ex.sets,50).filter(s=>s&&typeof s==='object'&&!Array.isArray(s)).map((s,k)=>({id:safeRecordId(s.id,'legacy-sset-'+j+'-'+k),kg:safeStateNumber(s.kg??s.weight,0,1000,0),reps:safeStateNumber(s.reps,0,1000,0),type:SET_TYPES.includes(s.type)?s.type:'normal',duration:safeStateNumber(s.duration,0,86400,0),distance:safeStateNumber(s.distance,0,1000,0),notes:safeStateText(s.notes,'',500),order:safeStateNumber(s.order,0,1000,k+1),rpe:safeStateNumber(s.rpe,0,10,0)}));return{id:safeRecordId(ex.id,'legacy-sex-'+j),name:safeStateText(ex.name||ex.exercise,'Exercise',80),muscle:safeStateText(ex.muscle,'',40),notes:safeStateText(ex.notes,'',500),sets};}).filter(Boolean);const date=safeStateDay(x.date,today);return{id:safeRecordId(x.id,'legacy-session-'+i+'-'+date),date,name:safeStateText(x.name,'Workout',100),sourceWorkoutId:safeStateText(x.sourceWorkoutId,'',120),notes:safeStateText(x.notes,'',1000),startedAt:safeStateText(x.startedAt,'',40),finishedAt:safeStateText(x.finishedAt,'',40),mins:safeStateNumber(x.mins,0,1440,0),vol:safeStateNumber(x.vol,0,100000000,0),sets:safeStateNumber(x.sets,0,10000,0),reps:safeStateNumber(x.reps,0,100000,0),ex:safeStateNumber(x.ex,0,100,exercises.length),names:list(x.names,100).map(n=>safeStateText(n,'Exercise',80)),prs:cleanPrList(x.prs),xp:safeStateNumber(x.xp,0,100000,0),plan:cleanPlanOutcome(x.plan),exercises};};
+ const cleanSession=(x,i)=>{if(!x||typeof x!=='object'||Array.isArray(x))return null;const exercises=list(x.exercises,100).map((ex,j)=>{if(!ex||typeof ex!=='object'||Array.isArray(ex))return null;const sets=list(ex.sets,50).filter(s=>s&&typeof s==='object'&&!Array.isArray(s)).map((s,k)=>({id:safeRecordId(s.id,'legacy-sset-'+j+'-'+k),kg:safeStateNumber(s.kg??s.weight,0,1000,0),reps:safeStateNumber(s.reps,0,1000,0),type:SET_TYPES.includes(s.type)?s.type:'normal',duration:safeStateNumber(s.duration,0,86400,0),distance:safeStateNumber(s.distance,0,1000,0),notes:safeStateText(s.notes,'',500),order:safeStateNumber(s.order,0,1000,k+1),rpe:safeStateNumber(s.rpe,0,10,0)}));return{id:safeRecordId(ex.id,'legacy-sex-'+j),name:safeStateText(ex.name||ex.exercise,'Exercise',80),muscle:safeStateText(ex.muscle,'',40),notes:safeStateText(ex.notes,'',500),sets,...(ex.target?{target:cleanExerciseTarget(ex.target)}:{})};}).filter(Boolean);const date=safeStateDay(x.date,today);return{id:safeRecordId(x.id,'legacy-session-'+i+'-'+date),date,name:safeStateText(x.name,'Workout',100),sourceWorkoutId:safeStateText(x.sourceWorkoutId,'',120),notes:safeStateText(x.notes,'',1000),startedAt:safeStateText(x.startedAt,'',40),finishedAt:safeStateText(x.finishedAt,'',40),mins:safeStateNumber(x.mins,0,1440,0),vol:safeStateNumber(x.vol,0,100000000,0),sets:safeStateNumber(x.sets,0,10000,0),reps:safeStateNumber(x.reps,0,100000,0),ex:safeStateNumber(x.ex,0,100,exercises.length),names:list(x.names,100).map(n=>safeStateText(n,'Exercise',80)),prs:cleanPrList(x.prs),xp:safeStateNumber(x.xp,0,100000,0),plan:cleanPlanOutcome(x.plan),exercises};};
  const workouts=list(raw.workouts,1000).map((x,i)=>cleanWorkout(x,i,gameDay)).filter(Boolean);
  const foods=list(raw.foods,5000).map((x,i)=>cleanFood(x,i,gameDay)).filter(Boolean);
  const prs=list(raw.prs,2000).filter(x=>x&&typeof x==='object'&&!Array.isArray(x)).map((x,i)=>({id:safeRecordId(x.id,'legacy-pr-'+i),name:safeStateText(x.name,'Exercise',80),weight:safeStateNumber(x.weight,0,2000,0),reps:safeStateNumber(x.reps,1,1000,1),date:safeStateDay(x.date,today),xp:safeStateNumber(x.xp,0,1,0)}));
@@ -951,7 +955,8 @@ function sanitizeStateSnapshot(raw){
   accent:['gold','violet','blue','emerald','crimson','amber'].includes(rawDeluxe.accent)?rawDeluxe.accent:'gold',
   theme:rawDeluxe.theme==='light'?'light':'dark',
   skin:['obsidian','aurora','ember','glacier'].includes(rawDeluxe.skin)?rawDeluxe.skin:'',
-  confetti:['gold','power'].includes(rawDeluxe.confetti)?rawDeluxe.confetti:'classic'
+  confetti:['gold','power'].includes(rawDeluxe.confetti)?rawDeluxe.confetti:'classic',
+  nutrition:{goal:GymLib.CALORIE_GOALS.includes(rawDeluxe.nutrition&&rawDeluxe.nutrition.goal)?rawDeluxe.nutrition.goal:'maintain',rate:Math.round(safeStateNumber(rawDeluxe.nutrition&&rawDeluxe.nutrition.rate,0,1,0.5)*100)/100}
  };
  if(settings.theme==='light'||settings.theme==='dark')state.settings.theme=settings.theme;
  if(['gold','blue','emerald','slate','crimson','amber','violet'].includes(settings.color))state.settings.color=settings.color;
@@ -973,6 +978,7 @@ function sanitizeStateSnapshot(raw){
  // Release 13: optional RPE column, overload hints, plate calculator gear, and body/supplement logs (cleaned by GymLib).
  if(typeof settings.showRpe==='boolean')state.settings.showRpe=settings.showRpe;
  if(typeof settings.overload==='boolean')state.settings.overload=settings.overload;
+ if(typeof settings.deluxeTips==='boolean')state.settings.deluxeTips=settings.deluxeTips;
  if(settings.overloadReps!=null)state.settings.overloadReps=Math.round(safeStateNumber(settings.overloadReps,3,30,8));
  state.settings.gear=GymLib.sanitizeGear(settings.gear);
  state.extras=GymLib.sanitizeExtras(raw.extras);
@@ -1298,7 +1304,7 @@ function renderRoutineLibrary(){
 }
 function saveCurrentRoutine(){
  if(!state.workouts.length)return showToast('Add exercises before saving a routine');
- if(!canSaveRoutine())return showToast('Free accounts keep up to '+FREE_ROUTINE_LIMIT+' saved routines. Delete one, or unlock Deluxe for unlimited routines.');
+ if(!canSaveRoutine()){if(typeof noteDeluxeMoment==='function')noteDeluxeMoment('routines');return showToast('Free accounts keep up to '+FREE_ROUTINE_LIMIT+' saved routines. Delete one, or unlock Deluxe for unlimited routines.');}
  const suggested='Routine '+((state.routines||[]).length+1),name=(prompt('Name this workout routine',suggested)||'').trim().slice(0,40);if(!name)return;
  state.routines=Array.isArray(state.routines)?state.routines:[];
  const exercises=state.workouts.map(w=>({name:w.name,muscle:w.muscle,group:w.group||'',setList:(w.setList||[]).map(x=>({kg:Number(x.kg)||0,reps:Number(x.reps)||1,type:setTypeOf(x),done:false}))}));
@@ -1475,7 +1481,7 @@ function endSession(){if(!state.session)return;let v=0,st=0,r=0,ex=0;const names
   if((state.sessions||[]).length>=5000){showToast('Your workout history has reached 5,000 sessions. Export a backup before logging another completed workout.');return;}
   const finishedAt=Date.now(),startedAt=Number(state.session.start)||finishedAt;
   const sum={id:newRecordId('session'),date:dayKey(new Date(startedAt)),name:'Workout',startedAt:new Date(startedAt).toISOString(),finishedAt:new Date(finishedAt).toISOString(),mins:Math.max(1,Math.round((finishedAt-startedAt)/6e4)),vol:Math.round(v*10)/10,sets:st,reps:r,ex,names,notes:safeStateText(state.session.note,'',1000)};
-  sum.exercises=state.workouts.map(w=>({id:newRecordId('session-ex'),name:w.name,muscle:w.muscle,notes:safeStateText(w.note,'',300),sets:w.setList.filter(x=>x.done).map(x=>({id:newRecordId('session-set'),kg:Number(x.kg)||0,reps:Number(x.reps)||0,type:setTypeOf(x),duration:Number(x.duration)||0,distance:Number(x.distance)||0,notes:String(x.notes||''),order:Number(x.order)||0,rpe:Number(x.rpe)||0}))})).filter(x=>x.sets.length);
+  sum.exercises=state.workouts.map(w=>({id:newRecordId('session-ex'),name:w.name,muscle:w.muscle,...(w.plan&&w.plan.sets>0?{target:{sets:Number(w.plan.sets)||1,reps:Number(w.plan.reps)||1,kg:Number(w.plan.kg)||0}}:{}),notes:safeStateText(w.note,'',300),sets:w.setList.filter(x=>x.done).map(x=>({id:newRecordId('session-set'),kg:Number(x.kg)||0,reps:Number(x.reps)||0,type:setTypeOf(x),duration:Number(x.duration)||0,distance:Number(x.distance)||0,notes:String(x.notes||''),order:Number(x.order)||0,rpe:Number(x.rpe)||0}))})).filter(x=>x.sets.length);
   // PRs are judged against history before this session is added to it.
   sum.prs=detectSessionPRs(sum.exercises);sum.plan=planOutcome(state.workouts);sum.muscles=[...new Set(sum.exercises.map(e=>String(e.muscle||'').trim().toLowerCase()).filter(Boolean))];sum.xp=0;
   const xpStart=Number.isFinite(Number(state.session.xpStart))?Number(state.session.xpStart):Number(state.game.xp)||0;
@@ -1881,7 +1887,7 @@ function sessionSummaryMarkup(){
   '<div class="sub-h">PRs hit</div>'+(prs.length?'<div class="tag-list">'+prs.map(x=>'<span class="tag primary">🏆 '+esc(x.name)+' · '+esc(fmtWeight(x.kg,2))+' × '+esc(Number(x.reps))+'</span>').join('')+'</div>':'<p class="sub">No new PRs this time — beat a previous best set to earn one.</p>')+
   (m.plan&&m.plan.planned?'<div class="sub-h">Plan</div><p class="plan-result">📋 '+esc(m.plan.name||'Plan')+(m.plan.day?' · '+esc(m.plan.day):'')+': <strong>'+Number(m.plan.completed)+' of '+Number(m.plan.planned)+'</strong> exercise'+(m.plan.planned===1?'':'s')+' done as planned'+(m.plan.completed===m.plan.planned?' ✓':'')+'</p>':'')+
   '<div class="sub-h">Muscles worked</div>'+(muscles.length?'<div class="tag-list">'+muscles.map(x=>'<span class="tag">'+esc(x)+'</span>').join('')+'</div>':'<p class="sub">No muscle groups recorded.</p>')+
-  '<p class="st-3 sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc((m.names||[]).join(', '))+'</p></div>';
+  (typeof summaryDeluxeTip==='function'?summaryDeluxeTip(m):'')+'<p class="st-3 sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc((m.names||[]).join(', '))+'</p></div>';
 }
 
 // --- B21/B22: forgiving exercise search, favourites and recents ---
@@ -2192,6 +2198,7 @@ async function loadFriendsCircle(){
  leaderboardError=board.error?socialError(board.error):'';leaderboardRows=board.error?[]:(board.data||[]);
  feedError=feed.error?socialError(feed.error):'';feedItems=feed.error?[]:(feed.data||[]);
  renderLeaderboard();renderFeed();
+ if(typeof loadFriendExtras==='function')loadFriendExtras();
 }
 function renderLeaderboard(){
  const host=$('friendLeaderboard');if(!host)return;
@@ -2207,7 +2214,7 @@ function renderLeaderboard(){
    '<ol class="lb-list" id="lbList" role="tabpanel" aria-labelledby="lbTab-'+tab.key+'">'+ranked.map(r=>{const value=r[tab.field],hidden=value===null||value===undefined;
     return '<li><button type="button" class="lb-row'+(r.is_self?' me':'')+'" data-friend-profile="'+esc(r.user_id)+'" aria-label="'+esc((r.rank?'Rank '+r.rank+': ':'')+personName(r)+(r.is_self?' (you)':'')+', '+(hidden?'not shared':tab.show(value))+'. Open profile')+'">'+
      '<span class="lb-rank" aria-hidden="true">'+(r.rank?(r.rank<=3?['🥇','🥈','🥉'][r.rank-1]:r.rank):'–')+'</span>'+avatarMarkup(r,true)+
-     '<span class="lb-name"><strong>'+esc(personName(r))+(r.is_self?' (you)':'')+'</strong><small>@'+esc(r.username||'')+(r.is_self&&r.is_private?' · hidden from friends':'')+'</small></span>'+
+     '<span class="lb-name"><strong>'+esc(personName(r))+(r.is_self?' (you)':'')+'</strong>'+(typeof friendBadgeMarkup==='function'?friendBadgeMarkup(r.user_id):'')+'<small>@'+esc(r.username||'')+(r.is_self&&r.is_private?' · hidden from friends':'')+'</small></span>'+
      '<span class="lb-value'+(hidden?' sub':'')+'" aria-hidden="true">'+(hidden?'Not shared':esc(tab.show(value)))+'</span></button></li>';}).join('')+'</ol>'+
    (me&&me.is_private?'<p class="sub">You are in private mode, so friends do not see you here. Change this in Settings → Privacy.</p>':'');
  }
@@ -2233,7 +2240,7 @@ function renderFeed(){
   const owner=esc(item.owner_id),key=esc(item.activity_key),who=item.is_self?'You':personName(item);
   const reactions=REACTIONS.map(r=>{const n=Number(item[r.key+'_count'])||0,mine=!!item['my_'+r.key];
    return item.is_self?(n?'<span class="feed-count" role="img" aria-label="'+n+' '+r.name+' reaction'+(n===1?'':'s')+'">'+r.emoji+' '+n+'</span>':''):'<button type="button" class="btn feed-react'+(mine?' on':'')+'" data-react="'+r.key+'" data-owner="'+owner+'" data-key="'+key+'" aria-pressed="'+mine+'" aria-label="'+r.name+' reaction'+(mine?' (yours)':'')+', '+n+'">'+r.emoji+' '+n+'</button>';}).join('');
-  return '<li class="feed-item"><button type="button" class="feed-avatar" data-friend-profile="'+owner+'" aria-label="Open '+esc(who)+'\'s profile">'+avatarMarkup(item,true)+'</button><div class="feed-body"><p><strong>'+esc(who)+'</strong> '+(item.kind==='pr'?'🏆 ':'')+esc(feedText(item))+'</p><small class="sub">'+esc(relativeDay(item.occurred_on))+'</small></div><div class="feed-reactions">'+reactions+'</div></li>';}).join('')+'</ul>';
+  return '<li class="feed-item"><button type="button" class="feed-avatar" data-friend-profile="'+owner+'" aria-label="Open '+esc(who)+'\'s profile">'+avatarMarkup(item,true)+'</button><div class="feed-body"><p><strong>'+esc(who)+'</strong>'+(typeof friendBadgeMarkup==='function'?friendBadgeMarkup(item.owner_id):'')+' '+(item.kind==='pr'?'🏆 ':'')+esc(feedText(item))+'</p><small class="sub">'+esc(relativeDay(item.occurred_on))+'</small></div><div class="feed-reactions">'+reactions+'</div></li>';}).join('')+'</ul>';
  host.innerHTML='<div class="section-title"><span>Friend activity</span><span class="sub">Last 14 days</span></div>'+body;
 }
 async function toggleReaction(button){
@@ -2951,7 +2958,7 @@ const FREE_ROUTINE_LIMIT=5;
 const DELUXE_CACHE_PREFIX='gymplified_deluxe_access_v1:';
 let deluxeAccess={checked:false,deluxe:false,salesOpen:false,userId:''};
 function readDeluxeCache(uid){try{const c=JSON.parse(localStorage.getItem(DELUXE_CACHE_PREFIX+uid)||'null');return c&&typeof c.deluxe==='boolean'?c:null;}catch(e){return null;}}
-function writeDeluxeCache(uid,value){try{localStorage.setItem(DELUXE_CACHE_PREFIX+uid,JSON.stringify({deluxe:!!value.deluxe,salesOpen:!!value.salesOpen,at:Date.now()}));}catch(e){}}
+function writeDeluxeCache(uid,value){try{localStorage.setItem(DELUXE_CACHE_PREFIX+uid,JSON.stringify({deluxe:!!value.deluxe,founder:!!value.founder,salesOpen:!!value.salesOpen,at:Date.now()}));}catch(e){}}
 // Deluxe batch: the server sends a short code with every error; people see a plain sentence, never
 // "Edge Function returned a non-2xx status code". Stripe's raw messages stay in the server logs.
 const DELUXE_ERRORS={
@@ -2980,8 +2987,8 @@ async function callDeluxe(action){
 async function refreshDeluxeAccess(){
  if(!sb||!currentUser){deluxeAccess={checked:true,deluxe:false,salesOpen:false,userId:'',confirming:!!deluxeAccess.confirming};renderDeluxeUI();return deluxeAccess;}
  const uid=currentUser.id;
- try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,salesOpen:!!d.salesOpen,mode:d.mode==='test'||d.mode==='live'?d.mode:null,userId:uid,confirming:!!deluxeAccess.confirming};writeDeluxeCache(uid,deluxeAccess);}
- catch(e){const c=readDeluxeCache(uid);deluxeAccess={checked:true,deluxe:!!(c&&c.deluxe),salesOpen:!!(c&&c.salesOpen),userId:uid,offline:true};}
+ try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,founder:!!(d.deluxe&&d.founder),founderUntil:typeof d.founderUntil==='string'&&Number.isFinite(Date.parse(d.founderUntil))?d.founderUntil:null,salesOpen:!!d.salesOpen,mode:d.mode==='test'||d.mode==='live'?d.mode:null,userId:uid,confirming:!!deluxeAccess.confirming};writeDeluxeCache(uid,deluxeAccess);}
+ catch(e){const c=readDeluxeCache(uid);deluxeAccess={checked:true,deluxe:!!(c&&c.deluxe),founder:!!(c&&c.deluxe&&c.founder),founderUntil:null,salesOpen:!!(c&&c.salesOpen),userId:uid,offline:true};}
  if(currentUser&&currentUser.id===uid){applySettings();renderDeluxeUI();try{renderWorkoutHero();}catch(e){}try{renderAccountDeluxe();}catch(e){}}
  return deluxeAccess;
 }
@@ -3014,7 +3021,7 @@ async function handleDeluxeReturn(){
  try{
   for(let i=0;i<8;i++){
    if(!currentUser)await new Promise(r=>setTimeout(r,1500));
-   if(currentUser){const a=await refreshDeluxeAccess();if(a.deluxe){deluxeAccess.confirming=false;renderDeluxeUI();celebrate({icon:'✨',title:'Welcome to Deluxe!',text:'Thank you for supporting Gymplified. Your analytics, coach notes, lift lab, programmes, reports and signature themes are ready on every device you sign in to.'});return;}}
+   if(currentUser){const a=await refreshDeluxeAccess();if(a.deluxe){deluxeAccess.confirming=false;renderDeluxeUI();celebrate({icon:'✨',title:'Welcome to Deluxe!',text:'Thank you for supporting Gymplified. Your analytics, coach notes, lift lab, adaptive programmes, nutrition coach, challenges, reports and signature themes are ready on every device you sign in to.'});return;}}
    await new Promise(r=>setTimeout(r,2000));
   }
   showToast('Your payment is still being confirmed. Tap “Restore purchase” in a minute.');
@@ -3043,9 +3050,12 @@ function loadPlanDay(plan,day,startNow){
  (state.workouts||[]).forEach(x=>markRecordDeleted('workouts',x));
  // A programme moves its targets on each week. Once it has finished, the last full-effort week is kept.
  const wk=GymLib.planWeek(plan.program,dayKey()),program=GymLib.sanitizePlanProgram(plan.program),weekIndex=!wk?0:wk.finished?Math.max(0,wk.of-(program.deload&&wk.of>=4?2:1)):wk.index;
- state.workouts=(day.exercises||[]).map(e=>{const x=exerciseByName(e.name),t=GymLib.progressedTarget(e,plan.program,weekIndex,weightUnit()==='lb'?KG_PER_LB:0.5);return syncW({name:e.name,muscle:x?cap(x.pm):'',plan:{sets:t.sets,reps:t.reps,kg:t.kg,name:plan.name,day:day.day},setList:Array.from({length:t.sets},()=>({kg:t.kg,reps:t.reps,done:false}))});});
+ // DX10: with Deluxe, each target is checked against the last time this exercise came up in the plan.
+ const adapt=typeof dxAdaptiveTarget==='function'&&deluxeEnabled()&&program.adaptive,deload=!!(wk&&!wk.finished&&wk.deload),moves={progress:0,hold:0,reset:0};
+ state.workouts=(day.exercises||[]).map(e=>{const x=exerciseByName(e.name),scheduled=GymLib.progressedTarget(e,plan.program,weekIndex,weightUnit()==='lb'?KG_PER_LB:0.5),t=adapt?dxAdaptiveTarget(plan,e.name,scheduled,deload):scheduled;if(t.adapt&&moves[t.adapt]!==undefined)moves[t.adapt]++;return syncW({name:e.name,muscle:x?cap(x.pm):'',plan:{sets:t.sets,reps:t.reps,kg:t.kg,name:plan.name,day:day.day,why:t.why||'',adapt:t.adapt||''},setList:Array.from({length:t.sets},()=>({kg:t.kg,reps:t.reps,done:false}))});});
  if(startNow&&!state.session)state.session={start:Date.now(),xpStart:Number(state.game.xp)||0};
- saveState();showToast(day.day+' loaded'+(wk&&!wk.finished&&!wk.upcoming?' · week '+wk.week+' of '+wk.of+(wk.deload?' (lighter week)':''):'')+(startNow?' — workout started':''));goToTraining();
+ const moved=[moves.progress?moves.progress+' up':'',moves.hold?moves.hold+' repeated':'',moves.reset?moves.reset+' reset':''].filter(Boolean).join(', ');
+ saveState();showToast(day.day+' loaded'+(wk&&!wk.finished&&!wk.upcoming?' · week '+wk.week+' of '+wk.of+(wk.deload?' (lighter week)':''):'')+(moved?' · targets: '+moved:'')+(startNow?' — workout started':''));goToTraining();
 }
 function planWeekLabel(plan){const wk=GymLib.planWeek(plan&&plan.program,dayKey());return wk&&!wk.finished&&!wk.upcoming?' · week '+wk.week+' of '+wk.of:'';}
 // Pure: how many planned exercises reached their planned sets and reps (warm-ups do not count).
@@ -3056,7 +3066,7 @@ function planOutcome(workouts){
 }
 function planLineMarkup(w){
  if(!w.plan)return '';const done=(w.setList||[]).filter(s=>s.done&&setTypeOf(s)!=='warmup').length;
- return '<div class="plan-line"><span>📋 Planned '+Number(w.plan.sets)+' × '+Number(w.plan.reps)+(Number(w.plan.kg)>0?' · '+esc(fmtWeight(w.plan.kg,2)):'')+'</span><span>'+Math.min(done,Number(w.plan.sets))+'/'+Number(w.plan.sets)+' sets done'+(done>=Number(w.plan.sets)?' ✓':'')+'</span></div>';
+ return '<div class="plan-line"><span>📋 Planned '+Number(w.plan.sets)+' × '+Number(w.plan.reps)+(Number(w.plan.kg)>0?' · '+esc(fmtWeight(w.plan.kg,2)):'')+'</span><span>'+Math.min(done,Number(w.plan.sets))+'/'+Number(w.plan.sets)+' sets done'+(done>=Number(w.plan.sets)?' ✓':'')+'</span>'+(w.plan.why?'<small class="plan-why'+(w.plan.adapt?' is-'+esc(w.plan.adapt):'')+'">'+esc(w.plan.why)+'</small>':'')+'</div>';
 }
 function initDeluxeControls(){
  $('deluxeBuyBtn')?.addEventListener('click',e=>buyDeluxe(e.currentTarget));
@@ -3214,7 +3224,7 @@ async function resendSignupConfirmation(){
 function renderAccountPanel(){
  const p=currentProfile||{username:currentUser.email?currentUser.email.split('@')[0]:'member',display_name:'Gymplified member'};
  $('friendStatus').innerHTML='<div class="section-title">Your profile <span class="sub">ACCOUNT</span></div><div class="account-head">'+avatarMarkup(p,false)+
- '<div class="st-65"><strong class="st-66">'+esc(p.display_name||p.username)+'</strong>'+(deluxeEnabled()&&state.deluxe&&state.deluxe.profileFlair?'<span class="st-67 deluxe-pill">DELUXE</span>':'')+'<div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
+ '<div class="st-65"><strong class="st-66">'+esc(p.display_name||p.username)+'</strong>'+(deluxeEnabled()&&state.deluxe&&state.deluxe.profileFlair?'<span class="st-67 deluxe-pill'+(deluxeAccess.founder?' is-founder':'')+'">'+(deluxeAccess.founder?'FOUNDING MEMBER':'DELUXE')+'</span>':'')+'<div class="sub">@'+esc(p.username)+'</div><div class="account-hint">'+esc(currentUser.email||'')+'</div></div>'+
  '<div class="account-actions"><button class="btn" data-action="pickAvatarFile">Change picture</button><button class="btn" data-action="signOutAccount">Sign out</button></div></div>'+
  '<input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp" hidden data-change="uploadAvatar">'+
  '<div class="account-grid"><div class="account-card"><div class="field"><label for="profileUsername">Username</label><input id="profileUsername" value="'+esc(p.username||'')+'" maxlength="20" autocomplete="username"></div><div class="field"><label for="profileDisplayName">Display name</label><input id="profileDisplayName" value="'+esc(p.display_name||'')+'" maxlength="32"></div><button class="btn btn-primary" data-action="saveProfile">Save profile</button></div>'+
@@ -3262,7 +3272,7 @@ async function fetchSocialData(){
 }
 function renderFriends(){
  renderAccountChrome();renderGreeting();
- if(!currentUser){$('friendConnections').hidden=true;$('friendSearchPanel').hidden=true;$('friendsSignedOut').hidden=false;leaderboardRows=null;feedItems=null;renderLeaderboard();renderFeed();renderAuthPanel('');return;}
+ if(!currentUser){$('friendConnections').hidden=true;$('friendSearchPanel').hidden=true;$('friendsSignedOut').hidden=false;leaderboardRows=null;feedItems=null;renderLeaderboard();renderFeed();if(typeof renderChallenges==='function')renderChallenges();renderAuthPanel('');return;}
  $('friendConnections').hidden=false;$('friendSearchPanel').hidden=false;$('friendsSignedOut').hidden=true;renderAccountPanel();
  renderLeaderboard();renderFeed();loadFriendsCircle().catch(function(e){leaderboardError=feedError=socialError(e);leaderboardRows=leaderboardRows||[];feedItems=feedItems||[];renderLeaderboard();renderFeed();});
  fetchSocialData().then(function(){
@@ -3377,7 +3387,7 @@ function renderDeluxeUI(){
  if($('deluxeRestoreBtn'))$('deluxeRestoreBtn').hidden=owned||!(open||!signedIn);
  set('deluxePriceNote',owned?'one-time · paid':open||!signedIn?'one-time · no subscription':'one-time · coming soon');
  set('deluxeHeadline',enabled?'Your training, in full colour.':'See exactly what your training is doing.');
- set('deluxeHeroText',owned?'Thank you for supporting Gymplified. Deluxe is part of your account on every device.':'Six tools that turn the workouts you already log into trends, projections and a plan. The free tracker stays complete without them.');
+ set('deluxeHeroText',owned?'Thank you for supporting Gymplified. Deluxe is part of your account on every device.':'Tools that turn the workouts and meals you already log into trends, targets and a plan that adapts to you. The free tracker stays complete without them.');
  set('deluxeSalesNote',owned?'Deluxe is linked to your account. Sign in on any device to use it.':!signedIn?'Deluxe is linked to your Gymplified account. Sign in to buy it or restore an earlier purchase.':confirming?'We’re confirming your payment with Stripe. This usually takes a few seconds.':open?'One-time payment of '+DELUXE_PRICE_LABEL+'. No subscription. Sold through Link (Stripe), which shows any tax at checkout and emails your receipt. Changed your mind? Get a full refund within 14 days. Bought it before? Tap Restore purchase.':'Deluxe is not on sale yet. No payment is taken on this page.');
  set('deluxeLockedTitle',open?'Unlock Deluxe to use these tools.':'Deluxe tools are locked.');
  set('deluxeLockedText',open?'A one-time '+DELUXE_PRICE_LABEL+' purchase unlocks them on your account.':!signedIn?'Sign in to see whether Deluxe is available for your account.':'Deluxe is not on sale yet, so these tools cannot be unlocked.');
@@ -3399,7 +3409,9 @@ function openDeluxeDemo(){if(!deluxeEnabled()){previewDeluxeFeature('Advanced an
 const DELUXE_PREVIEW_COPY={
  'Advanced analytics':'Weekly volume with a trend line, every number compared with the period before, your training rhythm and how often you hit your weekly goal.',
  'Smart training insights':'Notes on what is working and what has stalled, a muscle balance map and the momentum of every lift you train.',
- 'Workout planner':'Pick a proven programme or build your own. Targets move up each week, and today’s session waits on your dashboard.',
+ 'Workout planner':'Pick a proven programme or build your own. Each target checks how your last session went: up after a hit, repeat after a miss, and today’s session waits on your dashboard.',
+ 'Nutrition coach':'Your real maintenance calories, worked out from your food log and weigh-ins, with a target and macros for losing, keeping or gaining weight at a safe pace.',
+ 'Friend challenges':'Start a workout or volume challenge and invite your friends. They join for free, and the standings respect everyone’s privacy settings.',
  'Performance lab':'A strength curve for every exercise, a projection of your next milestone and a rep-max table.',
  'Complete data tools':'A progress card to share, a print-ready training report and analysis-ready spreadsheets.',
  'Deluxe customisation':'Signature themes that restyle the whole app, celebration styles and a Deluxe badge for your profile.'

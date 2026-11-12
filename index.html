@@ -125,6 +125,7 @@
           <div><strong>🔥 Keep your streak</strong><p class="sub" id="streakNudgeText"></p></div>
           <div class="row-wrap"><button class="btn btn-primary" type="button" data-nudge-action="train">Log a workout</button><button class="btn" type="button" data-nudge-action="dismiss">Not today</button></div>
         </div>
+        <div class="resume-banner deluxe-tip" id="deluxeTip" role="region" aria-label="Deluxe tip" hidden></div>
 
         <div class="st-1 panel" id="gamePanel" role="region" aria-label="Progress and streaks"></div>
         <div class="st-1 panel" id="dashCalendar" role="region" aria-label="Training calendar" hidden></div>
@@ -350,6 +351,7 @@
           <div class="account-nudge-actions"><button class="btn btn-primary" type="button" data-action="openAccount" data-arg="signup">Create free account</button><button class="btn" type="button" data-action="openAccount" data-arg="login">Log in</button></div>
         </div>
         <div class="st-1 panel" id="friendLeaderboard" hidden></div>
+        <div class="st-1 panel" id="friendChallenges" role="region" aria-labelledby="challengesTitle" hidden></div>
         <div class="st-1 panel" id="friendFeed" hidden></div>
         <div id="friendConnections" class="st-17 panel" hidden></div>
         <div class="st-18 panel" id="friendSearchPanel" hidden>
@@ -558,6 +560,7 @@
           <p>Gymplified can send one notification: when your rest timer ends while the app is in the background. Other reminders appear inside the app.</p>
           <div class="rest-settings rest-settings-flat">
  <label class="rest-check" for="restNotifyToggle"><input type="checkbox" id="restNotifyToggle"> Notify me when the app is in the background</label>
+            <label class="rest-check" for="deluxeTipsToggle"><input type="checkbox" id="deluxeTipsToggle" data-gx-change="setDeluxeTips"> Show occasional Deluxe tips (at most one every few days, never during a workout)</label>
           </div>
         </div>
         </section>
@@ -639,7 +642,7 @@
         <div class="deluxe-hero">
           <div class="deluxe-wordmark">GYMPLIFIED DELUXE</div>
           <h2 class="deluxe-headline" id="deluxeHeadline">See exactly what your training is doing.</h2>
-          <p class="deluxe-hero-text" id="deluxeHeroText">Six tools that turn the workouts you already log into trends, projections and a plan. The free tracker stays complete without them.</p>
+          <p class="deluxe-hero-text" id="deluxeHeroText">Tools that turn the workouts and meals you already log into trends, targets and a plan that adapts to you. The free tracker stays complete without them.</p>
           <div class="deluxe-price">€9.99 <span class="deluxe-price-note" id="deluxePriceNote">one-time · coming soon</span></div>
           <div class="deluxe-actions">
             <span class="deluxe-pill" id="deluxeStatus">COMING SOON</span>
@@ -650,6 +653,7 @@
             <span class="sub" id="deluxeDemoToggle" role="status"></span>
           </div>
           <p class="deluxe-ready" id="deluxeReady" hidden></p>
+          <p class="deluxe-founder" id="deluxeFounder" hidden></p>
           <div class="deluxe-demo-note" id="deluxeSalesNote">Deluxe is not on sale yet. No payment is taken on this page.</div>
           <p class="sub deluxe-terms-link"><a href="./terms.html#deluxe">Deluxe purchase terms and 14-day refund</a> · <a href="./privacy.html">Privacy</a></p>
         </div>
@@ -660,15 +664,17 @@
           <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">📈</div><h3>Advanced analytics</h3><p>Your training at a glance, over 8 weeks or a whole year.</p><ul class="deluxe-points"><li>Weekly volume with a 4-week trend line</li><li>Every number compared with the period before</li><li>Your training rhythm and weekly-goal hit rate</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Advanced analytics">See it in action</button></article>
           <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">🧠</div><h3>Smart training insights</h3><p>A coach’s eye on your log: what is working and what has stalled.</p><ul class="deluxe-points"><li>Stalled lifts spotted before you notice</li><li>Muscle balance map and push / pull / legs split</li><li>Plain-language notes, never a lecture</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Smart training insights">See it in action</button></article>
           <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">🏆</div><h3>Performance lab</h3><p>A strength curve for every lift you have ever logged.</p><ul class="deluxe-points"><li>Estimated max over time, bests marked</li><li>A projection of when you hit your next milestone</li><li>Rep-max table: lifted against predicted</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Performance lab">See it in action</button></article>
-          <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">🗓️</div><h3>Workout planner</h3><p>Programmes that progress themselves, week by week.</p><ul class="deluxe-points"><li>Five proven templates, prefilled with your weights</li><li>Targets rise each week, with a lighter final week</li><li>Today’s session waiting on your dashboard</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Workout planner">See it in action</button></article>
+          <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">🗓️</div><h3>Workout planner</h3><p>Programmes that progress themselves, session by session.</p><ul class="deluxe-points"><li>Five proven templates, prefilled with your weights</li><li>Targets adapt to your last session: up when you hit it, repeat when you miss</li><li>Today’s session waiting on your dashboard</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Workout planner">See it in action</button></article>
           <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">📦</div><h3>Complete data tools</h3><p>Your progress, ready to share or keep.</p><ul class="deluxe-points"><li>A shareable progress card image</li><li>A print-ready training report</li><li>Analysis-ready spreadsheets of every set and lift</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Complete data tools">See it in action</button></article>
+          <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">🥗</div><h3>Nutrition coach</h3><p>Calorie targets built from your real metabolism.</p><ul class="deluxe-points"><li>Your maintenance calories, worked out from your food log and weigh-ins</li><li>A target for losing, keeping or gaining weight at a safe pace</li><li>Matching protein, carb and fat targets in one tap</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Nutrition coach">See it in action</button></article>
+          <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">🤝</div><h3>Friend challenges</h3><p>Turn your friends into training partners.</p><ul class="deluxe-points"><li>Start a workout-count or volume challenge for up to nine weeks</li><li>Invite any friend: they join free, no Deluxe needed</li><li>Live standings that respect everyone’s privacy settings</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Friend challenges">See it in action</button></article>
           <article class="deluxe-feature"><div class="deluxe-feature-icon" aria-hidden="true">🎨</div><h3>Deluxe customisation</h3><p>Make the whole app feel like yours.</p><ul class="deluxe-points"><li>Four signature themes, including true-black Obsidian</li><li>Celebration styles for a finished workout</li><li>Deluxe badge on your profile, plus unlimited saved routines</li></ul><button type="button" class="btn" data-action="previewDeluxeFeature" data-arg="Deluxe customisation">See it in action</button></article>
         </div>
         <div class="panel deluxe-compare">
           <div class="section-title">Free stays complete <span class="sub">NOTHING IS TAKEN AWAY</span></div>
           <div class="deluxe-compare-grid">
-            <div><h3>Always free</h3><ul class="deluxe-points"><li>Workout, set and food logging</li><li>Personal records, streaks and badges</li><li>Progress calendar, monthly report and body tracking</li><li>Friends, leaderboards and reactions</li><li>5 saved routines and the starter pack</li><li>Backups, restore and CSV export</li></ul></div>
-            <div><h3>Deluxe adds</h3><ul class="deluxe-points is-deluxe"><li>Long-range analytics and trends</li><li>Coach notes and muscle balance</li><li>Strength curves and projections</li><li>Self-progressing programmes</li><li>Share cards, reports and themes</li><li>Unlimited saved routines</li></ul></div>
+            <div><h3>Always free</h3><ul class="deluxe-points"><li>Workout, set and food logging</li><li>Personal records, streaks and badges</li><li>Progress calendar, monthly report and body tracking</li><li>Friends, leaderboards and reactions</li><li>Joining friends’ challenges</li><li>5 saved routines and the starter pack</li><li>Backups, restore and CSV export</li></ul></div>
+            <div><h3>Deluxe adds</h3><ul class="deluxe-points is-deluxe"><li>Long-range analytics and trends</li><li>Coach notes and muscle balance</li><li>Strength curves and projections</li><li>Programmes that adapt to each session</li><li>Maintenance calories and macro targets</li><li>Starting friend challenges</li><li>Share cards, reports and themes</li><li>Unlimited saved routines</li></ul></div>
           </div>
           <p class="sub">One payment of €9.99. No subscription, nothing renews, and a full refund within 14 days if it is not for you.</p>
         </div>
@@ -702,6 +708,7 @@
                 <div class="field" id="deluxePlanStepField" hidden><label for="deluxePlanStep">Weekly increase (<span data-weight-unit>kg</span>)</label><input id="deluxePlanStep" type="number" min="0" max="45" step="0.25" inputmode="decimal"></div>
               </div>
               <label class="st-40" id="deluxePlanDeloadRow" hidden><input id="deluxePlanDeload" type="checkbox"> Make the final week lighter (fewer sets at about 90% of the weight)</label>
+              <label class="st-40" for="deluxePlanAdaptive"><input id="deluxePlanAdaptive" type="checkbox" checked> Adapt each target to the last session: move up after a hit, repeat after a miss, step back about 10% after two misses</label>
               <div class="sub-h">Add exercises</div>
               <div class="form-grid">
                 <div class="field"><label for="deluxePlanDay">Training day</label><select id="deluxePlanDay"><option>Day 1 · Monday</option><option>Day 2 · Tuesday</option><option>Day 3 · Wednesday</option><option>Day 4 · Thursday</option><option>Day 5 · Friday</option><option>Day 6 · Saturday</option><option>Day 7 · Sunday</option></select></div>
@@ -715,6 +722,7 @@
             </div>
             <div id="deluxePlanLibrary" class="st-39"></div>
           </div>
+          <div id="dxPanel-nutrition" class="dx-panel" role="tabpanel" aria-labelledby="dxTab-nutrition" hidden></div>
           <div id="dxPanel-data" class="dx-panel" role="tabpanel" aria-labelledby="dxTab-data" hidden></div>
           <div id="dxPanel-style" class="dx-panel" role="tabpanel" aria-labelledby="dxTab-style" hidden></div>
         </div>
@@ -805,6 +813,7 @@
 <script src="./app.js"></script>
 <script src="./plus.js"></script>
 <script src="./deluxe.js"></script>
+<script src="./growth.js"></script>
 
 <script src="./analytics.js" defer></script>
 </body>

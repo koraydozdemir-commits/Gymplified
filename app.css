@@ -1072,3 +1072,44 @@ html[data-skin="obsidian"]:not([data-contrast="high"]){--bg:#000000;--panel:#0d0
 html[data-skin="aurora"]:not([data-contrast="high"]){--bg:#071320;--panel:#0d1e30;--panel-hover:#152b43;--ink:#eef6ff;--muted:#9fb4cc;--line:#23405e;--field-line:#6f8fb0;--brand:#2dd4bf;--brand-ink:#04211d;--brand-text:#5eead4;--brand-light:#0f3a3a;--danger:#fca5a5;--success:#4ade80;--focus-ring:#ffd76a;--focus-halo:#071320;--muscle:#2b4666}
 html[data-skin="ember"]:not([data-contrast="high"]){--bg:#140c0a;--panel:#1f1411;--panel-hover:#2c1d18;--ink:#fff3ec;--muted:#c9ada0;--line:#45302a;--field-line:#96786c;--brand:#f97316;--brand-ink:#1f0a00;--brand-text:#fb923c;--brand-light:#3a1c0c;--danger:#fca5a5;--success:#4ade80;--focus-ring:#ffd76a;--focus-halo:#140c0a;--muscle:#4a352e}
 html[data-skin="glacier"]:not([data-contrast="high"]){--bg:#f2f7fb;--panel:#ffffff;--panel-hover:#e6eef6;--ink:#0c1c2c;--muted:#48607a;--line:#d3e0ec;--field-line:#6f87a0;--brand:#0369a1;--brand-ink:#ffffff;--brand-text:#075985;--brand-light:#dbeefb;--danger:#b91c1c;--success:#065f46;--focus-ring:#7a3c00;--focus-halo:#ffffff;--muscle:#c3d3e3}
+/* Deluxe growth: adaptive plan reasons, nutrition coach, tips, founders, friend badges and challenges.
+   Colours come from the theme tokens only, so every theme, skin and contrast mode applies. */
+.plan-why{flex-basis:100%;color:var(--muted);line-height:1.45}
+.plan-why::before{content:"↻ ";color:var(--deluxe-text);font-weight:800}
+.plan-why.is-progress::before{content:"▲ ";color:var(--success)}
+.plan-why.is-hold::before{content:"● "}
+.plan-why.is-reset::before{content:"▼ "}
+.dx-locked{margin:0 0 14px;padding:10px 14px;border:1px dashed var(--deluxe-line);border-radius:12px;color:var(--ink);font-size:calc(13px * var(--text-scale,1));line-height:1.5}
+.dx-kcal{margin:4px 0 6px;font-size:calc(15px * var(--text-scale,1));color:var(--muted)}
+.dx-kcal strong{font:800 calc(36px * var(--text-scale,1)) var(--font-heading);letter-spacing:-.03em;color:var(--ink);margin-right:4px}
+.dx-macros{margin-top:12px}
+.deluxe-tip{border-color:var(--deluxe-line);background:color-mix(in srgb,var(--deluxe-line) 10%,var(--panel))}
+.deluxe-tip strong span{color:var(--deluxe-text)}
+.deluxe-tip p{margin:4px 0 0;max-width:62ch}
+.deluxe-inline-tip{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 0;padding:10px 14px;border:1px dashed var(--deluxe-line);border-radius:12px;font-size:calc(13px * var(--text-scale,1));line-height:1.5}
+.deluxe-inline-tip > span[aria-hidden]{color:var(--deluxe-text);font-weight:800}
+.deluxe-founder{margin:12px 0 0;font-size:calc(13px * var(--text-scale,1));line-height:1.6;max-width:64ch}
+.deluxe-founder[hidden]{display:none}
+.deluxe-pill.is-founder{border-color:var(--deluxe-text);border-width:2px}
+.friend-badge{margin-left:6px;vertical-align:middle;padding:2px 6px;color:var(--ink)}
+.lb-name .friend-badge{justify-self:start;margin:2px 0;max-width:100%;white-space:normal}
+.deluxe-sample-note.is-own{border-style:solid}
+.challenge-card{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:0 0 12px;background:var(--panel)}
+.challenge-card.is-finished{opacity:.85}
+.challenge-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.challenge-head h3{margin:0;font-size:calc(16px * var(--text-scale,1));letter-spacing:-.01em;overflow-wrap:anywhere}
+.challenge-status.is-live{color:var(--success);border-color:var(--success)}
+.challenge-status.is-done{color:var(--muted);border-color:var(--field-line)}
+.challenge-list{list-style:none;margin:10px 0 0;padding:0}
+.challenge-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid var(--line)}
+.challenge-row:last-child{border-bottom:0}
+.challenge-row.me{background:color-mix(in srgb,var(--brand) 10%,var(--panel));border-radius:9px}
+.challenge-who{display:flex;flex-wrap:wrap;align-items:center;gap:4px 0;min-width:0}
+.challenge-who strong{overflow-wrap:anywhere}
+.challenge-who .progress-bar{flex-basis:100%;margin-top:6px}
+.challenge-value{font-weight:700;font-size:calc(13px * var(--text-scale,1));text-align:right;white-space:nowrap}
+.challenge-form{border:1px dashed var(--deluxe-line);border-radius:14px;padding:14px 16px;margin:0 0 14px}
+.challenge-invites{border:0;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));gap:0 12px}
+.challenge-invites legend{font-weight:700;margin-bottom:4px}
+.challenge-upsell{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0}
+@media (max-width:480px){.challenge-row{grid-template-columns:28px minmax(0,1fr)}.challenge-value{grid-column:2;text-align:left}}

@@ -52,11 +52,16 @@ Deno.serve(async (req) => {
     if (authError || !auth.user) return json({ error: 'Your session is invalid. Please sign in again.', code: 'session' }, 401, origin);
     const user = auth.user, admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     const salesOpen = !!(Deno.env.get('STRIPE_SECRET_KEY') && Deno.env.get('STRIPE_PRICE_DELUXE'));
-    const owned = async () => { const { data, error } = await userClient.rpc('gymplified_my_entitlement'); if (error) throw error; return !!(data && data.deluxe); };
+    const entitlement = async () => { const { data, error } = await userClient.rpc('gymplified_my_entitlement'); if (error) throw error; return data || {}; };
+    const owned = async () => !!(await entitlement()).deluxe;
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || 'status');
 
-    if (action === 'status') return json({ deluxe: await owned(), salesOpen, mode: salesOpen ? stripeMode(Deno.env.get('STRIPE_SECRET_KEY')) : null }, 200, origin);
+    if (action === 'status') {
+      // founder / founder_until come from the deluxe_growth migration; older databases simply omit them.
+      const e = await entitlement(), until = typeof e.founder_until === 'string' && !Number.isNaN(Date.parse(e.founder_until)) ? e.founder_until : null;
+      return json({ deluxe: !!e.deluxe, founder: !!(e.deluxe && e.founder), founderUntil: salesOpen ? until : null, salesOpen, mode: salesOpen ? stripeMode(Deno.env.get('STRIPE_SECRET_KEY')) : null }, 200, origin);
+    }
 
     if (action === 'checkout') {
       if (!salesOpen) return json({ error: 'Deluxe is not on sale yet.', code: 'not_on_sale' }, 409, origin);

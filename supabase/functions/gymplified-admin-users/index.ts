@@ -245,6 +245,34 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true, updated_at: new Date().toISOString() });
     }
 
+    // Permanently delete a member: the same clean-up as the self-service gymplified-delete-account function.
+    // Deleting the Auth user cascades to profiles, user_app_state, friend requests, reactions, support tickets,
+    // Deluxe entitlements and challenge memberships. Two things do not cascade, so they go first: avatar files
+    // in Storage (which can block the delete) and analytics rows (whose user_id would only be set to NULL).
+    if (action === "delete_user") {
+      const id = String(body.user_id || "");
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Invalid user ID" }, 400);
+      if (id === authData.user.id) return json({ error: "You cannot delete your own admin account from here." }, 400);
+      const { data: target, error: targetError } = await admin.auth.admin.getUserById(id);
+      if (targetError || !target.user) return json({ error: "Account not found. It may already have been deleted." }, 404);
+      // The admin types the member's email (or the user ID for an account without one) to confirm, checked here too.
+      const expected = (target.user.email || target.user.id).trim().toLowerCase();
+      if (String(body.confirm || "").trim().toLowerCase() !== expected) return json({ error: "The confirmation does not match this account." }, 400);
+      const { data: objects, error: listError } = await admin.storage.from("avatars").list(id, { limit: 1000 });
+      if (listError) throw listError;
+      const paths = (objects || []).filter((o: any) => o && o.name).map((o: any) => id + "/" + o.name);
+      if (paths.length) {
+        const { error: removeError } = await admin.storage.from("avatars").remove(paths);
+        if (removeError) throw removeError;
+      }
+      const { error: analyticsError } = await admin.from("analytics_events").delete().eq("user_id", id);
+      if (analyticsError) throw analyticsError;
+      const { error: deleteError } = await admin.auth.admin.deleteUser(id);
+      if (deleteError) throw deleteError;
+      console.log("gymplified-admin-users: account " + id + " deleted by admin " + authData.user.id);
+      return json({ ok: true, deleted: id, avatars_removed: paths.length });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (error) {
     console.error("gymplified-admin-users:", error);

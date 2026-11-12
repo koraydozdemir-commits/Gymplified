@@ -1697,3 +1697,21 @@ test('DX13: the growth migration is locked down and ships with a real-Postgres t
   const fn = await read('supabase/functions/gymplified-deluxe/index.ts');
   assert.match(fn, /founder: !!\(e\.deluxe && e\.founder\), founderUntil: salesOpen \? until : null/);
 });
+
+test('Admin account deletion: allowlisted, confirmed on the server, never self, and removes what does not cascade', async () => {
+  const fn = await read('supabase/functions/gymplified-admin-users/index.ts');
+  const allowlist = fn.indexOf('rpc("get_admin_analytics"'), start = fn.indexOf('action === "delete_user"'), block = fn.slice(start, fn.indexOf('return json({ error: "Unknown action" }', start));
+  assert.ok(allowlist > 0 && start > allowlist, 'the admin allowlist is checked first');
+  assert.match(block, /if \(!\/\^\[0-9a-f-\]\{36\}\$\/i\.test\(id\)\) return json\(\{ error: "Invalid user ID" \}, 400\);/);
+  assert.match(block, /if \(id === authData\.user\.id\) return json/, 'an admin cannot delete their own account here');
+  assert.match(block, /String\(body\.confirm \|\| ""\)\.trim\(\)\.toLowerCase\(\) !== expected/, 'the typed confirmation is checked on the server');
+  // Storage and analytics are cleared before the Auth user, as in the self-service delete; everything else cascades.
+  const avatars = block.indexOf('storage.from("avatars").remove'), analytics = block.indexOf('from("analytics_events").delete()'), del = block.indexOf('auth.admin.deleteUser(id)');
+  assert.ok(avatars > 0 && analytics > avatars && del > analytics);
+  const page = await read('admin-users.html');
+  assert.match(page, /<button class="btn danger" id="deleteUserBtn" type="button" disabled>/, 'disabled until the confirmation matches');
+  assert.match(page, /\$\('deleteUserBtn'\)\.addEventListener\('click',deleteUser\)/);
+  assert.match(page, /invoke\(\{action:'delete_user',user_id:id,confirm:\$\('deleteConfirm'\)\.value\}\)/);
+  assert.match(page, /\$\('deleteConfirmValue'\)\.textContent=deleteTarget\(\)/, 'the email is shown with textContent, never as HTML');
+  assert.match(page, /Deleting the account does not refund them/);
+});

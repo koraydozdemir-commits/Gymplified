@@ -1027,7 +1027,7 @@ test('I8/I9/I10: motion settings, non-colour cues and narrow-screen layout', asy
   assert.match(css, /html\[data-motion="reduced"\] \*, html\[data-motion="reduced"\] \*::before, html\[data-motion="reduced"\] \*::after \{\s*animation: none !important;\s*transition: none !important;/);
   assert.match(css, /\.lb-tab\[aria-selected=true\]::before,\.range-btn\[aria-pressed=true\]::before\{content:"✓ "\}/);
   assert.match(js, /\(hit\?'<span class="water-hit" aria-hidden="true">✓<\/span>':''\)/);
-  assert.match(js, /status\.textContent=owned\?'✓ DELUXE UNLOCKED':demo\?'✓ DEMO UNLOCKED':/);
+  assert.match(js, /status\.textContent=gift\?'✓ DELUXE UNTIL '\+giftUntil\.toUpperCase\(\):owned\?'✓ DELUXE UNLOCKED':demo\?'✓ DEMO UNLOCKED':/);
   // bottom navigation: seven columns, short labels on phones (it was six, pushing Settings off-screen)
   assert.doesNotMatch(css, /nav\{grid-template-columns:repeat\(6,/);
   assert.match(css, / nav\{grid-template-columns:repeat\(7,minmax\(0,1fr\)\);gap:2px\}/);
@@ -1220,6 +1220,34 @@ test('H2/H4: entitlement lives on the server, is granted only by the service rol
   assert.ok(sanitize, 'entitlement helpers extract');
   // The browser never stores a "paid" flag in synced state.
   assert.doesNotMatch(extractFunctions(js, ['sanitizeStateSnapshot']), /deluxeOwned|entitlement/);
+});
+
+test('Temporary Deluxe: admin can give it for a number of days or permanently, and expiry is honoured everywhere', async () => {
+  const sql = await read('supabase/migrations/20261112120000_gymplified_deluxe_temporary_grants.sql');
+  assert.match(sql, /ADD COLUMN IF NOT EXISTS expires_at timestamptz/);
+  assert.match(sql, /e\.expires_at IS NULL OR e\.expires_at > now\(\)/, 'expiry is checked on every read');
+  assert.match(sql, /expires_at = NULL,\n\s+source = EXCLUDED\.source/, 'a payment makes Deluxe permanent');
+  assert.match(sql, /p_days < 1 OR p_days > 3650/, 'days are range-checked in the database');
+  assert.match(sql, /DROP FUNCTION IF EXISTS public\.gymplified_admin_set_deluxe\(uuid, boolean, uuid\);/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.gymplified_admin_set_deluxe\(uuid, boolean, uuid, integer\) FROM PUBLIC, anon, authenticated;/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.gymplified_admin_set_deluxe\(uuid, boolean, uuid, integer\) TO service_role;/);
+  const admin = await read('supabase/functions/gymplified-admin-users/index.ts');
+  assert.match(admin, /Number\.isInteger\(days\) \|\| days < 1 \|\| days > 3650/, 'the admin function validates days too');
+  assert.match(admin, /p_days: days/);
+  assert.match(admin, /new Date\(d\.expires_at\) > new Date\(\)/, 'the member list ignores expired gifts');
+  const fn = await read('supabase/functions/gymplified-deluxe/index.ts');
+  assert.match(fn, /ownedForGood/, 'a temporary gift does not block buying Deluxe');
+  const page = await read('admin-users.html');
+  assert.match(page, /<select id="deluxeDuration">[\s\S]*<option value="">Permanently<\/option>[\s\S]*<option value="custom">/);
+  assert.match(page, /id="deluxeCustomDays" type="number"[^>]*min="1" max="3650"/);
+  assert.match(page, /invoke\(\{action:'set_deluxe',user_id:selected\.id,on,days\}\)/);
+  assert.match(page, /\$\('deluxeChangeBtn'\)\.addEventListener\('click'/);
+  const js = appScript(await read('index.html'));
+  const owned = (access, user) => new Function('deluxeAccess', 'currentUser', extractFunctions(js, ['deluxeOwned']) + ';return deluxeOwned();')(access, user);
+  const u = { id: 'u1' }, future = new Date(Date.now() + 864e5).toISOString(), past = new Date(Date.now() - 864e5).toISOString();
+  assert.equal(owned({ deluxe: true, userId: 'u1' }, u), true, 'permanent');
+  assert.equal(owned({ deluxe: true, userId: 'u1', expiresAt: future }, u), true, 'gift still running');
+  assert.equal(owned({ deluxe: true, userId: 'u1', expiresAt: past }, u), false, 'gift expired, even from the offline cache');
 });
 
 test('H5/H6: free routine limit, plan for today, planned-vs-completed and safe plan fields', async () => {
@@ -1671,7 +1699,7 @@ test('DX12/DX13: growth.js follows the K3 rules, stays free-friendly and never s
 });
 
 test('DX13: the growth migration is locked down and ships with a real-Postgres test', async () => {
-  const sql = await read('supabase/migrations/20261112090000_gymplified_deluxe_growth.sql');
+  const sql = await read('supabase/migrations/20261112150000_gymplified_deluxe_growth.sql');
   for (const name of ['gymplified_friend_badges', 'gymplified_create_challenge', 'gymplified_respond_challenge', 'gymplified_delete_challenge', 'gymplified_my_challenges']) {
     const start = sql.indexOf('FUNCTION public.' + name + '('), body = sql.slice(start, sql.indexOf('$function$;', start));
     assert.ok(start > 0, name + ' exists');
@@ -1692,8 +1720,26 @@ test('DX13: the growth migration is locked down and ships with a real-Postgres t
   assert.match(sql, /public\.gymplified_shares\(COALESCE\(s\.state, '\{\}'::jsonb\), 'workouts'\)/, 'privacy settings apply');
   assert.match(sql, /e\.source IN \('stripe_checkout', 'stripe_restore'\)/, 'admin grants are not founders');
   const harness = await read('supabase/tests/deluxe_growth.sql');
-  assert.match(harness, /\\ir \.\.\/migrations\/20261112090000_gymplified_deluxe_growth\.sql/);
+  assert.match(harness, /\\ir \.\.\/migrations\/20261112150000_gymplified_deluxe_growth\.sql/);
   assert.match(harness, /deluxe growth tests passed/);
   const fn = await read('supabase/functions/gymplified-deluxe/index.ts');
   assert.match(fn, /founder: !!\(e\.deluxe && e\.founder\), founderUntil: salesOpen \? until : null/);
+});
+
+test('Admin account deletion: allowlisted, confirmed on the server, never self, and removes what does not cascade', async () => {
+  const fn = await read('supabase/functions/gymplified-admin-users/index.ts');
+  const allowlist = fn.indexOf('rpc("get_admin_analytics"'), start = fn.indexOf('action === "delete_user"'), block = fn.slice(start, fn.indexOf('return json({ error: "Unknown action" }', start));
+  assert.ok(allowlist > 0 && start > allowlist, 'the admin allowlist is checked first');
+  assert.match(block, /if \(!\/\^\[0-9a-f-\]\{36\}\$\/i\.test\(id\)\) return json\(\{ error: "Invalid user ID" \}, 400\);/);
+  assert.match(block, /if \(id === authData\.user\.id\) return json/, 'an admin cannot delete their own account here');
+  assert.match(block, /String\(body\.confirm \|\| ""\)\.trim\(\)\.toLowerCase\(\) !== expected/, 'the typed confirmation is checked on the server');
+  // Storage and analytics are cleared before the Auth user, as in the self-service delete; everything else cascades.
+  const avatars = block.indexOf('storage.from("avatars").remove'), analytics = block.indexOf('from("analytics_events").delete()'), del = block.indexOf('auth.admin.deleteUser(id)');
+  assert.ok(avatars > 0 && analytics > avatars && del > analytics);
+  const page = await read('admin-users.html');
+  assert.match(page, /<button class="btn danger" id="deleteUserBtn" type="button" disabled>/, 'disabled until the confirmation matches');
+  assert.match(page, /\$\('deleteUserBtn'\)\.addEventListener\('click',deleteUser\)/);
+  assert.match(page, /invoke\(\{action:'delete_user',user_id:id,confirm:\$\('deleteConfirm'\)\.value\}\)/);
+  assert.match(page, /\$\('deleteConfirmValue'\)\.textContent=deleteTarget\(\)/, 'the email is shown with textContent, never as HTML');
+  assert.match(page, /Deleting the account does not refund them/);
 });

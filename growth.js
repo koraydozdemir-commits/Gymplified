@@ -3,7 +3,7 @@
 //    at most one every few days, and only while Deluxe is on sale). Settings → Notifications turns them off.
 //  - Friend badges: a DELUXE or FOUNDING MEMBER badge next to friends who show it.
 //  - Friend challenges: Deluxe owners start them; anyone invited can join for free.
-// Server rules live in supabase/migrations/20261112090000_gymplified_deluxe_growth.sql. Pure logic is in lib.js.
+// Server rules live in supabase/migrations/20261112150000_gymplified_deluxe_growth.sql. Pure logic is in lib.js.
 // Markup here never uses inline handlers or inline styles. Controls name an action with data-gx (clicks),
 // data-gx-change or data-gx-submit, and only GROWTH_ACTIONS can run.
 

@@ -120,14 +120,15 @@ Deno.serve(async (req: Request) => {
       const [profilesResult, statesResult, deluxeResult] = ids.length ? await Promise.all([
         admin.from("profiles").select("id,username,display_name,avatar_url,created_at").in("id", ids),
         admin.from("user_app_state").select("user_id,state,updated_at").in("user_id", ids),
-        admin.from("deluxe_entitlements").select("user_id").is("revoked_at", null),
+        admin.from("deluxe_entitlements").select("user_id,expires_at").is("revoked_at", null),
       ]) : [{ data: [], error: null }, { data: [], error: null }, { data: [], error: null }];
       if (profilesResult.error) throw profilesResult.error;
       if (statesResult.error) throw statesResult.error;
       if (deluxeResult.error) throw deluxeResult.error;
       const profiles = new Map((profilesResult.data || []).map((p: any) => [p.id, p]));
       const states = new Map((statesResult.data || []).map((s: any) => [s.user_id, s]));
-      const deluxeIds = new Set((deluxeResult.data || []).map((d: any) => d.user_id));
+      // An entitlement whose expiry has passed no longer counts.
+      const deluxeIds = new Set((deluxeResult.data || []).filter((d: any) => !d.expires_at || new Date(d.expires_at) > new Date()).map((d: any) => d.user_id));
       const filtered = allUsers.filter(u => {
         if (!search) return true;
         const p: any = profiles.get(u.id) || {};
@@ -160,7 +161,7 @@ Deno.serve(async (req: Request) => {
         admin.auth.admin.getUserById(id),
         admin.from("profiles").select("id,username,display_name,avatar_url,created_at").eq("id", id).maybeSingle(),
         admin.from("user_app_state").select("state,updated_at").eq("user_id", id).maybeSingle(),
-        admin.from("deluxe_entitlements").select("source,granted_at,revoked_at,stripe_payment_intent,changed_at,amount_total,currency").eq("user_id", id).maybeSingle(),
+        admin.from("deluxe_entitlements").select("source,granted_at,revoked_at,expires_at,stripe_payment_intent,changed_at,amount_total,currency").eq("user_id", id).maybeSingle(),
       ]);
       if (userError) throw userError;
       if (profileError) throw profileError;
@@ -172,7 +173,8 @@ Deno.serve(async (req: Request) => {
         state: stored?.state || {},
         progress_updated_at: stored?.updated_at || null,
         deluxe: {
-          deluxe: !!entitlement && !entitlement.revoked_at,
+          deluxe: !!entitlement && !entitlement.revoked_at && (!entitlement.expires_at || new Date(entitlement.expires_at) > new Date()),
+          expires_at: entitlement?.expires_at || null,
           source: entitlement?.source || null,
           granted_at: entitlement?.granted_at || null,
           revoked_at: entitlement?.revoked_at || null,
@@ -209,17 +211,20 @@ Deno.serve(async (req: Request) => {
       checks.push({ id: "tax", ok: !managed || !!taxCode, label: "Product tax code", detail: taxCode ? taxCode : managed ? "Missing: Managed Payments needs a digital-product tax code on the product." : "Not required without Managed Payments." });
       checks.push({ id: "webhook", ok: /^whsec_/.test(whsec), label: "Webhook signing secret", detail: /^whsec_/.test(whsec) ? "Saved. Check recent deliveries show 200 in Stripe → Developers → Webhooks." : "STRIPE_WEBHOOK_SECRET is missing, so payments would not unlock Deluxe." });
       checks.push({ id: "managed", ok: true, label: "Managed Payments", detail: managed ? "On: Stripe handles VAT, receipts and refunds rules." : "Off: you are responsible for tax (STRIPE_MANAGED_PAYMENTS=0)." });
-      const { data: ents, error: entError } = await admin.from("deluxe_entitlements").select("source,revoked_at");
+      const { data: ents, error: entError } = await admin.from("deluxe_entitlements").select("source,revoked_at,expires_at");
       if (entError) throw entError;
-      const active = (ents || []).filter((e: any) => !e.revoked_at);
-      return json({ mode, ready: checks.every(c => c.ok), checks, counts: { active: active.length, paid: active.filter((e: any) => e.source !== "admin").length, gifted: active.filter((e: any) => e.source === "admin").length, revoked: (ents || []).length - active.length } });
+      const active = (ents || []).filter((e: any) => !e.revoked_at && (!e.expires_at || new Date(e.expires_at) > new Date()));
+      return json({ mode, ready: checks.every(c => c.ok), checks, counts: { active: active.length, paid: active.filter((e: any) => e.source !== "admin").length, gifted: active.filter((e: any) => e.source === "admin").length, temporary: active.filter((e: any) => !!e.expires_at).length, revoked: (ents || []).length - active.length } });
     }
 
     if (action === "set_deluxe") {
       const id = String(body.user_id || "");
       if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Invalid user ID" }, 400);
       if (typeof body.on !== "boolean") return json({ error: "Choose whether Deluxe is on or off" }, 400);
-      const { data, error } = await admin.rpc("gymplified_admin_set_deluxe", { p_user: id, p_on: body.on, p_admin: authData.user.id });
+      // days: omitted/null = permanent, otherwise Deluxe lasts that many days from now.
+      const days = body.days === undefined || body.days === null ? null : Number(body.days);
+      if (days !== null && (!Number.isInteger(days) || days < 1 || days > 3650)) return json({ error: "Days must be a whole number between 1 and 3650" }, 400);
+      const { data, error } = await admin.rpc("gymplified_admin_set_deluxe", { p_user: id, p_on: body.on, p_admin: authData.user.id, p_days: days });
       if (error) throw error;
       return json({ ok: true, deluxe: data });
     }
@@ -243,6 +248,34 @@ Deno.serve(async (req: Request) => {
       const { error } = await admin.from("user_app_state").upsert({ user_id: id, state, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
       if (error) throw error;
       return json({ ok: true, updated_at: new Date().toISOString() });
+    }
+
+    // Permanently delete a member: the same clean-up as the self-service gymplified-delete-account function.
+    // Deleting the Auth user cascades to profiles, user_app_state, friend requests, reactions, support tickets,
+    // Deluxe entitlements and challenge memberships. Two things do not cascade, so they go first: avatar files
+    // in Storage (which can block the delete) and analytics rows (whose user_id would only be set to NULL).
+    if (action === "delete_user") {
+      const id = String(body.user_id || "");
+      if (!/^[0-9a-f-]{36}$/i.test(id)) return json({ error: "Invalid user ID" }, 400);
+      if (id === authData.user.id) return json({ error: "You cannot delete your own admin account from here." }, 400);
+      const { data: target, error: targetError } = await admin.auth.admin.getUserById(id);
+      if (targetError || !target.user) return json({ error: "Account not found. It may already have been deleted." }, 404);
+      // The admin types the member's email (or the user ID for an account without one) to confirm, checked here too.
+      const expected = (target.user.email || target.user.id).trim().toLowerCase();
+      if (String(body.confirm || "").trim().toLowerCase() !== expected) return json({ error: "The confirmation does not match this account." }, 400);
+      const { data: objects, error: listError } = await admin.storage.from("avatars").list(id, { limit: 1000 });
+      if (listError) throw listError;
+      const paths = (objects || []).filter((o: any) => o && o.name).map((o: any) => id + "/" + o.name);
+      if (paths.length) {
+        const { error: removeError } = await admin.storage.from("avatars").remove(paths);
+        if (removeError) throw removeError;
+      }
+      const { error: analyticsError } = await admin.from("analytics_events").delete().eq("user_id", id);
+      if (analyticsError) throw analyticsError;
+      const { error: deleteError } = await admin.auth.admin.deleteUser(id);
+      if (deleteError) throw deleteError;
+      console.log("gymplified-admin-users: account " + id + " deleted by admin " + authData.user.id);
+      return json({ ok: true, deleted: id, avatars_removed: paths.length });
     }
 
     return json({ error: "Unknown action" }, 400);

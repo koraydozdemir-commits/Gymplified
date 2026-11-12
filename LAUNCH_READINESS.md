@@ -123,7 +123,7 @@ Implemented and covered by tests (unit, static, real-Postgres and a headless-bro
 - [x] Nothing free moved behind the paywall. The free routine limit (5) is unchanged.
 
 To deploy:
-- [ ] Apply `supabase/migrations/20261112090000_gymplified_deluxe_growth.sql` (test locally first: `psql -v ON_ERROR_STOP=1 -f supabase/tests/deluxe_growth.sql` on an empty Postgres 16 database). Until it is applied, the app hides challenges and badges and shows no founder offer; everything else works.
+- [ ] Apply `supabase/migrations/20261112150000_gymplified_deluxe_growth.sql` (test locally first: `psql -v ON_ERROR_STOP=1 -f supabase/tests/deluxe_growth.sql` on an empty Postgres 16 database). Until it is applied, the app hides challenges and badges and shows no founder offer; everything else works.
 - [ ] Redeploy the `gymplified-deluxe` Edge Function so its status answer includes founder details.
 - [ ] Optional founder offer: `UPDATE public.deluxe_settings SET founder_until = '<date> 23:59:59+00' WHERE id = 1;` The Deluxe screen shows the offer only while that date is in the future and sales are open. Leave it NULL for no offer. Note that a purchase recovered with Restore purchase is dated when it was restored, not when it was paid.
 - [ ] Review the updated privacy (friend challenges, badges) and terms (founding members) wording.

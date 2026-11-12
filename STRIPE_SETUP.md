@@ -73,14 +73,16 @@ Done in code (12 November 2026):
 
 Still needed from the owner (Stripe Dashboard, live account):
 
-- [ ] **Support email** in Settings → Business details. With Managed Payments, Stripe sends refund and
+- [ ] **Support email** (`gymplifiedsupport@gmail.com`) in Settings → Business details. With Managed Payments, Stripe sends refund and
       support escalations here and may refund on its own if you do not answer within 48 hours.
 - [ ] Business name and statement descriptor in Settings → Public details.
 - [ ] Terms URL `https://gymplified.com/terms.html` and privacy URL `https://gymplified.com/privacy.html`
       in Settings → Public details, then switch on **Legal policies** in Settings → Checkout so the checkout
       page links to them.
-- [ ] The operator's legal name and contact email on `terms.html` and `privacy.html` (the "Launch note"
-      boxes). These identify who runs Gymplified and cannot be filled in by code.
+- [x] Operator identity on `terms.html` and `privacy.html`: trading name Gymplified, Ireland,
+      gymplifiedsupport@gmail.com, Irish governing law, Irish Data Protection Commission named.
+- [ ] Optional but recommended: add a postal address to both pages. Irish and EU rules expect an online
+      trader to publish a geographic address; a business-registered or PO box address avoids using a home one.
 
 **If Managed Payments is off** (`STRIPE_MANAGED_PAYMENTS=0`), Gymplified becomes the seller. Terms
 section 9 ("Who sells it") and the privacy policy's Stripe paragraph then describe the wrong setup and

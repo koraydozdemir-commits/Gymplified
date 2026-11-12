@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gymplified-shell-v30';
+const CACHE_NAME = 'gymplified-shell-v31';
 // K4: the Supabase SDK is self-hosted (pinned, from the npm package), so the app loads no third-party script.
 const SUPABASE_SDK = './sdk/supabase-2.57.4.js';
 const APP_SHELL = [

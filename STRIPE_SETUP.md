@@ -61,13 +61,30 @@ Use a test-mode key and a throwaway Gymplified account with a verified email.
 - [ ] Send a webhook with a wrong signature (Stripe CLI or curl): the function answers 400 and nothing changes.
 - [ ] Stripe → Webhooks shows every delivery as 200.
 
-## 5. Before live mode (needs you, not code)
+## 5. Before live mode
 
-- [ ] Refund and EU/UK 14-day withdrawal wording, reviewed. TODOs are marked in `terms.html` and the Deluxe screen. Digital content usually needs the buyer's express consent to immediate supply; get this wording checked rather than guessing it.
-- [ ] Business name, support email and statement descriptor set in Stripe → Settings → Public details.
-- [ ] Privacy policy lists Stripe as a payment processor.
-- [ ] Receipt emails switched on in Stripe → Settings → Emails.
-- [ ] Remove the "payment setup pending" wording if any is still shown.
+Done in code (12 November 2026):
+
+- [x] Terms section 9 covers the Deluxe purchase: price, Stripe/Link as merchant of record, a 14-day
+      full refund for any reason, statutory rights kept, what happens on refund, chargeback or deletion.
+      The 14-day refund means no "waive your withdrawal right" checkbox is needed at checkout.
+- [x] Privacy policy lists Stripe, the purchase records Gymplified keeps, Open Food Facts and friend sharing.
+- [x] The Deluxe screen states the refund window and links to the purchase terms.
+
+Still needed from the owner (Stripe Dashboard, live account):
+
+- [ ] **Support email** in Settings → Business details. With Managed Payments, Stripe sends refund and
+      support escalations here and may refund on its own if you do not answer within 48 hours.
+- [ ] Business name and statement descriptor in Settings → Public details.
+- [ ] Terms URL `https://gymplified.com/terms.html` and privacy URL `https://gymplified.com/privacy.html`
+      in Settings → Public details, then switch on **Legal policies** in Settings → Checkout so the checkout
+      page links to them.
+- [ ] The operator's legal name and contact email on `terms.html` and `privacy.html` (the "Launch note"
+      boxes). These identify who runs Gymplified and cannot be filled in by code.
+
+**If Managed Payments is off** (`STRIPE_MANAGED_PAYMENTS=0`), Gymplified becomes the seller. Terms
+section 9 ("Who sells it") and the privacy policy's Stripe paragraph then describe the wrong setup and
+must be rewritten before taking money, and VAT becomes your responsibility.
 
 ## 6. Going live (real money)
 

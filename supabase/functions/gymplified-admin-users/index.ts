@@ -10,6 +10,9 @@ const corsHeaders = {
   "Vary": "Origin",
 };
 
+// Which Stripe mode a key belongs to. Key values never leave the server.
+function stripeMode(key: string) { return /^(sk|rk)_live_/.test(key) ? "live" : /^(sk|rk)_test_/.test(key) ? "test" : null; }
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 }
@@ -157,7 +160,7 @@ Deno.serve(async (req: Request) => {
         admin.auth.admin.getUserById(id),
         admin.from("profiles").select("id,username,display_name,avatar_url,created_at").eq("id", id).maybeSingle(),
         admin.from("user_app_state").select("state,updated_at").eq("user_id", id).maybeSingle(),
-        admin.from("deluxe_entitlements").select("source,granted_at,revoked_at,stripe_payment_intent,changed_at").eq("user_id", id).maybeSingle(),
+        admin.from("deluxe_entitlements").select("source,granted_at,revoked_at,stripe_payment_intent,changed_at,amount_total,currency").eq("user_id", id).maybeSingle(),
       ]);
       if (userError) throw userError;
       if (profileError) throw profileError;
@@ -174,8 +177,42 @@ Deno.serve(async (req: Request) => {
           granted_at: entitlement?.granted_at || null,
           revoked_at: entitlement?.revoked_at || null,
           paid: !!entitlement?.stripe_payment_intent,
+          payment_intent: entitlement?.stripe_payment_intent || null,
+          amount_total: entitlement?.amount_total ?? null,
+          currency: entitlement?.currency || null,
+          stripe_mode: stripeMode(Deno.env.get("STRIPE_SECRET_KEY") || ""),
         },
       });
+    }
+
+    // Deluxe batch: is the payment setup complete? Reports yes/no and details only, never key values.
+    if (action === "payment_health") {
+      const key = Deno.env.get("STRIPE_SECRET_KEY") || "", priceId = Deno.env.get("STRIPE_PRICE_DELUXE") || "", whsec = Deno.env.get("STRIPE_WEBHOOK_SECRET") || "";
+      const mode = stripeMode(key), managed = Deno.env.get("STRIPE_MANAGED_PAYMENTS") !== "0";
+      const checks: { id: string; ok: boolean; label: string; detail: string }[] = [];
+      checks.push({ id: "key", ok: !!mode, label: "Stripe key", detail: mode === "live" ? "Live key: real payments." : mode === "test" ? "Test (sandbox) key: no real money is taken." : "Missing, or not a Stripe secret/restricted key." });
+      let price: any = null, priceError = "";
+      if (mode && /^price_[A-Za-z0-9]+$/.test(priceId)) {
+        try {
+          const res = await fetch("https://api.stripe.com/v1/prices/" + priceId + "?expand[]=product", { headers: { Authorization: "Bearer " + key } });
+          const data = await res.json();
+          if (!res.ok) priceError = (data && data.error && data.error.message) || "Stripe refused the request.";
+          else price = data;
+        } catch (_) { priceError = "Could not reach Stripe."; }
+      }
+      const priceOk = !!price && price.active && price.type === "one_time" && price.livemode === (mode === "live");
+      checks.push({ id: "price", ok: priceOk, label: "Deluxe price", detail: !priceId ? "STRIPE_PRICE_DELUXE is not set." : priceError ? priceError : !price ? "Not checked (needs a valid key)." :
+        (price.livemode !== (mode === "live") ? "This price is from the " + (price.livemode ? "live" : "test") + " account, but the key is " + mode + "." :
+        !price.active ? "The price is archived." : price.type !== "one_time" ? "The price is recurring; Deluxe should be one-time." :
+        "One-time " + (price.unit_amount / 100).toFixed(2) + " " + String(price.currency).toUpperCase() + " · " + ((price.product && price.product.name) || "product")) });
+      const taxCode = price && price.product && price.product.tax_code ? (typeof price.product.tax_code === "string" ? price.product.tax_code : price.product.tax_code.id) : "";
+      checks.push({ id: "tax", ok: !managed || !!taxCode, label: "Product tax code", detail: taxCode ? taxCode : managed ? "Missing: Managed Payments needs a digital-product tax code on the product." : "Not required without Managed Payments." });
+      checks.push({ id: "webhook", ok: /^whsec_/.test(whsec), label: "Webhook signing secret", detail: /^whsec_/.test(whsec) ? "Saved. Check recent deliveries show 200 in Stripe → Developers → Webhooks." : "STRIPE_WEBHOOK_SECRET is missing, so payments would not unlock Deluxe." });
+      checks.push({ id: "managed", ok: true, label: "Managed Payments", detail: managed ? "On: Stripe handles VAT, receipts and refunds rules." : "Off: you are responsible for tax (STRIPE_MANAGED_PAYMENTS=0)." });
+      const { data: ents, error: entError } = await admin.from("deluxe_entitlements").select("source,revoked_at");
+      if (entError) throw entError;
+      const active = (ents || []).filter((e: any) => !e.revoked_at);
+      return json({ mode, ready: checks.every(c => c.ok), checks, counts: { active: active.length, paid: active.filter((e: any) => e.source !== "admin").length, gifted: active.filter((e: any) => e.source === "admin").length, revoked: (ents || []).length - active.length } });
     }
 
     if (action === "set_deluxe") {

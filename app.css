@@ -917,3 +917,12 @@ html[data-motion="reduced"] .greeting-icon{animation:none}
 .security-box{border-top:1px solid var(--line);padding:6px 0}.security-box summary{min-height:44px;display:flex;align-items:center;font-weight:700}
 #accountButton[data-sync="error"],#accountButton[data-sync="offline"]{border-style:dashed}
 @media (prefers-reduced-motion:no-preference){html:not([data-motion="reduced"]) .cal-day{transition:transform .12s var(--ease-out)}html:not([data-motion="reduced"]) button.cal-day:active{transform:scale(.92)}}
+
+/* ===== Deluxe batch: purchase states ===== */
+.deluxe-mode-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;border:1px dashed var(--muted);color:var(--muted);font-size:calc(12px * var(--text-scale, 1));font-weight:700}
+.deluxe-mode-badge[hidden]{display:none}
+.account-deluxe-row{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.account-deluxe-row p{margin:0}
+/* A hidden button must stay hidden: .btn sets display, which otherwise beats the hidden attribute
+   (this kept "Unlock Deluxe" visible for people who already own it). */
+.btn[hidden],button[hidden]{display:none!important}

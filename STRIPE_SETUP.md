@@ -125,5 +125,5 @@ To go back to the sandbox, put the three sandbox values back.
 ## If something goes wrong
 
 - **Paid but still locked:** Stripe → Webhooks → check the delivery. A failed delivery can be resent. The buyer can also tap "Restore purchase", which looks the payment up directly.
-- **Need to give or remove Deluxe by hand:** `admin-users.html` → open the member → Gymplified Deluxe. Removing it does not refund them.
+- **Need to give or remove Deluxe by hand:** `admin-users.html` → open the member → Gymplified Deluxe. Choose *Permanently* or a length (7, 30, 90 days, 1 year, or a custom number of days) and press Give Deluxe; use Change length to adjust a gift later. A temporary gift ends by itself, the member can still buy Deluxe to keep it, and a real payment always makes it permanent. Removing Deluxe does not refund a paying customer.
 - **Turn sales off quickly:** delete `STRIPE_PRICE_DELUXE`. Checkout is refused at once; existing owners keep Deluxe.

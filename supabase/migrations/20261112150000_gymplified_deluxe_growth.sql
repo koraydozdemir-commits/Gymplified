@@ -11,6 +11,20 @@
 --    sessions and honours their privacy settings. A member only ever sees named progress for themselves
 --    and their own accepted friends; anyone else in the challenge is counted, never named.
 -- Tables are reachable only through the SECURITY DEFINER functions below (RLS on, no policies).
+-- Runs after 20261112120000_gymplified_deluxe_temporary_grants: an entitlement counts only while it is not
+-- revoked and its expires_at (an admin's timed gift) is empty or still in the future.
+
+-- One definition of "Deluxe is active", shared by every function below.
+CREATE OR REPLACE FUNCTION public.gymplified_deluxe_active(p_user uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public
+AS $function$
+  SELECT EXISTS (SELECT 1 FROM public.deluxe_entitlements e
+                  WHERE e.user_id = p_user AND e.revoked_at IS NULL AND (e.expires_at IS NULL OR e.expires_at > now()));
+$function$;
 
 -- ---------- 1. founding members ----------
 CREATE TABLE IF NOT EXISTS public.deluxe_settings (
@@ -31,12 +45,13 @@ SET search_path = pg_catalog, public
 AS $function$
   SELECT EXISTS (
     SELECT 1 FROM public.deluxe_entitlements e, public.deluxe_settings s
-     WHERE e.user_id = p_user AND e.revoked_at IS NULL AND s.id = 1
+     WHERE e.user_id = p_user AND e.revoked_at IS NULL AND (e.expires_at IS NULL OR e.expires_at > now()) AND s.id = 1
        AND s.founder_until IS NOT NULL AND e.granted_at < s.founder_until
        AND e.source IN ('stripe_checkout', 'stripe_restore'));
 $function$;
 
--- Same shape as before, plus founder status and the open founder deadline (null when there is none).
+-- Same shape as the temporary-grants version (deluxe, granted_at, expires_at), plus founder status and the
+-- open founder deadline (null when there is none).
 CREATE OR REPLACE FUNCTION public.gymplified_my_entitlement()
 RETURNS jsonb
 LANGUAGE sql
@@ -45,10 +60,14 @@ SECURITY DEFINER
 SET search_path = pg_catalog, public
 AS $function$
   SELECT jsonb_build_object(
-    'deluxe', EXISTS (SELECT 1 FROM public.deluxe_entitlements e WHERE e.user_id = auth.uid() AND e.revoked_at IS NULL),
-    'granted_at', (SELECT e.granted_at FROM public.deluxe_entitlements e WHERE e.user_id = auth.uid() AND e.revoked_at IS NULL),
+    'deluxe', e.user_id IS NOT NULL,
+    'granted_at', e.granted_at,
+    'expires_at', e.expires_at,
     'founder', public.gymplified_is_founder(auth.uid()),
-    'founder_until', (SELECT s.founder_until FROM public.deluxe_settings s WHERE s.id = 1 AND s.founder_until > now()));
+    'founder_until', (SELECT s.founder_until FROM public.deluxe_settings s WHERE s.id = 1 AND s.founder_until > now()))
+  FROM (SELECT 1) AS one
+  LEFT JOIN public.deluxe_entitlements e
+    ON e.user_id = auth.uid() AND e.revoked_at IS NULL AND (e.expires_at IS NULL OR e.expires_at > now());
 $function$;
 
 -- ---------- 2. Deluxe badges among friends ----------
@@ -66,7 +85,7 @@ BEGIN
   RETURN QUERY
   SELECT c.member_id, CASE WHEN public.gymplified_is_founder(c.member_id) THEN 'founder' ELSE 'deluxe' END
     FROM public.gymplified_friend_circle() c
-    JOIN public.deluxe_entitlements e ON e.user_id = c.member_id AND e.revoked_at IS NULL
+    JOIN public.deluxe_entitlements e ON e.user_id = c.member_id AND e.revoked_at IS NULL AND (e.expires_at IS NULL OR e.expires_at > now())
     LEFT JOIN public.user_app_state s ON s.user_id = c.member_id
    WHERE COALESCE(s.state -> 'deluxe' -> 'profileFlair', 'true'::jsonb) IS DISTINCT FROM 'false'::jsonb;
 END;
@@ -114,7 +133,7 @@ DECLARE
   v_invitees uuid[] := ARRAY(SELECT DISTINCT x FROM unnest(COALESCE(p_invitees, ARRAY[]::uuid[])) x WHERE x IS NOT NULL AND x <> auth.uid());
 BEGIN
   IF v_me IS NULL THEN RAISE EXCEPTION 'Authentication required'; END IF;
-  IF NOT EXISTS (SELECT 1 FROM public.deluxe_entitlements e WHERE e.user_id = v_me AND e.revoked_at IS NULL) THEN
+  IF NOT public.gymplified_deluxe_active(v_me) THEN
     RAISE EXCEPTION 'Creating challenges is part of Gymplified Deluxe';
   END IF;
   IF char_length(v_title) < 1 OR char_length(v_title) > 60 THEN RAISE EXCEPTION 'Give the challenge a name of up to 60 characters'; END IF;
@@ -238,6 +257,7 @@ $function$;
 
 -- ---------- permissions ----------
 REVOKE ALL ON FUNCTION public.gymplified_is_founder(uuid) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.gymplified_deluxe_active(uuid) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.gymplified_my_entitlement() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.gymplified_my_entitlement() TO authenticated;
 REVOKE ALL ON FUNCTION public.gymplified_friend_badges() FROM PUBLIC, anon;

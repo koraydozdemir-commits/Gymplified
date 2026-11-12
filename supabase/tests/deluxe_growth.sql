@@ -1,4 +1,4 @@
--- Local test for 20261112090000_gymplified_deluxe_growth.sql (founders, friend badges, friend challenges).
+-- Local test for 20261112150000_gymplified_deluxe_growth.sql (founders, friend badges, friend challenges).
 -- Runs against a throwaway Postgres 16 with stand-ins for the parts of Supabase it relies on.
 -- Usage: psql -v ON_ERROR_STOP=1 -f supabase/tests/deluxe_growth.sql  (on an EMPTY database)
 \set QUIET on
@@ -29,7 +29,8 @@ GRANT SELECT ON public.profiles, public.friend_requests TO authenticated;
 \ir ../migrations/20261111090000_gymplified_friend_leaderboard_feed_and_reactions.sql
 \ir ../migrations/20261111120000_gymplified_deluxe_entitlements.sql
 \ir ../migrations/20261111130000_gymplified_admin_deluxe_toggle.sql
-\ir ../migrations/20261112090000_gymplified_deluxe_growth.sql
+\ir ../migrations/20261112120000_gymplified_deluxe_temporary_grants.sql
+\ir ../migrations/20261112150000_gymplified_deluxe_growth.sql
 
 -- ---------- fixtures ----------
 -- a = Deluxe founder, friends with b, c and f. b = free, friends with a. c = Deluxe (bought after the
@@ -106,6 +107,28 @@ DO $$ BEGIN ASSERT NOT EXISTS (SELECT 1 FROM public.gymplified_friend_badges()),
 RESET ROLE;
 SET ROLE anon;
 SELECT pg_temp.expect_error($q$SELECT * FROM public.gymplified_friend_badges()$q$, '%permission denied%');
+RESET ROLE;
+
+-- ---------- 2b. an expired admin gift counts for nothing ----------
+SET ROLE service_role;
+SELECT public.gymplified_admin_set_deluxe(pg_temp.u('f'), true, pg_temp.u('a'), 5);
+RESET ROLE;
+SET ROLE authenticated;
+SELECT pg_temp.as_user('f');
+DO $$ BEGIN
+  ASSERT (public.gymplified_my_entitlement() ->> 'deluxe')::boolean, 'a live gift is Deluxe';
+  ASSERT public.gymplified_my_entitlement() ->> 'expires_at' IS NOT NULL, 'and my_entitlement still reports its expiry';
+END $$;
+SELECT pg_temp.as_user('a');
+DO $$ BEGIN ASSERT EXISTS (SELECT 1 FROM public.gymplified_friend_badges() x WHERE x.user_id = pg_temp.u('f') AND x.badge = 'deluxe'), 'a live gift shows the badge'; END $$;
+RESET ROLE;
+UPDATE public.deluxe_entitlements SET expires_at = now() - interval '1 minute' WHERE user_id = pg_temp.u('f');
+SET ROLE authenticated;
+SELECT pg_temp.as_user('f');
+DO $$ BEGIN ASSERT NOT (public.gymplified_my_entitlement() ->> 'deluxe')::boolean, 'an expired gift is not Deluxe'; END $$;
+SELECT pg_temp.expect_error(format($q$SELECT public.gymplified_create_challenge('Sprint', 'workouts', 3, current_date, current_date + 6, ARRAY[%L]::uuid[])$q$, pg_temp.u('a')), '%part of Gymplified Deluxe%');
+SELECT pg_temp.as_user('a');
+DO $$ BEGIN ASSERT NOT EXISTS (SELECT 1 FROM public.gymplified_friend_badges() x WHERE x.user_id = pg_temp.u('f')), 'and shows no badge'; END $$;
 RESET ROLE;
 
 -- ---------- 3. challenges ----------

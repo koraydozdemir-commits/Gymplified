@@ -52,20 +52,23 @@ Deno.serve(async (req) => {
     if (authError || !auth.user) return json({ error: 'Your session is invalid. Please sign in again.', code: 'session' }, 401, origin);
     const user = auth.user, admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     const salesOpen = !!(Deno.env.get('STRIPE_SECRET_KEY') && Deno.env.get('STRIPE_PRICE_DELUXE'));
-    const entitlement = async () => { const { data, error } = await userClient.rpc('gymplified_my_entitlement'); if (error) throw error; return data || {}; };
-    const owned = async () => !!(await entitlement()).deluxe;
+    // founder / founder_until come from the deluxe_growth migration and expires_at from temporary grants;
+    // a database without them simply omits the fields.
+    const entitlement = async () => { const { data, error } = await userClient.rpc('gymplified_my_entitlement'); if (error) throw error; const d = data || {}; return { deluxe: !!d.deluxe, expiresAt: d.expires_at || null, founder: !!d.founder, founderUntil: d.founder_until || null }; };
+    const owned = async () => (await entitlement()).deluxe;
+    // A temporary gift from an admin does not stop the member buying Deluxe for good.
+    const ownedForGood = async () => { const e = await entitlement(); return e.deluxe && !e.expiresAt; };
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || 'status');
 
     if (action === 'status') {
-      // founder / founder_until come from the deluxe_growth migration; older databases simply omit them.
-      const e = await entitlement(), until = typeof e.founder_until === 'string' && !Number.isNaN(Date.parse(e.founder_until)) ? e.founder_until : null;
-      return json({ deluxe: !!e.deluxe, founder: !!(e.deluxe && e.founder), founderUntil: salesOpen ? until : null, salesOpen, mode: salesOpen ? stripeMode(Deno.env.get('STRIPE_SECRET_KEY')) : null }, 200, origin);
+      const e = await entitlement(), until = typeof e.founderUntil === 'string' && !Number.isNaN(Date.parse(e.founderUntil)) ? e.founderUntil : null;
+      return json({ deluxe: e.deluxe, expiresAt: e.deluxe ? e.expiresAt : null, founder: !!(e.deluxe && e.founder), founderUntil: salesOpen ? until : null, salesOpen, mode: salesOpen ? stripeMode(Deno.env.get('STRIPE_SECRET_KEY')) : null }, 200, origin);
     }
 
     if (action === 'checkout') {
       if (!salesOpen) return json({ error: 'Deluxe is not on sale yet.', code: 'not_on_sale' }, 409, origin);
-      if (await owned()) return json({ deluxe: true, alreadyOwned: true }, 200, origin);
+      if (await ownedForGood()) return json({ deluxe: true, alreadyOwned: true }, 200, origin);
       if (!user.email_confirmed_at) return json({ error: 'Please verify your email address before buying Deluxe.', code: 'email_unverified' }, 403, origin);
       const session = await stripe('checkout/sessions', { method: 'POST', params: deluxeCheckoutParams({
         priceId: Deno.env.get('STRIPE_PRICE_DELUXE'), userId: user.id, email: user.email,
@@ -80,12 +83,12 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'restore') {
-      if (await owned()) return json({ deluxe: true }, 200, origin);
-      if (!salesOpen) return json({ deluxe: false }, 200, origin);
+      if (await ownedForGood()) return json({ deluxe: true }, 200, origin);
+      if (!salesOpen) return json({ deluxe: await owned() }, 200, origin);
       // Finds a paid, not fully refunded Deluxe payment made by this account, in case the webhook was missed.
       const found = await stripe('payment_intents/search', { query: { query: "metadata['user_id']:'" + user.id + "' AND metadata['product']:'" + DELUXE_PRODUCT_TAG + "' AND status:'succeeded'", limit: 10, expand: ['data.latest_charge'] } });
       const paid = (found.data || []).find(pi => pi.amount_received > 0 && !(pi.latest_charge && pi.latest_charge.refunded));
-      if (!paid) return json({ deluxe: false }, 200, origin);
+      if (!paid) return json({ deluxe: await owned() }, 200, origin);
       const { error } = await admin.rpc('gymplified_grant_deluxe', { p_user: user.id, p_source: 'stripe_restore', p_payment_intent: paid.id, p_checkout_session: null, p_amount: paid.amount_received, p_currency: paid.currency });
       if (error) throw error;
       return json({ deluxe: true, restored: true }, 200, origin);

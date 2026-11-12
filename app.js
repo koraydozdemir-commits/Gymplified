@@ -2958,7 +2958,7 @@ const FREE_ROUTINE_LIMIT=5;
 const DELUXE_CACHE_PREFIX='gymplified_deluxe_access_v1:';
 let deluxeAccess={checked:false,deluxe:false,salesOpen:false,userId:''};
 function readDeluxeCache(uid){try{const c=JSON.parse(localStorage.getItem(DELUXE_CACHE_PREFIX+uid)||'null');return c&&typeof c.deluxe==='boolean'?c:null;}catch(e){return null;}}
-function writeDeluxeCache(uid,value){try{localStorage.setItem(DELUXE_CACHE_PREFIX+uid,JSON.stringify({deluxe:!!value.deluxe,founder:!!value.founder,salesOpen:!!value.salesOpen,at:Date.now()}));}catch(e){}}
+function writeDeluxeCache(uid,value){try{localStorage.setItem(DELUXE_CACHE_PREFIX+uid,JSON.stringify({deluxe:!!value.deluxe,founder:!!value.founder,salesOpen:!!value.salesOpen,expiresAt:value.expiresAt||null,at:Date.now()}));}catch(e){}}
 // Deluxe batch: the server sends a short code with every error; people see a plain sentence, never
 // "Edge Function returned a non-2xx status code". Stripe's raw messages stay in the server logs.
 const DELUXE_ERRORS={
@@ -2987,12 +2987,13 @@ async function callDeluxe(action){
 async function refreshDeluxeAccess(){
  if(!sb||!currentUser){deluxeAccess={checked:true,deluxe:false,salesOpen:false,userId:'',confirming:!!deluxeAccess.confirming};renderDeluxeUI();return deluxeAccess;}
  const uid=currentUser.id;
- try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,founder:!!(d.deluxe&&d.founder),founderUntil:typeof d.founderUntil==='string'&&Number.isFinite(Date.parse(d.founderUntil))?d.founderUntil:null,salesOpen:!!d.salesOpen,mode:d.mode==='test'||d.mode==='live'?d.mode:null,userId:uid,confirming:!!deluxeAccess.confirming};writeDeluxeCache(uid,deluxeAccess);}
- catch(e){const c=readDeluxeCache(uid);deluxeAccess={checked:true,deluxe:!!(c&&c.deluxe),founder:!!(c&&c.deluxe&&c.founder),founderUntil:null,salesOpen:!!(c&&c.salesOpen),userId:uid,offline:true};}
+ try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,expiresAt:typeof d.expiresAt==='string'?d.expiresAt:null,founder:!!(d.deluxe&&d.founder),founderUntil:typeof d.founderUntil==='string'&&Number.isFinite(Date.parse(d.founderUntil))?d.founderUntil:null,salesOpen:!!d.salesOpen,mode:d.mode==='test'||d.mode==='live'?d.mode:null,userId:uid,confirming:!!deluxeAccess.confirming};writeDeluxeCache(uid,deluxeAccess);}
+ catch(e){const c=readDeluxeCache(uid);deluxeAccess={checked:true,deluxe:!!(c&&c.deluxe),expiresAt:c&&typeof c.expiresAt==='string'?c.expiresAt:null,founder:!!(c&&c.deluxe&&c.founder),founderUntil:null,salesOpen:!!(c&&c.salesOpen),userId:uid,offline:true};}
  if(currentUser&&currentUser.id===uid){applySettings();renderDeluxeUI();try{renderWorkoutHero();}catch(e){}try{renderAccountDeluxe();}catch(e){}}
  return deluxeAccess;
 }
-function deluxeOwned(){return !!(deluxeAccess.deluxe&&currentUser&&deluxeAccess.userId===currentUser.id);}
+// A temporary gift stops counting the moment its expiry passes, even from the offline cache.
+function deluxeOwned(){return !!(deluxeAccess.deluxe&&currentUser&&deluxeAccess.userId===currentUser.id&&(!deluxeAccess.expiresAt||Date.parse(deluxeAccess.expiresAt)>Date.now()));}
 function deluxeDemoOn(){if(!deluxeDemoAllowed())return false;try{return localStorage.getItem(DELUXE_DEMO_KEY)==='1';}catch(e){return false;}}
 async function buyDeluxe(button){
  if(!currentUser){showToast('Sign in or create an account first — Deluxe is linked to your account');openAccount('signup');return;}
@@ -3381,14 +3382,15 @@ function renderDeluxeUI(){
  const status=$('deluxeStatus'),toggle=$('deluxeDemoToggle'),locked=$('deluxeLockedNotice'),tools=$('deluxeTools'),demoBox=$('deluxeDemoControls'),demoBtn=$('deluxeDemoUnlockBtn');
  const set=(id,text)=>{const el=$(id);if(el)el.textContent=text;};
  const confirming=!!deluxeAccess.confirming&&!owned;
- if(status){status.textContent=owned?'✓ DELUXE UNLOCKED':demo?'✓ DEMO UNLOCKED':confirming?'CONFIRMING PAYMENT…':open?'ONE-TIME '+DELUXE_PRICE_LABEL:!signedIn?'SIGN IN TO BUY':'COMING SOON';status.classList.toggle('is-unlocked',enabled);}
+ const gift=owned&&!!deluxeAccess.expiresAt,giftUntil=gift?new Date(deluxeAccess.expiresAt).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
+ if(status){status.textContent=gift?'✓ DELUXE UNTIL '+giftUntil.toUpperCase():owned?'✓ DELUXE UNLOCKED':demo?'✓ DEMO UNLOCKED':confirming?'CONFIRMING PAYMENT…':open?'ONE-TIME '+DELUXE_PRICE_LABEL:!signedIn?'SIGN IN TO BUY':'COMING SOON';status.classList.toggle('is-unlocked',enabled);}
  const badge=$('deluxeModeBadge');if(badge)badge.hidden=!(open&&deluxeAccess.mode==='test');
- if($('deluxeBuyBtn'))$('deluxeBuyBtn').hidden=owned||confirming||!(open||!signedIn);
+ if($('deluxeBuyBtn'))$('deluxeBuyBtn').hidden=(owned&&!gift)||confirming||!(open||!signedIn);
  if($('deluxeRestoreBtn'))$('deluxeRestoreBtn').hidden=owned||!(open||!signedIn);
- set('deluxePriceNote',owned?'one-time · paid':open||!signedIn?'one-time · no subscription':'one-time · coming soon');
+ set('deluxePriceNote',gift?'one-time · keep it for good':owned?'one-time · paid':open||!signedIn?'one-time · no subscription':'one-time · coming soon');
  set('deluxeHeadline',enabled?'Your training, in full colour.':'See exactly what your training is doing.');
- set('deluxeHeroText',owned?'Thank you for supporting Gymplified. Deluxe is part of your account on every device.':'Tools that turn the workouts and meals you already log into trends, targets and a plan that adapts to you. The free tracker stays complete without them.');
- set('deluxeSalesNote',owned?'Deluxe is linked to your account. Sign in on any device to use it.':!signedIn?'Deluxe is linked to your Gymplified account. Sign in to buy it or restore an earlier purchase.':confirming?'We’re confirming your payment with Stripe. This usually takes a few seconds.':open?'One-time payment of '+DELUXE_PRICE_LABEL+'. No subscription. Sold through Link (Stripe), which shows any tax at checkout and emails your receipt. Changed your mind? Get a full refund within 14 days. Bought it before? Tap Restore purchase.':'Deluxe is not on sale yet. No payment is taken on this page.');
+ set('deluxeHeroText',gift?'Deluxe is unlocked on your account until '+giftUntil+'. Buy it once to keep it for good.':owned?'Thank you for supporting Gymplified. Deluxe is part of your account on every device.':'Tools that turn the workouts and meals you already log into trends, targets and a plan that adapts to you. The free tracker stays complete without them.');
+ set('deluxeSalesNote',gift?'Your Deluxe access is a gift and ends on '+giftUntil+'. Unlock Deluxe once to keep it on every device, with no subscription.':owned?'Deluxe is linked to your account. Sign in on any device to use it.':!signedIn?'Deluxe is linked to your Gymplified account. Sign in to buy it or restore an earlier purchase.':confirming?'We’re confirming your payment with Stripe. This usually takes a few seconds.':open?'One-time payment of '+DELUXE_PRICE_LABEL+'. No subscription. Sold through Link (Stripe), which shows any tax at checkout and emails your receipt. Changed your mind? Get a full refund within 14 days. Bought it before? Tap Restore purchase.':'Deluxe is not on sale yet. No payment is taken on this page.');
  set('deluxeLockedTitle',open?'Unlock Deluxe to use these tools.':'Deluxe tools are locked.');
  set('deluxeLockedText',open?'A one-time '+DELUXE_PRICE_LABEL+' purchase unlocks them on your account.':!signedIn?'Sign in to see whether Deluxe is available for your account.':'Deluxe is not on sale yet, so these tools cannot be unlocked.');
  if(toggle)toggle.textContent=demo?'Demo unlocked on this device':deluxeAccess.offline&&owned?'Offline — using your saved Deluxe status':'';

@@ -1271,7 +1271,7 @@ test('K2: index.html is a thin shell; styles and app code live in app.css and ap
   const sw = await readRaw('sw.js');
   assert.match(sw, /'\.\/app\.css',\n  '\.\/lib\.js',\n  '\.\/app\.js',\n  '\.\/plus\.js',\n  '\.\/deluxe\.js',/);
   assert.match(shell, /<script src="\.\/plus\.js"><\/script>\n<script src="\.\/deluxe\.js"><\/script>/, 'the Deluxe tools load after the app and feature scripts');
-  assert.match(sw, /if \(\/\\\/\(app\|lib\|plus\|deluxe\)\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
+  assert.match(sw, /if \(\/\\\/\(app\|lib\|plus\|deluxe\|growth\)\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
 });
 
 test('Deluxe admin toggle: service-role only, keeps paid records, and the admin page uses listeners and escaping', async () => {
@@ -1614,9 +1614,9 @@ test('DX7: deluxe.js follows the K3 rules and the tools stay behind the entitlem
   assert.match(js, /if\(deluxeEnabled\(\)&&typeof openDeluxeFeature==='function'&&openDeluxeFeature\(name\)\)return;/);
   assert.match(shell, /id="deluxeModalSample" hidden>Sample data\./);
   assert.match(dx, /function dxSampleContext\(\) \{[^}]*sample: true \}/);
-  // Six tools, six tabs, six sales cards with a preview each.
-  const features = [...dx.matchAll(/feature: '([^']+)'/g)].map(m => m[1]);
-  assert.equal(features.length, 6);
+  // Seven tools with a tab each, plus friend challenges (on the Friends screen); every one has a sales card with a preview.
+  const features = [...dx.matchAll(/feature: '([^']+)'/g)].map(m => m[1]).concat(['Friend challenges']);
+  assert.equal(features.length, 8);
   for (const f of features) { assert.ok(shell.includes('data-action="previewDeluxeFeature" data-arg="' + f + '"'), f + ' has a preview button'); assert.ok(js.includes("'" + f + "':'"), f + ' has preview copy'); assert.ok(dx.includes("name === '" + f + "'"), f + ' has a sample'); }
   assert.match(shell, /Free stays complete/);
   // Nothing free moved behind the paywall: the only limit on free accounts is still the routine count.
@@ -1627,9 +1627,73 @@ test('DX8: programmes carry their schedule through the sanitizer and into the tr
   const js = await readRaw('app.js'), dx = await readRaw('deluxe.js');
   assert.match(js, /program:GymLib\.sanitizePlanProgram\(p\.program\)/);
   assert.match(js, /GymLib\.progressedTarget\(e,plan\.program,weekIndex,weightUnit\(\)==='lb'\?KG_PER_LB:0\.5\)/);
-  assert.match(js, /plan:\{sets:t\.sets,reps:t\.reps,kg:t\.kg,name:plan\.name,day:day\.day\}/, 'planned-vs-completed is judged against the week’s target');
+  assert.match(js, /plan:\{sets:t\.sets,reps:t\.reps,kg:t\.kg,name:plan\.name,day:day\.day,why:t\.why\|\|'',adapt:t\.adapt\|\|''\}/, 'planned-vs-completed is judged against the session’s target');
+  // DX10: adaptive targets only change anything with Deluxe and when the plan has them switched on.
+  assert.match(js, /const adapt=typeof dxAdaptiveTarget==='function'&&deluxeEnabled\(\)&&program\.adaptive,/);
+  assert.match(js, /t=adapt\?dxAdaptiveTarget\(plan,e\.name,scheduled,deload\):scheduled;/);
+  assert.match(js, /\.\.\.\(w\.plan&&w\.plan\.sets>0\?\{target:\{sets:Number\(w\.plan\.sets\)/, 'finished sessions remember each planned target');
+  assert.match(js, /sets,\.\.\.\(ex\.target\?\{target:cleanExerciseTarget\(ex\.target\)\}:\{\}\)/, 'and the sanitizer keeps it');
+  assert.match(js, /why:safeStateText\(p\.why,'',200\)/);
+  assert.match(js, /esc\(w\.plan\.why\)/, 'the reason is escaped');
   assert.match(js, /confetti:\['gold','power'\]\.includes\(rawDeluxe\.confetti\)\?rawDeluxe\.confetti:'classic'/);
   assert.match(js, /const bits=\(deluxeEnabled\(\)&&state\.deluxe&&CONFETTI_SETS\[state\.deluxe\.confetti\]\)\|\|CONFETTI_SETS\.classic;/);
   assert.match(dx, /kg: dxStartKg\(name\)/, 'template weights come from the user’s own history or start empty');
   assert.match(await readRaw('index.html'), /Generic examples to build on\. They are not personal advice\./);
+});
+
+test('DX12/DX13: growth.js follows the K3 rules, stays free-friendly and never shows tips to owners or mid-workout', async () => {
+  const shell = await readRaw('index.html'), gx = await readRaw('growth.js'), js = await readRaw('app.js'), sw = await readRaw('sw.js');
+  assert.doesNotThrow(() => new Function(gx));
+  assert.equal(count(gx, /\son[a-z]+\s*=\s*\\?["']/gi), 0, 'no inline handlers');
+  assert.equal(count(gx, /\sstyle=\\?["']/g), 0, 'no inline styles');
+  assert.doesNotMatch(gx, /\beval\(|new Function\(|javascript:|\.style\.|<\/?script|sb\.from\(/i, 'nothing a strict CSP would block, and data only through RPCs');
+  const used = new Set([...(shell + gx).matchAll(/data-gx(?:-change|-submit)?="([A-Za-z]+)"/g)].map(m => m[1]));
+  const block = gx.slice(gx.indexOf('const GROWTH_ACTIONS = Object.freeze({'), gx.indexOf('function bindGrowthActions'));
+  const defined = new Set([...block.matchAll(/(?:^|[,{ ])([A-Za-z]+): (?:\(|el)/gm)].map(m => m[1]));
+  assert.deepEqual([...used].filter(x => !defined.has(x)), [], 'every growth action in markup is allowlisted');
+  assert.deepEqual([...defined].filter(x => !used.has(x)), [], 'no unused allowlist entries');
+  assert.match(gx, /Object\.prototype\.hasOwnProperty\.call\(GROWTH_ACTIONS, name\)/);
+  for (const field of ['tip.title', 'tip.text', 'c.title', 'name', 'personName(p)', 'p.username', 'summary.prs[0].name', 'value']) assert.ok(gx.includes('esc(' + field), field + ' is escaped');
+  // Tips: never for owners, only while on sale, never during a workout, and switchable off.
+  assert.match(gx, /function deluxeTipsAllowed\(\) \{\n  return !deluxeEnabled\(\) && !!deluxeAccess\.salesOpen && state\.settings\.deluxeTips !== false && !state\.session;\n\}/);
+  assert.match(shell, /id="deluxeTipsToggle" data-gx-change="setDeluxeTips"/);
+  assert.match(js, /if\(typeof settings\.deluxeTips==='boolean'\)state\.settings\.deluxeTips=settings\.deluxeTips;/);
+  // Free accounts keep everything they had: the routine limit and its message are unchanged, and joining challenges is free.
+  assert.match(js, /const FREE_ROUTINE_LIMIT=5;/);
+  assert.match(js, /return showToast\('Free accounts keep up to '\+FREE_ROUTINE_LIMIT\+' saved routines\. Delete one, or unlock Deluxe for unlimited routines\.'\);\}/);
+  assert.match(gx, /const canCreate = deluxeEnabled\(\);/);
+  assert.doesNotMatch(gx.slice(gx.indexOf('function respondChallenge'), gx.indexOf('function deleteChallenge')), /deluxeEnabled/, 'joining never checks Deluxe');
+  assert.match(shell, /<li>Joining friends’ challenges<\/li>/);
+  // Loaded last and cached for offline.
+  assert.match(shell, /<script src="\.\/deluxe\.js"><\/script>\n<script src="\.\/growth\.js"><\/script>/);
+  assert.match(sw, /'\.\/deluxe\.js',\n  '\.\/growth\.js',/);
+  assert.ok(Number(sw.match(/gymplified-shell-v(\d+)/)[1]) >= 33);
+});
+
+test('DX13: the growth migration is locked down and ships with a real-Postgres test', async () => {
+  const sql = await read('supabase/migrations/20261112090000_gymplified_deluxe_growth.sql');
+  for (const name of ['gymplified_friend_badges', 'gymplified_create_challenge', 'gymplified_respond_challenge', 'gymplified_delete_challenge', 'gymplified_my_challenges']) {
+    const start = sql.indexOf('FUNCTION public.' + name + '('), body = sql.slice(start, sql.indexOf('$function$;', start));
+    assert.ok(start > 0, name + ' exists');
+    assert.match(body, /SECURITY DEFINER\nSET search_path = pg_catalog, public/, name + ' pins search_path');
+    assert.match(body, /IF v_me IS NULL THEN RAISE EXCEPTION 'Authentication required'/, name + ' requires sign-in');
+    assert.match(sql, new RegExp('REVOKE ALL ON FUNCTION public\\.' + name + '\\([^)]*\\) FROM PUBLIC, anon;'));
+    assert.match(sql, new RegExp('GRANT EXECUTE ON FUNCTION public\\.' + name + '\\([^)]*\\) TO authenticated;'));
+  }
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.gymplified_is_founder\(uuid\) FROM PUBLIC, anon, authenticated;/);
+  for (const table of ['deluxe_settings', 'friend_challenges', 'friend_challenge_members']) {
+    assert.match(sql, new RegExp('ALTER TABLE public\\.' + table + ' ENABLE ROW LEVEL SECURITY;'));
+    assert.match(sql, new RegExp('REVOKE ALL ON TABLE public\\.' + table + ' FROM PUBLIC, anon, authenticated;'));
+  }
+  assert.doesNotMatch(sql, /CREATE POLICY|GRANT [A-Z, ]+ ON (TABLE )?public\./, 'tables are reachable only through the functions');
+  assert.match(sql, /RAISE EXCEPTION 'Creating challenges is part of Gymplified Deluxe'/, 'only Deluxe owners create');
+  assert.match(sql, /NOT public\.gymplified_are_friends\(v_me, x\)/, 'invitees must be friends');
+  assert.match(sql, /\(m\.user_id = v_me OR public\.gymplified_are_friends\(v_me, m\.user_id\)\) AS visible/, 'members see only themselves and their friends');
+  assert.match(sql, /public\.gymplified_shares\(COALESCE\(s\.state, '\{\}'::jsonb\), 'workouts'\)/, 'privacy settings apply');
+  assert.match(sql, /e\.source IN \('stripe_checkout', 'stripe_restore'\)/, 'admin grants are not founders');
+  const harness = await read('supabase/tests/deluxe_growth.sql');
+  assert.match(harness, /\\ir \.\.\/migrations\/20261112090000_gymplified_deluxe_growth\.sql/);
+  assert.match(harness, /deluxe growth tests passed/);
+  const fn = await read('supabase/functions/gymplified-deluxe/index.ts');
+  assert.match(fn, /founder: !!\(e\.deluxe && e\.founder\), founderUntil: salesOpen \? until : null/);
 });

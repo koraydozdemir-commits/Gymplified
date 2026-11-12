@@ -335,8 +335,9 @@ test('Deluxe planner: templates, week-by-week targets, deload and adherence', as
       for (const [name, sets, reps] of list) { assert.ok(lib.includes(name + ':'), name + ' is in the exercise library'); assert.ok(sets >= 1 && sets <= 20 && reps >= 1 && reps <= 100); }
     }
   }
-  assert.deepEqual(plain(L.sanitizePlanProgram(null)), { weeks: 0, start: '', mode: 'none', stepKg: 2.5, deload: false });
-  assert.deepEqual(plain(L.sanitizePlanProgram({ weeks: 99, start: '2026-02-30', mode: 'magic', stepKg: -4, deload: 1 })), { weeks: 16, start: '', mode: 'none', stepKg: 0, deload: true });
+  assert.deepEqual(plain(L.sanitizePlanProgram(null)), { weeks: 0, start: '', mode: 'none', stepKg: 2.5, deload: false, adaptive: true });
+  assert.deepEqual(plain(L.sanitizePlanProgram({ weeks: 99, start: '2026-02-30', mode: 'magic', stepKg: -4, deload: 1 })), { weeks: 16, start: '', mode: 'none', stepKg: 0, deload: true, adaptive: true });
+  assert.equal(L.sanitizePlanProgram({ adaptive: false }).adaptive, false, 'adaptive targets can be switched off per plan');
   assert.equal(L.sanitizePlanProgram({ weeks: 1 }).weeks, 0);
   const program = { weeks: 8, start: '2026-10-05', mode: 'weight', stepKg: 2.5, deload: true }, ex = { sets: 4, reps: 8, kg: 60 };
   assert.deepEqual(plain(L.planWeek(program, TODAY)), { week: 6, of: 8, index: 5, upcoming: false, finished: false, deload: false, weekStart: '2026-11-09' });
@@ -357,4 +358,76 @@ test('Deluxe planner: templates, week-by-week targets, deload and adherence', as
   assert.deepEqual(plain(adh.thisWeek), [{ day: 'Day 1 · Monday', done: true }, { day: 'Day 3 · Wednesday', done: false }], 'empty days are not expected');
   assert.equal(adh.done, 4); assert.equal(adh.expected, 11, 'five finished weeks of two days, plus the day already trained this week'); assert.equal(adh.pct, 36);
   assert.equal(L.planAdherence({ name: 'P', days: plan.days }, sessions, TODAY).pct, null, 'open-ended plans have no score');
+});
+
+test('DX10: adaptive programme targets follow what was lifted, not just the calendar', async () => {
+  const L = await loadLib();
+  const set = (kg, reps, type) => ({ kg, reps, type: type || 'normal' });
+  const session = (date, target, sets, plan = 'P', name = 'Bench') => ({ date, plan: { name: plan, day: 'Day 1 · Monday' }, exercises: [{ name, target, sets }] });
+  const t60 = { sets: 3, reps: 8, kg: 60 };
+  const hit = session('2026-11-02', t60, [set(30, 8, 'warmup'), set(60, 8), set(60, 9), set(60, 8)]);
+  const short = (date) => session(date, t60, [set(60, 8), set(60, 6), set(60, 5)]);
+  const results = list => L.planExerciseResults(list, 'P', 'bench');
+  assert.equal(L.targetSetsHit(results([hit])[0]), 3, 'warm-ups do not count');
+  assert.equal(results([hit, session('2026-11-03', t60, [], 'Other')]).length, 1, 'only the same plan counts');
+  assert.equal(results([{ date: '2026-11-02', plan: { name: 'P' }, exercises: [{ name: 'Bench', sets: [set(60, 8)] }] }]).length, 0, 'sessions without a recorded target are ignored');
+  const opts = { mode: 'weight', stepKg: 2.5, today: TODAY };
+  const scheduled = { sets: 3, reps: 8, kg: 70 };
+  const progress = L.adaptiveTarget(scheduled, results([hit]), opts);
+  assert.equal(progress.action, 'progress'); assert.equal(progress.kg, 62.5, 'one step above what was lifted, not a jump to the calendar target');
+  assert.deepEqual(plain(progress.reason), { code: 'progress', hit: 3, of: 3, reps: 8, kg: 60, date: '2026-11-02' });
+  assert.equal(L.adaptiveTarget({ sets: 3, reps: 8, kg: 61 }, results([hit]), opts).kg, 61, 'never past the calendar target');
+  const hold = L.adaptiveTarget(scheduled, results([short('2026-11-09')]), opts);
+  assert.equal(hold.action, 'hold'); assert.equal(hold.kg, 60); assert.equal(hold.reason.hit, 1);
+  const reset = L.adaptiveTarget(scheduled, results([short('2026-11-09'), short('2026-11-02')]), opts);
+  assert.equal(reset.action, 'reset'); assert.equal(reset.kg, 54, 'two misses at the same target drop about 10%');
+  assert.equal(L.adaptiveTarget(scheduled, results([short('2026-11-09'), hit]), opts).action, 'hold', 'one miss after a hit is only a hold');
+  assert.equal(L.adaptiveTarget(scheduled, [], opts).action, 'schedule');
+  assert.equal(L.adaptiveTarget(scheduled, results([session('2026-08-01', t60, [set(60, 8), set(60, 8), set(60, 8)])]), opts).reason.code, 'break', 'old results do not steer a comeback');
+  assert.equal(L.adaptiveTarget(scheduled, results([short('2026-11-09')]), Object.assign({ deload: true }, opts)).action, 'deload');
+  const reps = L.adaptiveTarget({ sets: 3, reps: 12, kg: 0 }, results([session('2026-11-09', { sets: 3, reps: 9, kg: 0 }, [set(0, 9), set(0, 9), set(0, 10)])]), { mode: 'reps', today: TODAY });
+  assert.deepEqual([reps.action, reps.reps, reps.kg], ['progress', 10, 0], 'rep programmes add one rep at a time');
+});
+
+test('DX11: maintenance calories come from intake and the weight trend, with safe targets and macros', async () => {
+  const L = await loadLib();
+  const intake = {}, weights = {};
+  for (let i = 1; i <= 28; i++) { const d = L.addDays(TODAY, -i); intake[d] = 2400; if (i % 3 === 0) weights[d] = 80 + i * (0.5 / 7); }
+  intake[L.addDays(TODAY, -2)] = 300; // an unfinished log
+  intake[TODAY] = 900; // today is still open
+  const e = L.energyBalance(intake, weights, TODAY);
+  assert.equal(e.ready, true); assert.equal(e.foodDays, 27, 'very low days and today are left out');
+  assert.equal(e.kgPerWeek, -0.5, 'losing half a kilo a week');
+  assert.equal(e.maintenance, 2950, '2,400 kcal eaten plus 550 kcal a day from the loss');
+  assert.equal(e.confidence, 'high');
+  const thin = L.energyBalance({ [L.addDays(TODAY, -1)]: 2000 }, { [TODAY]: 80 }, TODAY);
+  assert.equal(thin.ready, false); assert.equal(thin.needFoodDays, 14); assert.equal(thin.needWeighIns, 4);
+  const odd = {}; for (let i = 1; i <= 20; i++) odd[L.addDays(TODAY, -i)] = 900;
+  assert.equal(L.energyBalance(odd, { [L.addDays(TODAY, -20)]: 80, [L.addDays(TODAY, -14)]: 82, [L.addDays(TODAY, -7)]: 84, [TODAY]: 86 }, TODAY).implausible, true, 'impossible numbers are not offered');
+  assert.equal(L.energyBalance(intake, weights, 'nope').ready, false);
+  assert.deepEqual(plain(L.calorieTarget(2950, 'lose', 0.5, 80)), { goal: 'lose', kcal: 2510, perDay: -440, kgPerWeek: -0.4 });
+  assert.equal(L.calorieTarget(1500, 'lose', 1, 120).kcal, 1200, 'never below 1,200 kcal');
+  assert.equal(L.calorieTarget(2000, 'lose', 1, 150).kcal, 1500, 'never more than a 25% deficit');
+  assert.equal(L.calorieTarget(2500, 'gain', 5, 80).kcal, 2940, 'gaining is capped at 0.5% a week');
+  assert.equal(L.calorieTarget(2500, 'maintain', 1, 80).kcal, 2500);
+  assert.equal(L.calorieTarget(2500, 'nonsense', 1, 80).goal, 'maintain');
+  assert.deepEqual(plain(L.macroTargets(2500, 80, 'lose')), { protein: 160, fat: 69, carbs: 310 });
+  assert.deepEqual(plain(L.macroTargets(2000, 0, 'maintain')), { protein: 125, fat: 56, carbs: 249 }, 'without a body weight protein is a quarter of energy');
+});
+
+test('DX12/DX13: one tip at a time with a cooldown, and challenge standings', async () => {
+  const L = await loadLib(), day = 864e5, now = 100 * day;
+  const tips = [{ id: 'pr', priority: 3 }, { id: 'routine', priority: 5 }];
+  assert.equal(L.pickNudge(tips, {}, now).id, 'routine', 'highest priority first');
+  assert.equal(L.pickNudge(tips, { dismissed: { routine: true } }, now).id, 'pr');
+  assert.equal(L.pickNudge(tips, { current: { id: 'pr', at: now - day / 2 } }, now).id, 'pr', 'a shown tip stays for the day');
+  assert.equal(L.pickNudge(tips, { current: { id: 'pr', at: now - 2 * day } }, now), null, 'then a cooldown');
+  assert.equal(L.pickNudge(tips, { current: { id: 'pr', at: now - 4 * day } }, now).id, 'routine');
+  assert.equal(L.pickNudge(tips, { current: { id: 'routine', at: now - 4 * day }, seen: { routine: now - 4 * day } }, now).id, 'pr', 'a recently seen tip waits two weeks');
+  assert.equal(L.pickNudge(tips, { seen: { routine: now - 3 * day, pr: now - 5 * day } }, now), null);
+  assert.equal(L.pickNudge(tips, { seen: { routine: now - 15 * day } }, now).id, 'routine');
+  assert.equal(L.pickNudge([], {}, now), null);
+  const ranked = L.rankChallenge([{ user_id: 'a', progress: 4 }, { user_id: 'b', progress: 6 }, { user_id: 'c', progress: null }, { user_id: 'd', progress: 6 }], 5);
+  assert.deepEqual(ranked.map(r => [r.user_id, r.rank, r.pct, r.done]), [['b', 1, 100, true], ['d', 1, 100, true], ['a', 3, 80, false], ['c', null, 0, false]]);
+  assert.deepEqual(plain(L.CHALLENGE_METRICS), ['workouts', 'volume']);
 });

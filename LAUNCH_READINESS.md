@@ -109,3 +109,21 @@ See [SECURITY_REVIEW.md](SECURITY_REVIEW.md) for implementation notes and limits
 - [ ] Test concurrent edits to the same record; these still use last-write-wins semantics.
 - [ ] Enable leaked-password protection and verify production SMTP/email confirmation in Supabase Auth.
 - [ ] Complete strict CSP/SRI work, approved PWA icon variants and EU/UK legal review.
+
+## Deluxe growth release — 12 November 2026
+
+Implemented and covered by tests (unit, static, real-Postgres and a headless-browser run):
+- [x] Adaptive programme targets: a planned target moves up one step after a fully hit session, repeats after a miss, and drops about 10% after two misses at the same target. Each exercise card says why. On by default per plan; switch off in the planner. Finished sessions now record each planned target.
+- [x] Nutrition coach (new Deluxe tab): maintenance calories from the last four weeks of food logs and weigh-ins, a target for losing (up to 1% a week, never below 1,200 kcal or a 25% deficit), keeping or gaining (up to 0.5% a week) weight, and matching macros applied in one tap with Undo.
+- [x] Previews built from the user's own log once they have six finished workouts (analytics, coach, lift lab, reports); the nutrition preview says when the user's own estimate is ready.
+- [x] Deluxe tips: one dismissible dashboard tip at a time (new PR, stalled lift, routine limit reached, a month logged, maintenance estimate ready), never during a workout, shown only while Deluxe is on sale, with a 3-day cooldown and a 14-day pause per tip. Settings → Notifications turns them off. One extra line under a workout summary with a PR.
+- [x] Deluxe and Founding member badges next to friends on the leaderboard, feed and challenges (only when the owner shows the badge).
+- [x] Friend challenges: Deluxe owners start a workout-count or volume challenge (up to 9 weeks, up to 20 friends, 5 running at a time); anyone invited joins free. Members only see names and numbers for themselves and their own friends, and each person's privacy settings apply.
+- [x] Founding member offer: purchases before a server-side deadline keep a Founding member badge while the purchase is active.
+- [x] Nothing free moved behind the paywall. The free routine limit (5) is unchanged.
+
+To deploy:
+- [ ] Apply `supabase/migrations/20261112090000_gymplified_deluxe_growth.sql` (test locally first: `psql -v ON_ERROR_STOP=1 -f supabase/tests/deluxe_growth.sql` on an empty Postgres 16 database). Until it is applied, the app hides challenges and badges and shows no founder offer; everything else works.
+- [ ] Redeploy the `gymplified-deluxe` Edge Function so its status answer includes founder details.
+- [ ] Optional founder offer: `UPDATE public.deluxe_settings SET founder_until = '<date> 23:59:59+00' WHERE id = 1;` The Deluxe screen shows the offer only while that date is in the future and sales are open. Leave it NULL for no offer. Note that a purchase recovered with Restore purchase is dated when it was restored, not when it was paid.
+- [ ] Review the updated privacy (friend challenges, badges) and terms (founding members) wording.

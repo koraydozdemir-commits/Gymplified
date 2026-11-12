@@ -490,7 +490,8 @@
   function sanitizePlanProgram(raw) {
     const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
     const weeks = Math.round(num(src.weeks, 0, 16, 0));
-    return { weeks: weeks >= 2 ? weeks : 0, start: isDay(src.start) ? src.start : '', mode: PLAN_MODES.includes(src.mode) ? src.mode : 'none', stepKg: round(num(src.stepKg, 0, 20, 2.5), 3), deload: !!src.deload };
+    // `adaptive` is on unless explicitly switched off, so plans saved before it existed adapt too.
+    return { weeks: weeks >= 2 ? weeks : 0, start: isDay(src.start) ? src.start : '', mode: PLAN_MODES.includes(src.mode) ? src.mode : 'none', stepKg: round(num(src.stepKg, 0, 20, 2.5), 3), deload: !!src.deload, adaptive: src.adaptive !== false };
   }
 
   // Where `today` falls in a programme. null when the plan has no schedule.
@@ -530,11 +531,141 @@
   }
 
 
+  // ---- DX10: adaptive programme targets ----------------------------------------------------------
+  // A programme's calendar says what each week should be. Adaptive targets check that against what was
+  // actually lifted the last time this exercise came up in the same plan, so a missed session is repeated
+  // instead of piling more weight on top, and two misses in a row step back about 10% to build up again.
+  const lowerName = value => String(value || '').trim().toLowerCase();
+  // Newest first: [{ date, target: { sets, reps, kg }, sets: [...] }] for one exercise in one plan.
+  // Only sessions that recorded the planned target for the exercise count.
+  function planExerciseResults(sessions, planName, exerciseName, limit) {
+    const plan = String(planName || ''), key = lowerName(exerciseName), max = Math.round(num(limit, 1, 20, 3));
+    if (!plan || !key) return [];
+    return validSessions(sessions).filter(s => s.plan && s.plan.name === plan)
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .map(s => {
+        const ex = s.exercises.find(e => e && lowerName(e.name) === key && e.target && typeof e.target === 'object');
+        return ex ? { date: s.date, target: { sets: Math.round(num(ex.target.sets, 1, 20, 3)), reps: Math.round(num(ex.target.reps, 1, 100, 8)), kg: num(ex.target.kg, 0, 1000, 0) }, sets: Array.isArray(ex.sets) ? ex.sets : [] } : null;
+      })
+      .filter(Boolean).slice(0, max);
+  }
+  // How many working sets reached the target weight and reps.
+  function targetSetsHit(result) {
+    if (!result || !result.target) return 0;
+    const t = result.target;
+    return (result.sets || []).filter(s => s && s.type !== 'warmup' && Number(s.kg) >= t.kg - 0.01 && Number(s.reps) >= t.reps).length;
+  }
+  // scheduled: this week's target from progressedTarget. results: from planExerciseResults.
+  // options: { mode, stepKg, roundKg, deload, today }.
+  // Returns the target plus a structured reason the app turns into a sentence:
+  //   schedule — nothing to compare with, so the calendar target stands
+  //   progress — every planned set was hit last time; at most one step above what was lifted
+  //   hold     — last time fell short, so repeat that target
+  //   reset    — two sessions in a row fell short of the same target, so drop about 10% and rebuild
+  //   deload   — the planned lighter week
+  function adaptiveTarget(scheduled, results, options) {
+    const opts = options || {}, unit = Number(opts.roundKg) > 0 ? Number(opts.roundKg) : 0.5, snap = kg => round(Math.round(kg / unit) * unit, 3);
+    const base = { sets: Math.round(num(scheduled && scheduled.sets, 1, 20, 3)), reps: Math.round(num(scheduled && scheduled.reps, 1, 100, 8)), kg: num(scheduled && scheduled.kg, 0, 1000, 0) };
+    const list = Array.isArray(results) ? results.filter(r => r && r.target) : [];
+    const last = list[0], stale = last && isDay(opts.today) && dayDiff(last.date, opts.today) > 42;
+    if (opts.deload) return Object.assign({}, base, { action: 'deload', reason: { code: 'deload' } });
+    if (!last || stale) return Object.assign({}, base, { action: 'schedule', reason: { code: stale ? 'break' : 'schedule' } });
+    const t = last.target, hit = targetSetsHit(last), why = { hit, of: t.sets, reps: t.reps, kg: t.kg, date: last.date };
+    if (hit >= t.sets) {
+      // One step beyond what was lifted, never past the calendar target.
+      const stepKg = opts.mode === 'weight' && t.kg > 0 ? num(opts.stepKg, 0, 20, 2.5) : 0, stepReps = opts.mode === 'reps' ? 1 : 0;
+      return { sets: base.sets, reps: Math.min(base.reps, t.reps + stepReps), kg: Math.min(base.kg, round(t.kg + stepKg, 3)), action: 'progress', reason: Object.assign({ code: 'progress' }, why) };
+    }
+    const prev = list[1], sameTarget = prev && prev.target.kg === t.kg && prev.target.reps === t.reps;
+    if (prev && sameTarget && targetSetsHit(prev) < prev.target.sets && t.kg > 0) {
+      return { sets: base.sets, reps: t.reps, kg: snap(t.kg * 0.9), action: 'reset', reason: Object.assign({ code: 'reset' }, why) };
+    }
+    // Repeat what fell short, unless the plan itself now asks for less.
+    return { sets: base.sets, reps: Math.min(base.reps, t.reps), kg: Math.min(base.kg, t.kg), action: 'hold', reason: Object.assign({ code: 'hold' }, why) };
+  }
+
+  // ---- DX11: adaptive calorie targets ------------------------------------------------------------
+  // Maintenance is estimated from what was eaten and what the scale did: a kilogram of body weight is
+  // taken as about 7,700 kcal, so intake minus the energy in the weight change is what the body used.
+  const KCAL_PER_KG = 7700;
+  // Least-squares slope of weight against day number, in kg per day.
+  function weightSlope(points) {
+    const n = points.length; if (n < 2) return 0;
+    const mx = points.reduce((a, p) => a + p.x, 0) / n, my = points.reduce((a, p) => a + p.y, 0) / n;
+    const sxx = points.reduce((a, p) => a + (p.x - mx) ** 2, 0); if (!sxx) return 0;
+    return points.reduce((a, p) => a + (p.x - mx) * (p.y - my), 0) / sxx;
+  }
+  // intake: { 'YYYY-MM-DD': kcal } for finished days. weights: { 'YYYY-MM-DD': kg }.
+  // Today is left out because its food log is still open. Very low days are treated as unfinished logs.
+  function energyBalance(intake, weights, today, options) {
+    const opts = options || {}, span = Math.round(num(opts.days, 14, 90, 28)), minKcal = num(opts.minDayKcal, 0, 3000, 800);
+    const needFood = Math.round(num(opts.minFoodDays, 7, 60, 14)), needWeighIns = Math.round(num(opts.minWeighIns, 2, 30, 4)), needSpan = Math.round(num(opts.minSpanDays, 7, 60, 14));
+    if (!isDay(today)) return { ready: false, foodDays: 0, weighIns: 0, spanDays: 0, needFoodDays: needFood, needWeighIns: needWeighIns, needSpanDays: needSpan };
+    const from = addDays(today, -span);
+    const foodDays = Object.keys(intake || {}).filter(d => isDay(d) && d >= from && d < today && Number(intake[d]) >= minKcal).sort();
+    const weighDays = Object.keys(weights || {}).filter(d => isDay(d) && d >= from && d <= today && Number(weights[d]) >= 20 && Number(weights[d]) <= 400).sort();
+    const spanDays = weighDays.length ? dayDiff(weighDays[0], weighDays[weighDays.length - 1]) : 0;
+    const out = { ready: false, from, foodDays: foodDays.length, weighIns: weighDays.length, spanDays, needFoodDays: needFood, needWeighIns: needWeighIns, needSpanDays: needSpan };
+    if (foodDays.length < needFood || weighDays.length < needWeighIns || spanDays < needSpan) return out;
+    const avgIntake = foodDays.reduce((a, d) => a + Number(intake[d]), 0) / foodDays.length;
+    const slope = weightSlope(weighDays.map(d => ({ x: dayDiff(from, d), y: Number(weights[d]) })));
+    const maintenance = avgIntake - slope * KCAL_PER_KG;
+    if (!(maintenance >= 1000 && maintenance <= 6000)) return Object.assign(out, { implausible: true, avgIntake: Math.round(avgIntake), kgPerWeek: round(slope * 7, 2) });
+    const confidence = foodDays.length >= 21 && weighDays.length >= 8 ? 'high' : 'medium';
+    return Object.assign(out, { ready: true, avgIntake: Math.round(avgIntake), kgPerWeek: round(slope * 7, 2), maintenance: Math.round(maintenance / 10) * 10, confidence });
+  }
+  const CALORIE_GOALS = ['lose', 'maintain', 'gain'];
+  // ratePct: body weight per week, as a percentage. Losing is capped at 1% a week and never more than a
+  // 25% deficit or below 1,200 kcal; gaining is capped at 0.5% a week.
+  function calorieTarget(maintenance, goal, ratePct, bodyKg) {
+    const m = num(maintenance, 1000, 6000, 2000), g = CALORIE_GOALS.includes(goal) ? goal : 'maintain', body = num(bodyKg, 0, 400, 0);
+    const rate = g === 'lose' ? num(ratePct, 0, 1, 0.5) : g === 'gain' ? num(ratePct, 0, 0.5, 0.25) : 0;
+    let perDay = body > 0 ? rate / 100 * body * KCAL_PER_KG / 7 : 0;
+    if (g === 'lose') perDay = -Math.min(perDay, m * 0.25);
+    let kcal = Math.round((m + perDay) / 10) * 10;
+    if (g === 'lose') kcal = Math.max(1200, kcal);
+    return { goal: g, kcal, perDay: kcal - m, kgPerWeek: round((kcal - m) * 7 / KCAL_PER_KG, 2) };
+  }
+  // Protein from body weight (more while losing), fat at a quarter of energy with a floor, carbs fill the rest.
+  function macroTargets(kcal, bodyKg, goal) {
+    const k = num(kcal, 800, 8000, 2000), body = num(bodyKg, 0, 400, 0);
+    const protein = Math.min(300, body > 0 ? Math.round(body * (goal === 'lose' ? 2 : 1.8)) : Math.round(k * 0.25 / 4));
+    const fat = Math.max(body > 0 ? Math.round(body * 0.6) : 0, Math.round(k * 0.25 / 9));
+    return { protein, fat, carbs: Math.max(0, Math.round((k - protein * 4 - fat * 9) / 4)) };
+  }
+
+  // ---- DX12: one Deluxe tip at a time --------------------------------------------------------------
+  // candidates: [{ id, priority }] that apply right now.
+  // memory: { dismissed: { id: true }, current: { id, at }, seen: { id: at } }.
+  // A tip stays for a day once shown, then nothing new appears until the cooldown has passed, and a tip
+  // that was shown in the last two weeks waits its turn behind the others.
+  function pickNudge(candidates, memory, now, cooldownMs) {
+    const m = memory && typeof memory === 'object' ? memory : {}, dismissed = m.dismissed || {}, seen = m.seen || {}, at = Number(now) || 0;
+    const cool = Number.isFinite(Number(cooldownMs)) ? Number(cooldownMs) : 3 * 864e5;
+    const open = (Array.isArray(candidates) ? candidates : []).filter(c => c && c.id && !dismissed[c.id]);
+    const current = m.current && typeof m.current === 'object' ? m.current : null, since = current ? at - (Number(current.at) || 0) : Infinity;
+    if (current && since < 864e5) return open.find(c => c.id === current.id) || null;
+    if (current && since < cool) return null;
+    return open.filter(c => !(at - (Number(seen[c.id]) || 0) < 14 * 864e5)).sort((a, b) => (Number(b.priority) || 0) - (Number(a.priority) || 0))[0] || null;
+  }
+
+  // ---- DX13: friend challenges ---------------------------------------------------------------------
+  const CHALLENGE_METRICS = ['workouts', 'volume'];
+  // members: [{ user_id, progress, is_private }]. Highest first; ties share a rank; hidden progress goes last.
+  function rankChallenge(members, target) {
+    const goal = num(target, 0, 1e9, 0), list = Array.isArray(members) ? members : [];
+    const shown = list.filter(m => m && m.progress !== null && m.progress !== undefined).sort((a, b) => Number(b.progress) - Number(a.progress));
+    let rank = 0, prev = null;
+    return shown.map((m, i) => { const p = Number(m.progress) || 0; if (p !== prev) { rank = i + 1; prev = p; } return Object.assign({}, m, { rank, pct: goal > 0 ? Math.min(100, Math.round(p / goal * 100)) : 0, done: goal > 0 && p >= goal }); })
+      .concat(list.filter(m => m && (m.progress === null || m.progress === undefined)).map(m => Object.assign({}, m, { rank: null, pct: 0, done: false })));
+  }
+
   root.GymLib = Object.freeze({
     DEFAULT_PLATES_KG, DEFAULT_PLATES_LB, MEASURE_FIELDS, DEFAULT_SUPPLEMENTS, STARTER_ROUTINES,
     platesPerSide, warmupSets, overloadSuggestion, parseQuickAdd, quickAlias, QUICK_ALIASES, moveItem, groupBounds, restDueAfterSet, normaliseGroups,
     sessionTotals, calendarWeeks, monthReport, muscleRecency, weightTrend, storageUse, sanitizeExtras, sanitizeGear, isDay, addDays,
     MUSCLE_GROUPS, REP_TARGETS, PLAN_TEMPLATES, WEEKDAY_NAMES, e1rm, sessionVolume, weeklySeries, periodChange, weekdayPattern, consistency, exerciseHistory, exerciseNames,
-    repMaxes, projection, liftTrends, muscleBalance, risingWeeks, coachInsights, sanitizePlanProgram, planWeek, progressedTarget, planAdherence
+    repMaxes, projection, liftTrends, muscleBalance, risingWeeks, coachInsights, sanitizePlanProgram, planWeek, progressedTarget, planAdherence,
+    planExerciseResults, targetSetsHit, adaptiveTarget, KCAL_PER_KG, CALORIE_GOALS, energyBalance, calorieTarget, macroTargets, pickNudge, CHALLENGE_METRICS, rankChallenge
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

@@ -13,12 +13,24 @@ function cors(origin) {
 }
 function json(body, status, origin) { return new Response(JSON.stringify(body), { status, headers: { ...cors(origin), 'Content-Type': 'application/json' } }); }
 
+// Which Stripe mode the configured key belongs to, so the app can show a "test mode" badge.
+function stripeMode(key) { return /^(sk|rk)_live_/.test(key || '') ? 'live' : /^(sk|rk)_test_/.test(key || '') ? 'test' : null; }
+// Stripe's own messages go to the logs only; the app gets a short code and a plain sentence.
+function stripeErrorCode(message) {
+  const m = String(message || '').toLowerCase();
+  if (m.includes('permission') || m.includes('restricted key')) return 'stripe_permission';
+  if (m.includes('tax code') || m.includes('no such price') || m.includes('managed payments') || m.includes('unsupported parameter')) return 'stripe_setup';
+  if (m.includes('api key') || m.includes('invalid api')) return 'stripe_key';
+  return 'stripe_error';
+}
+class StripeError extends Error { constructor(message) { super(message); this.code = stripeErrorCode(message); } }
+
 async function stripe(path, { method = 'GET', params = null, query = null } = {}) {
   const key = Deno.env.get('STRIPE_SECRET_KEY');
   const url = 'https://api.stripe.com/v1/' + path + (query ? '?' + formEncode(query).toString() : '');
   const res = await fetch(url, { method, headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params ? formEncode(params).toString() : undefined });
   const data = await res.json();
-  if (!res.ok) throw new Error((data && data.error && data.error.message) || 'Stripe request failed');
+  if (!res.ok) throw new StripeError((data && data.error && data.error.message) || 'Stripe request failed');
   return data;
 }
 
@@ -29,27 +41,27 @@ Deno.serve(async (req) => {
   if (origin && !ALLOWED_ORIGINS.includes(origin)) return json({ error: 'Origin not allowed' }, 403, origin);
   try {
     const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '');
-    if (!token) return json({ error: 'Sign in required' }, 401, origin);
+    if (!token) return json({ error: 'Sign in required', code: 'signed_out' }, 401, origin);
     const url = Deno.env.get('SUPABASE_URL');
     // Newer projects expose keys as JSON maps instead of the legacy single-key variables.
     const anon = Deno.env.get('SUPABASE_ANON_KEY') || JSON.parse(Deno.env.get('SUPABASE_PUBLISHABLE_KEYS') || '{}').default;
     const service = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}').default;
-    if (!url || !anon || !service) return json({ error: 'Server configuration is incomplete' }, 500, origin);
+    if (!url || !anon || !service) return json({ error: 'Server configuration is incomplete', code: 'server_config' }, 500, origin);
     const userClient = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false }, global: { headers: { Authorization: 'Bearer ' + token } } });
     const { data: auth, error: authError } = await userClient.auth.getUser(token);
-    if (authError || !auth.user) return json({ error: 'Your session is invalid. Please sign in again.' }, 401, origin);
+    if (authError || !auth.user) return json({ error: 'Your session is invalid. Please sign in again.', code: 'session' }, 401, origin);
     const user = auth.user, admin = createClient(url, service, { auth: { persistSession: false, autoRefreshToken: false } });
     const salesOpen = !!(Deno.env.get('STRIPE_SECRET_KEY') && Deno.env.get('STRIPE_PRICE_DELUXE'));
     const owned = async () => { const { data, error } = await userClient.rpc('gymplified_my_entitlement'); if (error) throw error; return !!(data && data.deluxe); };
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || 'status');
 
-    if (action === 'status') return json({ deluxe: await owned(), salesOpen }, 200, origin);
+    if (action === 'status') return json({ deluxe: await owned(), salesOpen, mode: salesOpen ? stripeMode(Deno.env.get('STRIPE_SECRET_KEY')) : null }, 200, origin);
 
     if (action === 'checkout') {
-      if (!salesOpen) return json({ error: 'Deluxe is not on sale yet.' }, 409, origin);
+      if (!salesOpen) return json({ error: 'Deluxe is not on sale yet.', code: 'not_on_sale' }, 409, origin);
       if (await owned()) return json({ deluxe: true, alreadyOwned: true }, 200, origin);
-      if (!user.email_confirmed_at) return json({ error: 'Please verify your email address before buying Deluxe.' }, 403, origin);
+      if (!user.email_confirmed_at) return json({ error: 'Please verify your email address before buying Deluxe.', code: 'email_unverified' }, 403, origin);
       const session = await stripe('checkout/sessions', { method: 'POST', params: deluxeCheckoutParams({
         priceId: Deno.env.get('STRIPE_PRICE_DELUXE'), userId: user.id, email: user.email,
         siteUrl: Deno.env.get('DELUXE_SITE_URL') || 'https://gymplified.com',
@@ -73,9 +85,10 @@ Deno.serve(async (req) => {
       if (error) throw error;
       return json({ deluxe: true, restored: true }, 200, origin);
     }
-    return json({ error: 'Unknown action' }, 400, origin);
+    return json({ error: 'Unknown action', code: 'bad_request' }, 400, origin);
   } catch (error) {
     console.error('gymplified-deluxe:', error);
-    return json({ error: 'Something went wrong. Please try again.' }, 500, origin);
+    const code = error instanceof StripeError ? error.code : 'server_error';
+    return json({ error: 'Something went wrong. Please try again.', code }, code === 'server_error' ? 500 : 502, origin);
   }
 });

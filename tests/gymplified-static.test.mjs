@@ -1480,3 +1480,65 @@ test('C4: warmer palette and rounded headings without breaking high contrast or 
   assert.match(html, /<meta name="theme-color" content="#15120f">/);
   assert.doesNotMatch(css.replace(/\/\*[\s\S]*?\*\//g, ''), /@import|fonts\.googleapis|@font-face/, 'no web fonts are downloaded');
 });
+
+// ===== Deluxe batch A: a proper payment experience =====
+test('DX1: Deluxe errors show a plain sentence, never the raw "non-2xx" or Stripe message', async () => {
+  const js = await readRaw('app.js');
+  const block = js.slice(js.indexOf('const DELUXE_ERRORS={'), js.indexOf('async function callDeluxe('));
+  const text = new Function(block + ';return deluxeErrorText;')();
+  assert.match(text('email_unverified'), /verify your email/);
+  assert.match(text('not_on_sale'), /isn’t on sale/);
+  for (const c of ['stripe_setup', 'stripe_permission', 'stripe_key', 'stripe_error', 'server_config']) assert.match(text(c), /Nothing was charged/, c + ' → friendly checkout message');
+  assert.equal(text('constructor'), text('server_error'), 'unknown codes never read inherited properties');
+  assert.doesNotMatch(block, /non-2xx/);
+  const call = extractFunctions(js, ['callDeluxe']);
+  assert.match(call, /body=await ctx\.clone\(\)\.json\(\)/, 'reads the server explanation from the error response');
+  assert.doesNotMatch(call, /throw r\.error/, 'the raw client error is never shown');
+  const fn = await read('supabase/functions/gymplified-deluxe/index.ts');
+  assert.match(fn, /code: 'email_unverified'/); assert.match(fn, /code: 'not_on_sale'/);
+  assert.match(fn, /return json\(\{ error: 'Something went wrong\. Please try again\.', code \}/, 'Stripe messages stay in the server log');
+  const mode = new Function(fn.match(/function stripeMode\(key\) \{[^\n]*\}/)[0] + ';return stripeMode;')();
+  assert.deepEqual(['sk_test_x', 'rk_test_x', 'sk_live_x', 'rk_live_x', '', 'pk_test_x'].map(mode), ['test', 'test', 'live', 'live', null, null]);
+});
+
+test('DX2: purchase states — opening checkout, confirming payment, test-mode badge, welcome', async () => {
+  const js = await readRaw('app.js'), html = await readRaw('index.html');
+  assert.match(js, /button\.textContent='Opening secure checkout…'/);
+  assert.match(js, /if\(button&&!leaving\)\{button\.disabled=false;/, 'the button comes back if checkout fails');
+  assert.match(js, /confirming\?'CONFIRMING PAYMENT…'/);
+  assert.match(js, /\}finally\{deluxeAccess\.confirming=false;renderDeluxeUI\(\);\}/);
+  assert.match(js, /deluxeAccess=\{checked:true,deluxe:false,salesOpen:false,userId:'',confirming:!!deluxeAccess\.confirming\}/, 'a refresh before sign-in loads keeps the confirming state');
+  assert.match(js, /title:'Welcome to Deluxe!'/);
+  assert.match(html, /<span class="deluxe-mode-badge" id="deluxeModeBadge" hidden>Test mode · no real money is taken<\/span>/);
+  assert.match(js, /badge\.hidden=!\(open&&deluxeAccess\.mode==='test'\)/);
+  assert.match(js, /Any tax is shown at checkout, and Stripe emails your receipt\./);
+});
+
+test('DX3: the Account screen shows how Deluxe was obtained', async () => {
+  const js = await readRaw('app.js');
+  const api = new Function('DELUXE_PRICE_LABEL', extractFunctions(js, ['formatMoney', 'accountDeluxeSummary']) + ';return accountDeluxeSummary;')('€9.99');
+  assert.match(api(null, false), /don’t have Deluxe yet.*€9\.99/);
+  assert.match(api({ source: 'stripe_checkout', granted_at: '2026-11-12T10:00:00Z', amount_total: 999, currency: 'eur' }, true), /purchased on .* for .*9[.,]99.*Stripe emailed your receipt/);
+  assert.match(api({ source: 'admin', granted_at: '2026-11-12T10:00:00Z' }, true), /gift from Gymplified/);
+  assert.match(api({ source: 'stripe_checkout', revoked_at: '2026-11-12' }, true), /don’t have Deluxe yet/);
+  assert.match(js, /\.from\('deluxe_entitlements'\)\.select\('source,granted_at,amount_total,currency,revoked_at'\)\.eq\('user_id',uid\)\.maybeSingle\(\)/);
+  assert.match(js, /\$\('accountDeluxeText'\)\.textContent=accountDeluxeSummary/, 'set as text');
+});
+
+test('DX4: admin payment health check never returns secrets; refunds link to Stripe', async () => {
+  const fn = await read('supabase/functions/gymplified-admin-users/index.ts'), page = await read('admin-users.html');
+  const block = fn.slice(fn.indexOf('if (action === "payment_health")'), fn.indexOf('if (action === "set_deluxe")'));
+  assert.ok(block.length > 500);
+  assert.doesNotMatch(block, /return json\([^;]*\b(key|whsec|priceId)\b\s*[,}]/, 'no key, signing secret or raw env value in the response');
+  for (const id of ['key', 'price', 'tax', 'webhook', 'managed']) assert.match(block, new RegExp('id: "' + id + '"'));
+  assert.ok(fn.indexOf('rpc("get_admin_analytics"') < fn.indexOf('if (action === "payment_health")'), 'admin allowlist checked first');
+  assert.match(page, /\$\('paymentHealthBtn'\)\.addEventListener\('click',checkPaymentHealth\)/);
+  assert.match(page, /<strong>'\+esc\(x\.label\)\+'<\/strong><span class="sub">'\+esc\(x\.detail\)\+'<\/span>/, 'details are escaped');
+  assert.match(page, /\/\^pi_\[A-Za-z0-9\]\+\$\/\.test\(x\.payment_intent\)/, 'only a real payment id becomes a link');
+  assert.match(page, /rel="noopener noreferrer"/);
+});
+
+test('DX5: hidden buttons are really hidden (owners never see "Unlock Deluxe")', async () => {
+  const css = await readRaw('app.css');
+  assert.match(css, /\.btn\[hidden\],button\[hidden\]\{display:none!important\}/);
+});

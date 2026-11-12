@@ -343,7 +343,7 @@ function showScreen(screenId, btn) {
   if(staleScreens.has(screenId))renderScreen(screenId);
   // Highlight by screen, not by the clicked element, so code-driven navigation and the More menu stay in sync.
   document.querySelectorAll('nav button[data-screen]').forEach(b => b.classList.toggle('active', b.dataset.screen===screenId || (b.dataset.screen==='more' && MORE_SCREENS.includes(screenId))));
-  markNav(); scrollTo(0,0); announceScreen(screenId,true); if(screenId==='friends')renderFriends(); if(screenId==='account')renderFriends(); if(screenId==='settings'&&currentUser)loadSupportTickets();
+  markNav(); scrollTo(0,0); announceScreen(screenId,true); if(screenId==='friends')renderFriends(); if(screenId==='account'){renderFriends();renderAccountDeluxe(true);} if(screenId==='settings'&&currentUser)loadSupportTickets();
   if(screenId === 'prs') { nextQuote(); }
   if(screenId === 'deluxe'){ renderDeluxeUI(); if(currentUser) refreshDeluxeAccess(); }
 }
@@ -2945,36 +2945,54 @@ const DELUXE_CACHE_PREFIX='gymplified_deluxe_access_v1:';
 let deluxeAccess={checked:false,deluxe:false,salesOpen:false,userId:''};
 function readDeluxeCache(uid){try{const c=JSON.parse(localStorage.getItem(DELUXE_CACHE_PREFIX+uid)||'null');return c&&typeof c.deluxe==='boolean'?c:null;}catch(e){return null;}}
 function writeDeluxeCache(uid,value){try{localStorage.setItem(DELUXE_CACHE_PREFIX+uid,JSON.stringify({deluxe:!!value.deluxe,salesOpen:!!value.salesOpen,at:Date.now()}));}catch(e){}}
+// Deluxe batch: the server sends a short code with every error; people see a plain sentence, never
+// "Edge Function returned a non-2xx status code". Stripe's raw messages stay in the server logs.
+const DELUXE_ERRORS={
+ signed_out:'Sign in to continue. Deluxe is linked to your account.',
+ session:'Your sign-in has expired. Please log in again.',
+ email_unverified:'Please verify your email address first. Check your inbox for the Gymplified email.',
+ not_on_sale:'Deluxe isn’t on sale just yet. Check back soon!',
+ offline:'You seem to be offline. Connect to the internet to open checkout.',
+ checkout:'Checkout couldn’t open right now. Nothing was charged, so please try again in a few minutes.',
+ server_error:'Something went wrong on our side. Nothing was charged, so please try again.'
+};
+function deluxeErrorText(code){return /^stripe_|^server_config$/.test(String(code||''))?DELUXE_ERRORS.checkout:(Object.prototype.hasOwnProperty.call(DELUXE_ERRORS,code)?DELUXE_ERRORS[code]:DELUXE_ERRORS.server_error);}
+function deluxeError(code){const e=new Error(deluxeErrorText(code));e.code=String(code||'server_error');return e;}
 async function callDeluxe(action){
- if(!sb||!currentUser)throw new Error('Sign in to continue');
- const r=await sb.functions.invoke('gymplified-deluxe',{body:{action}});
- if(r.error)throw r.error;if(r.data&&r.data.error)throw new Error(r.data.error);
+ if(!sb||!currentUser)throw deluxeError('signed_out');
+ let r;try{r=await sb.functions.invoke('gymplified-deluxe',{body:{action}});}catch(e){throw deluxeError(navigator.onLine===false?'offline':'server_error');}
+ if(r.error){
+  let body=null;try{const ctx=r.error.context;if(ctx&&typeof ctx.clone==='function')body=await ctx.clone().json();}catch(_){}
+  throw deluxeError(body&&typeof body.code==='string'?body.code:(r.error.name==='FunctionsFetchError'||navigator.onLine===false?'offline':'server_error'));
+ }
+ if(r.data&&r.data.error)throw deluxeError(r.data.code);
  return r.data||{};
 }
 // The server answer always wins. A cached answer is only used when the server cannot be reached
 // (offline), so a paying user keeps Deluxe in the gym without signal.
 async function refreshDeluxeAccess(){
- if(!sb||!currentUser){deluxeAccess={checked:true,deluxe:false,salesOpen:false,userId:''};renderDeluxeUI();return deluxeAccess;}
+ if(!sb||!currentUser){deluxeAccess={checked:true,deluxe:false,salesOpen:false,userId:'',confirming:!!deluxeAccess.confirming};renderDeluxeUI();return deluxeAccess;}
  const uid=currentUser.id;
- try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,salesOpen:!!d.salesOpen,userId:uid};writeDeluxeCache(uid,deluxeAccess);}
+ try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,salesOpen:!!d.salesOpen,mode:d.mode==='test'||d.mode==='live'?d.mode:null,userId:uid,confirming:!!deluxeAccess.confirming};writeDeluxeCache(uid,deluxeAccess);}
  catch(e){const c=readDeluxeCache(uid);deluxeAccess={checked:true,deluxe:!!(c&&c.deluxe),salesOpen:!!(c&&c.salesOpen),userId:uid,offline:true};}
- if(currentUser&&currentUser.id===uid){renderDeluxeUI();try{renderWorkoutHero();}catch(e){}}
+ if(currentUser&&currentUser.id===uid){renderDeluxeUI();try{renderWorkoutHero();}catch(e){}try{renderAccountDeluxe();}catch(e){}}
  return deluxeAccess;
 }
 function deluxeOwned(){return !!(deluxeAccess.deluxe&&currentUser&&deluxeAccess.userId===currentUser.id);}
 function deluxeDemoOn(){if(!deluxeDemoAllowed())return false;try{return localStorage.getItem(DELUXE_DEMO_KEY)==='1';}catch(e){return false;}}
 async function buyDeluxe(button){
  if(!currentUser){showToast('Sign in or create an account first — Deluxe is linked to your account');openAccount('signup');return;}
- if(button)button.disabled=true;
- try{const d=await callDeluxe('checkout');if(d.alreadyOwned){await refreshDeluxeAccess();showToast('Deluxe is already unlocked on your account');return;}if(!d.url)throw new Error('Checkout is not available right now');location.assign(d.url);}
- catch(e){showToast(e.message||'Checkout is not available right now');}
- finally{if(button)button.disabled=false;}
+ const label=button?button.textContent:'';let leaving=false;
+ if(button){button.disabled=true;button.setAttribute('aria-busy','true');button.textContent='Opening secure checkout…';}
+ try{const d=await callDeluxe('checkout');if(d.alreadyOwned){await refreshDeluxeAccess();showToast('Deluxe is already unlocked on your account');return;}if(!d.url)throw deluxeError('checkout');leaving=true;location.assign(d.url);}
+ catch(e){showToast(e&&e.code?e.message:DELUXE_ERRORS.checkout);}
+ finally{if(button&&!leaving){button.disabled=false;button.removeAttribute('aria-busy');button.textContent=label;}}
 }
 async function restoreDeluxe(button){
  if(!currentUser){showToast('Sign in with the account you used to buy Deluxe');openAccount('login');return;}
  if(button)button.disabled=true;
  try{const d=await callDeluxe('restore');await refreshDeluxeAccess();showToast(d.deluxe?(d.restored?'Purchase found — Deluxe restored':'Deluxe is unlocked on your account'):'No Deluxe purchase was found for this account');}
- catch(e){showToast(e.message||'Could not check purchases right now');}
+ catch(e){showToast(e&&e.code?e.message:'Could not check purchases right now');}
  finally{if(button)button.disabled=false;}
 }
 // Coming back from Stripe Checkout. The webhook may take a few seconds, so check a few times.
@@ -2985,13 +3003,15 @@ async function handleDeluxeReturn(){
  try{history.replaceState(null,'',location.pathname+(params.toString()?'?'+params.toString():'')+location.hash);}catch(e){}
  if(result==='cancel'){showToast('Checkout cancelled — you have not been charged');return;}
  if(result!=='success')return;
- showScreen('deluxe',document.querySelector('nav button[data-screen="deluxe"]'));showToast('Payment received. Unlocking Deluxe…');
- for(let i=0;i<8;i++){
-  if(!currentUser)await new Promise(r=>setTimeout(r,1500));
-  if(currentUser){const a=await refreshDeluxeAccess();if(a.deluxe){celebrate({icon:'✨',title:'Deluxe unlocked',text:'Thank you! Deluxe is now part of your account on every device.'});return;}}
-  await new Promise(r=>setTimeout(r,2000));
- }
- showToast('Your payment is still being confirmed. Tap “Restore purchase” in a minute.');
+ showScreen('deluxe');deluxeAccess.confirming=true;renderDeluxeUI();
+ try{
+  for(let i=0;i<8;i++){
+   if(!currentUser)await new Promise(r=>setTimeout(r,1500));
+   if(currentUser){const a=await refreshDeluxeAccess();if(a.deluxe){deluxeAccess.confirming=false;renderDeluxeUI();celebrate({icon:'✨',title:'Welcome to Deluxe!',text:'Thank you for supporting Gymplified. The planner, insights, performance lab and extra themes are now unlocked on every device you sign in to.'});return;}}
+   await new Promise(r=>setTimeout(r,2000));
+  }
+  showToast('Your payment is still being confirmed. Tap “Restore purchase” in a minute.');
+ }finally{deluxeAccess.confirming=false;renderDeluxeUI();}
 }
 function canSaveRoutine(){return deluxeEnabled()||(state.routines||[]).length<FREE_ROUTINE_LIMIT;}
 
@@ -3079,6 +3099,28 @@ function renderAccountChrome(){
  const benefits=$('accountBenefits');if(benefits)benefits.hidden=signedIn;
  // One prompt at a time: the sign-in card waits until first-run setup is finished.
  const nudge=$('accountNudge');if(nudge)nudge.hidden=signedIn||!sb||accountNudgeHidden()||!state.onboarded||(typeof onboardingNeeded==='function'&&onboardingNeeded())||!!onboardingDraft;
+}
+// Deluxe batch: purchase details on the Account screen. Users can read only their own entitlement row (RLS).
+let accountDeluxeCache=null;
+function formatMoney(cents,currency){const n=Number(cents);if(!Number.isFinite(n)||!currency)return '';try{return new Intl.NumberFormat(undefined,{style:'currency',currency:String(currency).toUpperCase()}).format(n/100);}catch(e){return (n/100).toFixed(2)+' '+String(currency).toUpperCase();}}
+function accountDeluxeSummary(row,owned){
+ if(!owned||!row||row.revoked_at)return 'You don’t have Deluxe yet. It’s a one-time '+DELUXE_PRICE_LABEL+' unlock, no subscription.';
+ const when=row.granted_at?new Date(row.granted_at).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
+ if(row.source==='admin')return 'Deluxe is unlocked: a gift from Gymplified'+(when?' on '+when:'')+'.';
+ const price=formatMoney(row.amount_total,row.currency);
+ return 'Deluxe is unlocked: purchased'+(when?' on '+when:'')+(price?' for '+price:'')+'. Stripe emailed your receipt.';
+}
+async function renderAccountDeluxe(force){
+ const panel=$('accountDeluxePanel');if(!panel)return;
+ if(!currentUser||!sb){panel.hidden=true;return;}
+ panel.hidden=false;const uid=currentUser.id,owned=deluxeOwned();
+ const actions=$('accountDeluxeActions');
+ if(actions)actions.innerHTML=owned?'':'<button class="btn btn-primary" type="button" data-action="showScreen" data-arg="deluxe">See Deluxe</button><button class="btn" type="button" data-action="restoreDeluxe">Restore purchase</button>';
+ if(!force&&accountDeluxeCache&&accountDeluxeCache.uid===uid&&accountDeluxeCache.owned===owned){$('accountDeluxeText').textContent=accountDeluxeSummary(accountDeluxeCache.row,owned);return;}
+ let row=null;
+ if(owned){try{const r=await sb.from('deluxe_entitlements').select('source,granted_at,amount_total,currency,revoked_at').eq('user_id',uid).maybeSingle();if(!r.error)row=r.data;}catch(e){}}
+ if(!currentUser||currentUser.id!==uid)return;
+ accountDeluxeCache={uid,owned,row};$('accountDeluxeText').textContent=accountDeluxeSummary(row,owned);
 }
 function openAccount(mode){authMode=mode==='login'?'login':'signup';showScreen('account');if(!currentUser){renderAuthPanel('');setTimeout(()=>{const f=$(authMode==='signup'?'authUsername':'authEmail');if(f)f.focus();},50);}}
 function dismissAccountNudge(){try{localStorage.setItem(ACCOUNT_NUDGE_KEY,String(Date.now()+7*864e5));}catch(_){}renderAccountChrome();showToast('Hidden for a week. You can sign in any time from the top bar.');}
@@ -3318,12 +3360,14 @@ function renderDeluxeUI(){
  const owned=deluxeOwned(),demo=!owned&&deluxeDemoOn(),enabled=owned||demo,open=deluxeAccess.salesOpen,signedIn=!!currentUser;
  const status=$('deluxeStatus'),toggle=$('deluxeDemoToggle'),locked=$('deluxeLockedNotice'),tools=$('deluxeTools'),demoBox=$('deluxeDemoControls'),demoBtn=$('deluxeDemoUnlockBtn');
  const set=(id,text)=>{const el=$(id);if(el)el.textContent=text;};
- if(status){status.textContent=owned?'✓ DELUXE UNLOCKED':demo?'✓ DEMO UNLOCKED':open?'ONE-TIME '+DELUXE_PRICE_LABEL:!signedIn?'SIGN IN TO BUY':'COMING SOON';status.classList.toggle('is-unlocked',enabled);}
- if($('deluxeBuyBtn'))$('deluxeBuyBtn').hidden=owned||!(open||!signedIn);
+ const confirming=!!deluxeAccess.confirming&&!owned;
+ if(status){status.textContent=owned?'✓ DELUXE UNLOCKED':demo?'✓ DEMO UNLOCKED':confirming?'CONFIRMING PAYMENT…':open?'ONE-TIME '+DELUXE_PRICE_LABEL:!signedIn?'SIGN IN TO BUY':'COMING SOON';status.classList.toggle('is-unlocked',enabled);}
+ const badge=$('deluxeModeBadge');if(badge)badge.hidden=!(open&&deluxeAccess.mode==='test');
+ if($('deluxeBuyBtn'))$('deluxeBuyBtn').hidden=owned||confirming||!(open||!signedIn);
  if($('deluxeRestoreBtn'))$('deluxeRestoreBtn').hidden=owned||!(open||!signedIn);
  set('deluxePriceNote',owned?'one-time · paid':open||!signedIn?'one-time · no subscription':'one-time · coming soon');
  set('deluxeHeroText',owned?'Thank you for supporting Gymplified. Deluxe is part of your account on every device.':'Handy extras on top of the full free tracker. Everything you need to log and improve stays free.');
- set('deluxeSalesNote',owned?'Deluxe is linked to your account. Sign in on any device to use it.':!signedIn?'Deluxe is linked to your Gymplified account. Sign in to buy it or restore an earlier purchase.':open?'One-time payment of '+DELUXE_PRICE_LABEL+' through Stripe. No subscription. Bought it before? Tap Restore purchase.':'Deluxe is not on sale yet. No payment is taken on this page.');
+ set('deluxeSalesNote',owned?'Deluxe is linked to your account. Sign in on any device to use it.':!signedIn?'Deluxe is linked to your Gymplified account. Sign in to buy it or restore an earlier purchase.':confirming?'We’re confirming your payment with Stripe. This usually takes a few seconds.':open?'One-time payment of '+DELUXE_PRICE_LABEL+' through Stripe. No subscription. Any tax is shown at checkout, and Stripe emails your receipt. Bought it before? Tap Restore purchase.':'Deluxe is not on sale yet. No payment is taken on this page.');
  // TODO(owner/legal): add the approved EU/UK withdrawal-right and refund wording here and in terms.html before sales open.
  set('deluxeLockedTitle',open?'Unlock Deluxe to use these tools.':'Deluxe tools are locked.');
  set('deluxeLockedText',open?'A one-time '+DELUXE_PRICE_LABEL+' purchase unlocks them on your account.':!signedIn?'Sign in to see whether Deluxe is available for your account.':'Deluxe is not on sale yet, so these tools cannot be unlocked.');
@@ -3545,7 +3589,7 @@ const UI_ACTIONS=Object.freeze({
  loadDeluxePlan:el=>loadDeluxePlan(uiNum(el.dataset.i)),deleteDeluxePlan:el=>deleteDeluxePlan(uiNum(el.dataset.i)),confirmLoadDeluxePlan:()=>confirmLoadDeluxePlan(),closeDeluxePlanDayDialog:()=>closeDeluxePlanDayDialog(),
  exportDeluxeCSV:()=>exportDeluxeCSV(),exportDeluxeReport:()=>exportDeluxeReport(),
  // Batch 11: account
- openAccount:el=>openAccount(el.dataset.arg),dismissAccountNudge:()=>dismissAccountNudge()
+ openAccount:el=>openAccount(el.dataset.arg),dismissAccountNudge:()=>dismissAccountNudge(),restoreDeluxe:el=>restoreDeluxe(el)
 });
 function bindUiActions(){
  [['click','data-action'],['change','data-change'],['input','data-input'],['submit','data-submit']].forEach(([type,attr])=>{

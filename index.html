@@ -367,6 +367,10 @@
         <div class="eyebrow">Your account</div><h1>Account</h1>
         <p class="subtitle" id="accountSubtitle">Sign in to back up your progress and use Gymplified on every device.</p>
         <div class="st-1 panel account-panel" id="friendStatus"></div>
+        <div class="panel" id="accountDeluxePanel" hidden>
+          <div class="section-title">Gymplified Deluxe</div>
+          <div class="account-deluxe-row"><p id="accountDeluxeText" aria-live="polite">Checking…</p><div class="row-wrap" id="accountDeluxeActions"></div></div>
+        </div>
         <div class="st-1 panel" id="accountSecurity" role="region" aria-label="Sync and security" hidden></div>
         <div class="panel account-benefits" id="accountBenefits">
           <div class="section-title">Why create an account?</div>
@@ -638,6 +642,7 @@
           <p class="deluxe-hero-text" id="deluxeHeroText">Handy extras on top of the full free tracker. Everything you need to log and improve stays free.</p>
           <div class="deluxe-actions">
             <span class="deluxe-pill" id="deluxeStatus">COMING SOON</span>
+            <span class="deluxe-mode-badge" id="deluxeModeBadge" hidden>Test mode · no real money is taken</span>
             <button class="btn btn-primary" type="button" id="deluxeBuyBtn" hidden>Unlock Deluxe · €9.99</button>
             <button class="btn" type="button" id="deluxeRestoreBtn" hidden>Restore purchase</button>
             <button class="btn" type="button" data-action="openDeluxeDemo">Explore Deluxe</button>

@@ -239,3 +239,122 @@ test('Stripe: a chargeback removes Deluxe for exactly the disputed payment', asy
   for (const name of ['STRIPE_SECRET_KEY', 'STRIPE_PRICE_DELUXE', 'STRIPE_WEBHOOK_SECRET', 'charge.dispute.created', 'charge.refunded', 'checkout.session.completed']) assert.ok(guide.includes(name), name + ' is in the go-live guide');
   assert.doesNotMatch(guide, /sk_live_[A-Za-z0-9]{8,}|sk_test_[A-Za-z0-9]{8,}|whsec_[A-Za-z0-9]{8,}/, 'no real keys in the repo');
 });
+
+// ===== Deluxe: analytics, coach, lift lab and programme logic =====
+const TODAY = '2026-11-12'; // a Thursday; its week starts on Monday 2026-11-09
+const lift = (name, muscle, kg, reps, n = 3) => ({ name, muscle, sets: [{ kg: kg / 2, reps: 10, type: 'warmup' }].concat(Array.from({ length: n }, () => ({ kg, reps }))) });
+// Twelve weeks, Monday / Wednesday / Friday. Squat climbs every week; bench stops climbing after week 5.
+const sampleLog = L => {
+  const out = [];
+  for (let w = 0; w < 12; w++) [0, 2, 4].forEach((offset, d) => {
+    const date = L.addDays('2026-08-24', w * 7 + offset);
+    if (date > TODAY) return;
+    out.push({ date, mins: 60, prs: w ? [{}] : [], exercises: d === 0 ? [lift('Flat Bench Press', 'Chest', 60 + Math.min(w, 5) * 2.5, 8), lift('Plank', 'Abs', 0, 30)] : d === 1 ? [lift('Barbell Row', 'Lats', 50, 8)] : [lift('Barbell Back Squat', 'Quadriceps', 80 + w * 2.5, 5)] });
+  });
+  return out;
+};
+
+test('Deluxe analytics: weekly series, period comparison, rhythm and consistency', async () => {
+  const L = await loadLib(), log = sampleLog(L);
+  assert.equal(L.e1rm(100, 1), 100); assert.equal(L.e1rm(100, 5), 116.667); assert.equal(L.e1rm(0, 5), 0); assert.equal(L.e1rm('x', 5), 0);
+  const series = plain(L.weeklySeries(log, TODAY, 4, 'mon'));
+  assert.deepEqual(series.map(w => w.week), ['2026-10-19', '2026-10-26', '2026-11-02', '2026-11-09']);
+  assert.equal(series[0].workouts, 3); assert.equal(series[3].workouts, 2, 'the week in progress has Monday and Wednesday only');
+  // week of 19 Oct is w=8: bench 72.5×8×3 + row 50×8×3 + squat 100×5×3; warm-ups and the 0 kg plank add no volume
+  assert.equal(series[0].vol, 72.5 * 24 + 50 * 24 + 100 * 15);
+  assert.equal(series[0].sets, 12, 'bodyweight sets count as sets, warm-ups do not');
+  assert.equal(series[1].avg, 4421.3, 'the mean of 4365, 4402.5, 4440 and 4477.5: the average reaches back before the visible range');
+  assert.equal(L.weeklySeries(log, TODAY, 2, 'sun')[1].week, '2026-11-08');
+  assert.equal(L.weeklySeries([], TODAY, 3).length, 3); assert.equal(L.weeklySeries(null, TODAY, 3)[0].vol, 0);
+  const change = L.periodChange(L.weeklySeries(log, TODAY, 8, 'mon'));
+  assert.equal(change.weeks, 4); assert.equal(change.workouts.before, 12); assert.equal(change.workouts.now, 11); assert.equal(change.length.now, 60);
+  assert.ok(change.vol.pct > -10 && change.vol.pct < 10);
+  assert.equal(L.periodChange([]), null);
+  assert.equal(L.periodChange([{ vol: 0, workouts: 0, sets: 0, mins: 0 }, { vol: 5, workouts: 1, sets: 1, mins: 9 }]).vol.pct, null, 'nothing to compare with is "new", not infinity');
+  const days = L.weekdayPattern(log);
+  assert.deepEqual(plain(days.counts), [12, 0, 12, 0, 11, 0, 0]); assert.equal(days.best, 0); assert.equal(L.weekdayPattern([]).best, null);
+  assert.deepEqual(plain(L.consistency(log, TODAY, 12, 3, 'mon')), { weeks: 11, hit: 11, pct: 100, goal: 3 }, 'the unfinished week is not a miss');
+  assert.equal(L.consistency(log, TODAY, 12, 4, 'mon').pct, 0);
+  assert.equal(L.consistency(log.slice(-4), TODAY, 12, 3, 'mon').weeks, 1, 'weeks before the first workout are not counted against a new user');
+  assert.deepEqual(plain(L.consistency([], TODAY, 12, 3)), { weeks: 0, hit: 0, pct: 0, goal: 3 });
+});
+
+test('Deluxe lift lab: history, rep maxes and an honest projection', async () => {
+  const L = await loadLib(), log = sampleLog(L);
+  const squat = L.exerciseHistory(log, 'barbell back squat');
+  assert.equal(squat.length, 11); assert.equal(squat[0].date, '2026-08-28'); assert.equal(squat[0].e1rm, L.e1rm(80, 5)); assert.equal(squat[0].sets, 3); assert.equal(squat[0].vol, 1200);
+  assert.deepEqual(plain(L.exerciseHistory(log, 'Nope')), []); assert.deepEqual(plain(L.exerciseHistory(log, '')), []);
+  assert.deepEqual(plain(L.exerciseNames(log).map(x => x.name)), ['Barbell Row', 'Flat Bench Press', 'Barbell Back Squat'], 'most trained first; a 0 kg plank has no strength curve');
+  const maxes = L.repMaxes(log, 'Flat Bench Press');
+  assert.equal(maxes.best, L.e1rm(72.5, 8));
+  assert.deepEqual(plain(maxes.rows.map(r => [r.reps, r.kg])), [[1, 72.5], [3, 72.5], [5, 72.5], [8, 72.5], [10, 0], [12, 0]], 'a set of 8 proves 5 reps, not 10');
+  assert.equal(maxes.rows[3].predicted, 72.5); assert.ok(maxes.rows[0].predicted > maxes.rows[5].predicted);
+  // Squat adds 2.5 kg × (1 + 5/30) a week.
+  const proj = L.projection(squat, TODAY, 130);
+  assert.ok(Math.abs(proj.perWeek - 2.92) < 0.02); assert.equal(proj.target, 130); assert.ok(proj.weeks >= 1 && proj.weeks <= 4); assert.ok(proj.day > TODAY);
+  assert.equal(L.projection(squat, TODAY, 500).day, '', 'more than a year away is not promised');
+  assert.equal(L.projection(squat.slice(0, 3), TODAY, 130), null, 'needs four training days');
+  assert.equal(L.projection(squat.slice(-4).map((p, i) => Object.assign({}, p, { date: L.addDays(TODAY, i - 3) })), TODAY, 130), null, 'needs three weeks of spread');
+  const flat = L.projection(L.exerciseHistory(log, 'Barbell Row'), TODAY, 80);
+  assert.equal(flat.perWeek, 0); assert.equal(flat.day, '', 'a flat lift gets no date');
+});
+
+test('Deluxe coach: lift trends, muscle balance and plain-language insights', async () => {
+  const L = await loadLib(), log = sampleLog(L);
+  const trends = Object.fromEntries(L.liftTrends(log, TODAY).map(t => [t.name, t.status]));
+  assert.deepEqual(trends, { 'Barbell Back Squat': 'rising', 'Flat Bench Press': 'plateau', 'Barbell Row': 'plateau' });
+  assert.deepEqual(plain(L.liftTrends(log.slice(-6), TODAY)), [], 'five training days are needed before a lift is judged');
+  const bal = L.muscleBalance(log, TODAY, 28);
+  assert.deepEqual(plain(bal.groups.map(g => [g.group, g.sets])), [['Chest', 12], ['Back', 12], ['Shoulders', 0], ['Arms', 0], ['Legs', 12], ['Core', 12]]);
+  assert.deepEqual(plain(bal.split), { push: 12, pull: 12, legs: 12 }); assert.deepEqual(plain(bal.missing), ['Shoulders', 'Arms']);
+  assert.equal(L.muscleBalance([{ date: TODAY, exercises: [lift('Mystery', 'wings', 10, 5)] }], TODAY, 28).other, 3);
+  assert.deepEqual(plain(L.MUSCLE_GROUPS), ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core']);
+  const notes = L.coachInsights(log, TODAY, { weekStart: 'mon', weeklyGoal: 3 }), ids = notes.map(n => n.id);
+  for (const id of ['volume', 'rising:Barbell Back Squat', 'plateau:Flat Bench Press', 'missing', 'consistency', 'weekday']) assert.ok(ids.includes(id), id);
+  assert.equal(notes.find(n => n.id === 'volume').title, 'Training volume is steady', 'a week in progress is not reported as a drop');
+  for (const n of notes) { assert.ok(['good', 'warn', 'info'].includes(n.tone)); assert.ok(n.title && n.detail); assert.doesNotMatch(n.title + n.detail, /you must|you should|injur|doctor/i, 'observations, not prescriptions'); }
+  const few = L.coachInsights(log.slice(0, 2), TODAY, {});
+  assert.equal(few.length, 1); assert.equal(few[0].id, 'start'); assert.match(few[0].detail, /Finish 1 more workout /);
+  assert.equal(L.coachInsights(null, TODAY).length, 1);
+  // Four straight weeks of rising volume earns the lighter-week note instead of a plain trend line.
+  const climbing = []; for (let w = 0; w < 6; w++) climbing.push({ date: L.addDays('2026-10-05', w * 7), mins: 40, exercises: [lift('Leg Press', 'Quadriceps', 100 + w * 20, 10)] });
+  assert.equal(L.risingWeeks(L.weeklySeries(climbing, TODAY, 9, 'mon')), 4);
+  assert.ok(L.coachInsights(climbing, TODAY, {}).some(n => n.id === 'deload'));
+  const lopsided = []; for (let i = 0; i < 9; i++) lopsided.push({ date: L.addDays(TODAY, -i * 2), mins: 30, exercises: [lift('Flat Bench Press', 'Chest', 60, 8)] });
+  assert.match(L.coachInsights(lopsided, TODAY, {}).find(n => n.id === 'split').detail, /No pull sets were logged/);
+});
+
+test('Deluxe planner: templates, week-by-week targets, deload and adherence', async () => {
+  const L = await loadLib(), js = await read('app.js');
+  const lib = js.slice(js.indexOf('const LIB={'), js.indexOf('const EXERCISE_DONE_LINES'));
+  assert.ok(L.PLAN_TEMPLATES.length >= 5);
+  for (const t of L.PLAN_TEMPLATES) {
+    assert.equal(t.plan.length, t.days); assert.ok(t.weeks >= 4 && t.weeks <= 16); assert.ok(['weight', 'reps'].includes(t.mode));
+    for (const [day, list] of t.plan) {
+      assert.match(day, /^Day [1-7] · (Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day$/, 'day labels match the planner, so "today\'s plan" finds them');
+      for (const [name, sets, reps] of list) { assert.ok(lib.includes(name + ':'), name + ' is in the exercise library'); assert.ok(sets >= 1 && sets <= 20 && reps >= 1 && reps <= 100); }
+    }
+  }
+  assert.deepEqual(plain(L.sanitizePlanProgram(null)), { weeks: 0, start: '', mode: 'none', stepKg: 2.5, deload: false });
+  assert.deepEqual(plain(L.sanitizePlanProgram({ weeks: 99, start: '2026-02-30', mode: 'magic', stepKg: -4, deload: 1 })), { weeks: 16, start: '', mode: 'none', stepKg: 0, deload: true });
+  assert.equal(L.sanitizePlanProgram({ weeks: 1 }).weeks, 0);
+  const program = { weeks: 8, start: '2026-10-05', mode: 'weight', stepKg: 2.5, deload: true }, ex = { sets: 4, reps: 8, kg: 60 };
+  assert.deepEqual(plain(L.planWeek(program, TODAY)), { week: 6, of: 8, index: 5, upcoming: false, finished: false, deload: false, weekStart: '2026-11-09' });
+  assert.equal(L.planWeek(program, '2026-11-25').deload, true); assert.equal(L.planWeek(program, '2026-12-01').finished, true); assert.equal(L.planWeek(program, '2026-10-01').upcoming, true);
+  assert.equal(L.planWeek({ weeks: 0 }, TODAY), null); assert.equal(L.planWeek(null, TODAY), null);
+  assert.deepEqual(plain(L.progressedTarget(ex, program, 0)), { sets: 4, reps: 8, kg: 60 });
+  assert.deepEqual(plain(L.progressedTarget(ex, program, 5)), { sets: 4, reps: 8, kg: 72.5 });
+  assert.deepEqual(plain(L.progressedTarget(ex, program, 7)), { sets: 3, reps: 8, kg: 54 }, 'the final week is lighter: 60% of the sets at 90% of the starting weight');
+  assert.deepEqual(plain(L.progressedTarget(ex, Object.assign({}, program, { deload: false }), 7)), { sets: 4, reps: 8, kg: 77.5 });
+  assert.deepEqual(plain(L.progressedTarget(ex, Object.assign({}, program, { mode: 'reps' }), 6)), { sets: 4, reps: 12, kg: 60 }, 'reps stop climbing after four extra');
+  assert.deepEqual(plain(L.progressedTarget({ sets: 3, reps: 10, kg: 0 }, program, 4)), { sets: 3, reps: 10, kg: 0 }, 'an empty weight stays empty');
+  assert.deepEqual(plain(L.progressedTarget(ex, null, 5)), { sets: 4, reps: 8, kg: 60 }, 'open-ended plans never move');
+  assert.equal(L.progressedTarget({ sets: 3, reps: 5, kg: 100 }, program, 7, 0.45359237).kg, 89.811, 'pound users deload to a whole pound');
+  const plan = { name: 'P', program, days: [{ day: 'Day 1 · Monday', exercises: [ex] }, { day: 'Day 3 · Wednesday', exercises: [ex] }, { day: 'Day 7 · Sunday', exercises: [] }] };
+  const done = (date, day, name = 'P') => ({ date, exercises: [], plan: { name, day } });
+  const sessions = [done('2026-10-05', 'Day 1 · Monday'), done('2026-10-07', 'Day 3 · Wednesday'), done('2026-10-12', 'Day 1 · Monday'), done('2026-11-09', 'Day 1 · Monday'), done('2026-11-10', 'Day 1 · Monday', 'Other'), done('2026-09-01', 'Day 1 · Monday')];
+  const adh = L.planAdherence(plan, sessions, TODAY);
+  assert.deepEqual(plain(adh.thisWeek), [{ day: 'Day 1 · Monday', done: true }, { day: 'Day 3 · Wednesday', done: false }], 'empty days are not expected');
+  assert.equal(adh.done, 4); assert.equal(adh.expected, 11, 'five finished weeks of two days, plus the day already trained this week'); assert.equal(adh.pct, 36);
+  assert.equal(L.planAdherence({ name: 'P', days: plan.days }, sessions, TODAY).pct, null, 'open-ended plans have no score');
+});

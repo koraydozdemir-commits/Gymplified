@@ -264,9 +264,277 @@
     { name: '5×5 B', tag: '5×5', note: 'Alternate A and B, add a little weight when all 5 sets of 5 are done', exercises: [['Barbell Back Squat', 5, 5], ['Overhead Press', 5, 5], ['Conventional Deadlift', 1, 5]] }
   ];
 
+  // =================== Deluxe: analytics, coach, lift lab and programme logic ===================
+  // Everything below is pure and works in kilograms; the app converts for display.
+  const dayDiff = (from, to) => Math.round((new Date(to + 'T12:00:00') - new Date(from + 'T12:00:00')) / 864e5);
+  const weekStartOf = (day, weekStart) => addDays(day, -((new Date(day + 'T12:00:00').getDay() - (weekStart === 'sun' ? 0 : 1) + 7) % 7));
+  const mean = list => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0);
+  const pctChange = (now, before) => (before > 0 ? round((now - before) / before * 100, 1) : null);
+  const validSessions = sessions => (sessions || []).filter(s => s && isDay(s.date) && Array.isArray(s.exercises));
+  const workingSets = ex => (ex && Array.isArray(ex.sets) ? ex.sets : []).filter(s => s && s.type !== 'warmup' && Number(s.kg) > 0 && Number(s.reps) > 0);
+  // Sets that count towards set totals: bodyweight work (0 kg) is real training, warm-ups are not.
+  const countedSets = ex => (ex && Array.isArray(ex.sets) ? ex.sets : []).filter(s => s && s.type !== 'warmup' && Number(s.reps) > 0);
+  const sessionVolume = s => (s.exercises || []).reduce((n, ex) => n + workingSets(ex).reduce((v, x) => v + Number(x.kg) * Number(x.reps), 0), 0);
+
+  // Epley estimate, the same formula the rest of the app uses.
+  function e1rm(kg, reps) {
+    const w = Number(kg), r = Math.max(1, Math.round(Number(reps) || 1));
+    if (!Number.isFinite(w) || w <= 0) return 0;
+    return round(r === 1 ? w : w * (1 + r / 30), 3);
+  }
+
+  // Whole weeks, oldest first, ending with the week that contains `today`. `avg` is the trailing
+  // four-week mean, worked out from weeks before the visible range too, so the line starts honest.
+  function weeklySeries(sessions, today, weeks, weekStart) {
+    const count = Math.round(num(weeks, 1, 260, 12)), lead = 3, thisWeek = weekStartOf(today, weekStart), buckets = {};
+    validSessions(sessions).forEach(s => {
+      const key = weekStartOf(s.date, weekStart), b = buckets[key] || (buckets[key] = { vol: 0, workouts: 0, sets: 0, mins: 0 });
+      b.vol += sessionVolume(s); b.workouts++; b.mins += Number(s.mins) || 0;
+      b.sets += (s.exercises || []).reduce((n, ex) => n + countedSets(ex).length, 0);
+    });
+    const all = [];
+    for (let i = count + lead - 1; i >= 0; i--) {
+      const week = addDays(thisWeek, -7 * i), b = buckets[week] || { vol: 0, workouts: 0, sets: 0, mins: 0 };
+      all.push({ week, vol: round(b.vol, 1), workouts: b.workouts, sets: b.sets, mins: b.mins });
+    }
+    return all.map((w, i) => Object.assign(w, { avg: round(mean(all.slice(Math.max(0, i - 3), i + 1).map(x => x.vol)), 1) })).slice(lead);
+  }
+
+  // The newer half of a series against the older half.
+  function periodChange(series) {
+    const half = Math.floor((series || []).length / 2);
+    if (!half) return null;
+    const older = series.slice(series.length - 2 * half, series.length - half), newer = series.slice(series.length - half);
+    const pair = key => { const now = round(newer.reduce((n, w) => n + w[key], 0), 1), before = round(older.reduce((n, w) => n + w[key], 0), 1); return { now, before, pct: pctChange(now, before) }; };
+    const out = { weeks: half, vol: pair('vol'), workouts: pair('workouts'), sets: pair('sets'), mins: pair('mins') };
+    const perSession = list => { const n = list.reduce((a, w) => a + w.workouts, 0); return n ? round(list.reduce((a, w) => a + w.mins, 0) / n, 0) : 0; };
+    out.length = { now: perSession(newer), before: perSession(older), pct: pctChange(perSession(newer), perSession(older)) };
+    return out;
+  }
+
+  // Workouts per weekday, Monday first.
+  function weekdayPattern(sessions, since) {
+    const counts = [0, 0, 0, 0, 0, 0, 0];
+    validSessions(sessions).forEach(s => { if (!since || s.date >= since) counts[(new Date(s.date + 'T12:00:00').getDay() + 6) % 7]++; });
+    const total = counts.reduce((a, b) => a + b, 0), top = Math.max(...counts);
+    return { counts, total, best: total ? counts.indexOf(top) : null };
+  }
+
+  // How many recent weeks reached the weekly goal. Weeks before the first workout are not counted.
+  function consistency(sessions, today, weeks, weeklyGoal, weekStart) {
+    const list = validSessions(sessions), goal = Math.round(num(weeklyGoal, 1, 14, 3));
+    if (!list.length) return { weeks: 0, hit: 0, pct: 0, goal };
+    const first = weekStartOf(list.reduce((a, s) => (s.date < a ? s.date : a), list[0].date), weekStart);
+    const series = weeklySeries(list, today, weeks, weekStart).filter(w => w.week >= first);
+    // The current week only counts once it has reached the goal; it is not a miss while still in progress.
+    const done = series.filter((w, i) => i < series.length - 1 || w.workouts >= goal), hit = done.filter(w => w.workouts >= goal).length;
+    return { weeks: done.length, hit, pct: done.length ? Math.round(hit / done.length * 100) : 0, goal };
+  }
+
+  // One point per training day for an exercise, oldest first.
+  function exerciseHistory(sessions, name) {
+    const key = String(name || '').trim().toLowerCase(), byDay = {};
+    if (!key) return [];
+    validSessions(sessions).forEach(s => s.exercises.forEach(ex => {
+      if (String(ex.name || '').trim().toLowerCase() !== key) return;
+      const sets = workingSets(ex); if (!sets.length) return;
+      const d = byDay[s.date] || (byDay[s.date] = { date: s.date, e1rm: 0, kg: 0, reps: 0, vol: 0, sets: 0 });
+      sets.forEach(x => { const est = e1rm(x.kg, x.reps); d.vol += Number(x.kg) * Number(x.reps); d.sets++; if (est > d.e1rm) { d.e1rm = est; d.kg = Number(x.kg); d.reps = Math.round(Number(x.reps)); } });
+    }));
+    return Object.values(byDay).map(d => Object.assign(d, { vol: round(d.vol, 1) })).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // Exercises by how often they were trained, most frequent first.
+  function exerciseNames(sessions) {
+    const seen = {};
+    validSessions(sessions).forEach(s => { const today = new Set(); s.exercises.forEach(ex => { const n = String(ex.name || '').trim(); if (n && workingSets(ex).length && !today.has(n.toLowerCase())) { today.add(n.toLowerCase()); (seen[n.toLowerCase()] = seen[n.toLowerCase()] || { name: n, sessions: 0 }).sessions++; } }); });
+    return Object.values(seen).sort((a, b) => b.sessions - a.sessions || a.name.localeCompare(b.name));
+  }
+
+  // Best weight actually lifted for at least `reps` reps, next to what the best estimate predicts.
+  const REP_TARGETS = [1, 3, 5, 8, 10, 12];
+  function repMaxes(sessions, name, targets) {
+    const key = String(name || '').trim().toLowerCase(), list = (targets || REP_TARGETS).map(reps => ({ reps, kg: 0, date: '', predicted: 0 }));
+    let best = 0;
+    validSessions(sessions).forEach(s => s.exercises.forEach(ex => {
+      if (String(ex.name || '').trim().toLowerCase() !== key) return;
+      workingSets(ex).forEach(x => {
+        best = Math.max(best, e1rm(x.kg, x.reps));
+        list.forEach(t => { if (Number(x.reps) >= t.reps && Number(x.kg) > t.kg) { t.kg = Number(x.kg); t.date = s.date; } });
+      });
+    }));
+    list.forEach(t => { t.predicted = best ? round(t.reps === 1 ? best : best / (1 + t.reps / 30), 1) : 0; });
+    return { best, rows: list };
+  }
+
+  // Straight-line fit through the recent estimates. Says how fast a lift is moving and, when it is
+  // rising, roughly when it reaches `targetKg`. Needs four training days across three weeks.
+  function projection(history, today, targetKg, windowDays) {
+    const from = addDays(today, -Math.round(num(windowDays, 28, 730, 84)));
+    const pts = (history || []).filter(p => p && p.date >= from && p.date <= today && p.e1rm > 0);
+    if (pts.length < 4 || dayDiff(pts[0].date, pts[pts.length - 1].date) < 21) return null;
+    const xs = pts.map(p => dayDiff(pts[0].date, p.date)), ys = pts.map(p => p.e1rm), mx = mean(xs), my = mean(ys);
+    const sxx = xs.reduce((n, x) => n + (x - mx) ** 2, 0), sxy = xs.reduce((n, x, i) => n + (x - mx) * (ys[i] - my), 0);
+    if (!(sxx > 0)) return null;
+    const slope = sxy / sxx, now = my + slope * (dayDiff(pts[0].date, today) - mx), perWeek = round(slope * 7, 2);
+    const out = { perWeek, now: round(now, 1), points: pts.length, target: null, weeks: null, day: '' };
+    const target = Number(targetKg);
+    if (perWeek > 0 && target > now) {
+      const days = Math.ceil((target - now) / slope);
+      if (days <= 365) { out.target = target; out.weeks = Math.max(1, Math.round(days / 7)); out.day = addDays(today, days); }
+    }
+    return out;
+  }
+
+  // Which lifts are moving and which have stalled: the best of the latest three training days
+  // against the best of the days before them, inside the window.
+  function liftTrends(sessions, today, windowDays) {
+    const from = addDays(today, -Math.round(num(windowDays, 28, 365, 84)));
+    return exerciseNames(sessions).map(x => {
+      const h = exerciseHistory(sessions, x.name).filter(p => p.date >= from && p.date <= today);
+      if (h.length < 5) return null;
+      const recent = Math.max(...h.slice(-3).map(p => p.e1rm)), earlier = Math.max(...h.slice(0, -3).map(p => p.e1rm));
+      const change = pctChange(recent, earlier);
+      const status = change >= 2 ? 'rising' : change < -5 ? 'falling' : change <= 0.5 ? 'plateau' : 'steady';
+      return { name: x.name, days: h.length, best: recent, change, status };
+    }).filter(Boolean).sort((a, b) => b.change - a.change || a.name.localeCompare(b.name));
+  }
+
+  const MUSCLE_GROUP_OF = { chest: 'Chest', lats: 'Back', traps: 'Back', back: 'Back', shoulders: 'Shoulders', biceps: 'Arms', triceps: 'Arms', forearms: 'Arms', arms: 'Arms', quadriceps: 'Legs', hamstrings: 'Legs', glutes: 'Legs', calves: 'Legs', legs: 'Legs', abs: 'Core', core: 'Core' };
+  const MUSCLE_GROUPS = ['Chest', 'Back', 'Shoulders', 'Arms', 'Legs', 'Core'];
+  const PUSH = ['chest', 'shoulders', 'triceps'], PULL = ['lats', 'traps', 'back', 'biceps', 'forearms'];
+
+  // Working sets per muscle group over the last `days` days, plus the push / pull / legs split.
+  function muscleBalance(sessions, today, days) {
+    const span = Math.round(num(days, 7, 365, 28)), from = addDays(today, -(span - 1));
+    const sets = {}, split = { push: 0, pull: 0, legs: 0 };
+    MUSCLE_GROUPS.forEach(g => { sets[g] = 0; });
+    let total = 0, other = 0;
+    validSessions(sessions).forEach(s => {
+      if (s.date < from || s.date > today) return;
+      s.exercises.forEach(ex => {
+        const n = countedSets(ex).length, m = String(ex.muscle || '').trim().toLowerCase(), g = MUSCLE_GROUP_OF[m];
+        if (!n) return;
+        total += n;
+        if (!g) { other += n; return; }
+        sets[g] += n;
+        if (PUSH.includes(m)) split.push += n; else if (PULL.includes(m)) split.pull += n; else if (g === 'Legs') split.legs += n;
+      });
+    });
+    const groups = MUSCLE_GROUPS.map(group => ({ group, sets: sets[group], perWeek: round(sets[group] / (span / 7), 1) }));
+    return { days: span, total, other, groups, split, missing: groups.filter(g => !g.sets).map(g => g.group) };
+  }
+
+  // How many weeks in a row volume has gone up, ending with the last finished week. A rise has to be
+  // more than 2%: a couple of extra kilos on one lift is not a climbing workload.
+  function risingWeeks(series) {
+    const done = (series || []).slice(0, -1);
+    let n = 0;
+    for (let i = done.length - 1; i > 0 && done[i - 1].vol > 0 && done[i].vol > done[i - 1].vol * 1.02; i--) n++;
+    return n;
+  }
+
+  const WEEKDAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  // Plain-language observations from the log. They describe what was recorded; they never prescribe.
+  function coachInsights(sessions, today, options) {
+    const o = options || {}, list = validSessions(sessions), out = [];
+    const add = (id, tone, title, detail) => out.push({ id, tone, title, detail });
+    if (list.length < 3) {
+      add('start', 'info', 'Your coach is warming up', 'Finish ' + (3 - list.length) + ' more workout' + (3 - list.length === 1 ? '' : 's') + ' and this page starts spotting trends, stalled lifts and gaps in your training.');
+      return out;
+    }
+    // The week in progress is left out of comparisons, so a Monday never reads as a drop.
+    const series = weeklySeries(list, today, 9, o.weekStart), change = periodChange(series.slice(0, -1)), trends = liftTrends(list, today, 84);
+    const climb = risingWeeks(series);
+    if (climb >= 4) add('deload', 'warn', 'Volume has climbed ' + climb + ' weeks in a row', 'That is solid progress. Many lifters plan a lighter week after a long run of increases, so the next block starts fresh.');
+    else if (change && change.vol.pct !== null) {
+      if (change.vol.pct >= 10) add('volume', 'good', 'Training volume is up ' + Math.round(change.vol.pct) + '%', 'The last 4 weeks carried more total work than the 4 before. Keep the increases gradual.');
+      else if (change.vol.pct <= -10) add('volume', 'warn', 'Training volume is down ' + Math.abs(Math.round(change.vol.pct)) + '%', 'The last 4 weeks carried less total work than the 4 before. Fine if that was the plan, worth a look if it was not.');
+      else add('volume', 'info', 'Training volume is steady', 'The last 4 weeks are within 10% of the 4 before them.');
+    }
+    trends.filter(t => t.status === 'rising').slice(0, 2).forEach(t => add('rising:' + t.name, 'good', t.name + ' is moving: +' + t.change + '%', 'Your estimated max is up over your last ' + t.days + ' training days on this lift. Whatever you are doing here is working.'));
+    trends.filter(t => t.status === 'plateau').slice(-2).forEach(t => add('plateau:' + t.name, 'warn', t.name + ' has levelled off', 'No new best in your last 3 sessions on this lift. Common ways through: a different rep range, one more set, or a lighter week before pushing again.'));
+    trends.filter(t => t.status === 'falling').slice(-1).forEach(t => add('falling:' + t.name, 'warn', t.name + ' has dipped ' + Math.abs(t.change) + '%', 'Recent sessions sit below your earlier best. Sleep, food and time between sessions are the usual suspects.'));
+    const bal = muscleBalance(list, today, 28), big = Math.max(bal.split.push, bal.split.pull), small = Math.min(bal.split.push, bal.split.pull);
+    if (bal.split.push + bal.split.pull >= 20 && big >= small * 1.5) {
+      const more = bal.split.push > bal.split.pull ? 'Push' : 'Pull', less = more === 'Push' ? 'pull' : 'push';
+      add('split', 'warn', more + ' work outweighs ' + less + ' work', small ? more + ' sets outnumber ' + less + ' sets ' + round(big / small, 1) + ' to 1 over the last 4 weeks.' : 'No ' + less + ' sets were logged in the last 4 weeks.');
+    }
+    if (bal.total >= 20 && bal.missing.length) add('missing', 'info', 'Not logged lately: ' + bal.missing.join(', '), 'No working sets for ' + (bal.missing.length === 1 ? 'this group' : 'these groups') + ' in the last 4 weeks. Skip this if it is on purpose.');
+    const cons = consistency(list, today, 12, o.weeklyGoal, o.weekStart);
+    if (cons.weeks >= 3) add('consistency', cons.pct >= 75 ? 'good' : 'info', 'Weekly goal hit ' + cons.hit + ' of the last ' + cons.weeks + ' weeks', cons.pct >= 75 ? 'That is ' + cons.pct + '% of weeks. Consistency like this is what moves the numbers.' : 'Your goal is ' + cons.goal + ' workouts a week. If that feels like a stretch right now, a goal you can hit builds the habit faster.');
+    const days = weekdayPattern(list, addDays(today, -83));
+    if (days.total >= 8 && days.best !== null) add('weekday', 'info', WEEKDAY_NAMES[days.best] + ' is your strongest habit', days.counts[days.best] + ' of your last ' + days.total + ' workouts landed on a ' + WEEKDAY_NAMES[days.best] + '.');
+    return out;
+  }
+
+  // ---- Deluxe planner: ready-made programmes and week-by-week progression ----------------------
+  const D = ['Day 1 · Monday', 'Day 2 · Tuesday', 'Day 3 · Wednesday', 'Day 4 · Thursday', 'Day 5 · Friday', 'Day 6 · Saturday', 'Day 7 · Sunday'];
+  const PUSH_DAY = [['Flat Bench Press', 4, 8], ['Overhead Press', 3, 8], ['Incline Dumbbell Press', 3, 10], ['Lateral Raise', 3, 12], ['Cable Triceps Pushdown', 3, 12]];
+  const PULL_DAY = [['Conventional Deadlift', 3, 5], ['Pull-Up', 3, 8], ['Barbell Row', 3, 8], ['Face Pull', 3, 12], ['Barbell Curl', 3, 10]];
+  const LEG_DAY = [['Barbell Back Squat', 4, 8], ['Romanian Deadlift', 3, 8], ['Leg Press', 3, 10], ['Seated Leg Curl', 3, 12], ['Standing Calf Raise', 3, 12]];
+  const UPPER_DAY = [['Flat Bench Press', 4, 6], ['Barbell Row', 4, 6], ['Overhead Press', 3, 8], ['Lat Pulldown', 3, 10], ['Barbell Curl', 2, 12], ['Cable Triceps Pushdown', 2, 12]];
+  const LOWER_DAY = [['Barbell Back Squat', 4, 6], ['Romanian Deadlift', 3, 8], ['Leg Press', 3, 10], ['Seated Leg Curl', 3, 10], ['Standing Calf Raise', 3, 12]];
+  const FULL_A = [['Barbell Back Squat', 3, 8], ['Flat Bench Press', 3, 8], ['Barbell Row', 3, 8], ['Plank', 3, 30]];
+  const FULL_B = [['Conventional Deadlift', 2, 5], ['Overhead Press', 3, 8], ['Lat Pulldown', 3, 10], ['Hanging Leg Raise', 3, 10]];
+  const PLAN_TEMPLATES = [
+    { id: 'full3', name: 'Full body', days: 3, weeks: 8, mode: 'weight', blurb: 'Three sessions a week that hit everything. The simplest way to build a base.', plan: [[D[0], FULL_A], [D[2], FULL_B], [D[4], FULL_A]] },
+    { id: 'upperlower4', name: 'Upper / Lower', days: 4, weeks: 8, mode: 'weight', blurb: 'Each half of the body twice a week, with room to recover in between.', plan: [[D[0], UPPER_DAY], [D[1], LOWER_DAY], [D[3], UPPER_DAY], [D[4], LOWER_DAY]] },
+    { id: 'ppl3', name: 'Push / Pull / Legs', days: 3, weeks: 8, mode: 'reps', blurb: 'One focused day each for pushing, pulling and legs.', plan: [[D[0], PUSH_DAY], [D[2], PULL_DAY], [D[4], LEG_DAY]] },
+    { id: 'ppl6', name: 'Push / Pull / Legs ×2', days: 6, weeks: 6, mode: 'reps', blurb: 'The six-day classic: every muscle group twice a week.', plan: [[D[0], PUSH_DAY], [D[1], PULL_DAY], [D[2], LEG_DAY], [D[3], PUSH_DAY], [D[4], PULL_DAY], [D[5], LEG_DAY]] },
+    { id: 'strength5x5', name: 'Strength 5×5', days: 3, weeks: 12, mode: 'weight', blurb: 'Few lifts, heavy sets of five, a little more weight every week.', plan: [[D[0], [['Barbell Back Squat', 5, 5], ['Flat Bench Press', 5, 5], ['Barbell Row', 5, 5]]], [D[2], [['Barbell Back Squat', 5, 5], ['Overhead Press', 5, 5], ['Conventional Deadlift', 1, 5]]], [D[4], [['Barbell Back Squat', 5, 5], ['Flat Bench Press', 5, 5], ['Barbell Row', 5, 5]]]] }
+  ];
+  const PLAN_MODES = ['none', 'weight', 'reps'];
+
+  function sanitizePlanProgram(raw) {
+    const src = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const weeks = Math.round(num(src.weeks, 0, 16, 0));
+    return { weeks: weeks >= 2 ? weeks : 0, start: isDay(src.start) ? src.start : '', mode: PLAN_MODES.includes(src.mode) ? src.mode : 'none', stepKg: round(num(src.stepKg, 0, 20, 2.5), 3), deload: !!src.deload };
+  }
+
+  // Where `today` falls in a programme. null when the plan has no schedule.
+  function planWeek(program, today) {
+    const p = sanitizePlanProgram(program);
+    if (!p.weeks || !p.start || !isDay(today)) return null;
+    const index = Math.floor(dayDiff(p.start, today) / 7);
+    if (index < 0) return { week: 0, of: p.weeks, index: 0, upcoming: true, finished: false, deload: false, weekStart: p.start };
+    const finished = index >= p.weeks, at = Math.min(index, p.weeks - 1);
+    return { week: at + 1, of: p.weeks, index: at, upcoming: false, finished, deload: p.deload && p.weeks >= 4 && at === p.weeks - 1, weekStart: addDays(p.start, 7 * at) };
+  }
+
+  // The target for one exercise in a given week. A deload week drops to about 60% of the sets at 90% of the weight.
+  function progressedTarget(exercise, program, weekIndex, roundKg) {
+    const p = sanitizePlanProgram(program), i = Math.max(0, Math.round(Number(weekIndex) || 0)), unit = Number(roundKg) > 0 ? Number(roundKg) : 0.5;
+    const base = { sets: Math.round(num(exercise && exercise.sets, 1, 20, 3)), reps: Math.round(num(exercise && exercise.reps, 1, 100, 8)), kg: num(exercise && exercise.kg, 0, 1000, 0) };
+    if (!p.weeks) return base;
+    const snap = kg => round(Math.round(kg / unit) * unit, 3);
+    if (p.deload && p.weeks >= 4 && i >= p.weeks - 1) return { sets: Math.max(1, Math.ceil(base.sets * 0.6)), reps: base.reps, kg: base.kg > 0 ? snap(base.kg * 0.9) : 0 };
+    const step = Math.min(i, p.weeks - 1);
+    if (p.mode === 'weight' && base.kg > 0) return { sets: base.sets, reps: base.reps, kg: Math.min(1000, round(base.kg + p.stepKg * step, 3)) };
+    if (p.mode === 'reps') return { sets: base.sets, reps: Math.min(100, base.reps + Math.min(step, 4)), kg: base.kg };
+    return base;
+  }
+
+  // Planned days against the workouts that were logged from this plan.
+  function planAdherence(plan, sessions, today) {
+    const days = (plan && Array.isArray(plan.days) ? plan.days : []).filter(d => d && (d.exercises || []).length), wk = planWeek(plan && plan.program, today);
+    const name = String(plan && plan.name || ''), start = wk ? sanitizePlanProgram(plan.program).start : '';
+    const mine = validSessions(sessions).filter(s => s.plan && s.plan.name === name && (!start || s.date >= start) && s.date <= today);
+    const weekFrom = wk ? wk.weekStart : addDays(today, -6);
+    const thisWeek = days.map(d => ({ day: d.day, done: mine.some(s => s.plan.day === d.day && s.date >= weekFrom) }));
+    if (!wk || wk.upcoming) return { done: mine.length, expected: 0, pct: null, thisWeek };
+    // The week in progress only counts the days already trained, so the score never dips mid-week.
+    const expected = wk.finished ? days.length * wk.of : days.length * wk.index + thisWeek.filter(d => d.done).length, done = Math.min(mine.length, expected);
+    return { done, expected, pct: expected ? Math.round(done / expected * 100) : null, thisWeek };
+  }
+
+
   root.GymLib = Object.freeze({
     DEFAULT_PLATES_KG, DEFAULT_PLATES_LB, MEASURE_FIELDS, DEFAULT_SUPPLEMENTS, STARTER_ROUTINES,
     platesPerSide, warmupSets, overloadSuggestion, parseQuickAdd, quickAlias, QUICK_ALIASES, moveItem, groupBounds, restDueAfterSet, normaliseGroups,
-    sessionTotals, calendarWeeks, monthReport, muscleRecency, weightTrend, storageUse, sanitizeExtras, sanitizeGear, isDay, addDays
+    sessionTotals, calendarWeeks, monthReport, muscleRecency, weightTrend, storageUse, sanitizeExtras, sanitizeGear, isDay, addDays,
+    MUSCLE_GROUPS, REP_TARGETS, PLAN_TEMPLATES, WEEKDAY_NAMES, e1rm, sessionVolume, weeklySeries, periodChange, weekdayPattern, consistency, exerciseHistory, exerciseNames,
+    repMaxes, projection, liftTrends, muscleBalance, risingWeeks, coachInsights, sanitizePlanProgram, planWeek, progressedTarget, planAdherence
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

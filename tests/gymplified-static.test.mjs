@@ -539,7 +539,7 @@ test('C1/C3: weight, distance and height are converted for display only', async 
   assert.match(js, /\['kg','lb'\]\.includes\(settings\.weightUnit\)/);
   assert.match(js, /\['km','mi'\]\.includes\(settings\.distanceUnit\)/);
   assert.match(js, /\['cm','ftin'\]\.includes\(settings\.heightUnit\)/);
-  assert.equal(count(html, /data-weight-unit>/g), 2, 'PR form and Deluxe planner labels follow the weight unit (A9/H6)');
+  assert.equal(count(html, /data-weight-unit>/g), 3, 'PR form and both Deluxe planner labels follow the weight unit (A9/H6)');
 });
 
 test('C4: week start day drives streak weeks, recap and weekly charts', async () => {
@@ -1269,8 +1269,9 @@ test('K2: index.html is a thin shell; styles and app code live in app.css and ap
   assert.doesNotMatch(js, /<\/?script/i);
   assert.doesNotThrow(() => new Function(js));
   const sw = await readRaw('sw.js');
-  assert.match(sw, /'\.\/app\.css',\n  '\.\/lib\.js',\n  '\.\/app\.js',\n  '\.\/plus\.js',/);
-  assert.match(sw, /if \(\/\\\/\(app\|lib\|plus\)\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
+  assert.match(sw, /'\.\/app\.css',\n  '\.\/lib\.js',\n  '\.\/app\.js',\n  '\.\/plus\.js',\n  '\.\/deluxe\.js',/);
+  assert.match(shell, /<script src="\.\/plus\.js"><\/script>\n<script src="\.\/deluxe\.js"><\/script>/, 'the Deluxe tools load after the app and feature scripts');
+  assert.match(sw, /if \(\/\\\/\(app\|lib\|plus\|deluxe\)\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
 });
 
 test('Deluxe admin toggle: service-role only, keeps paid records, and the admin page uses listeners and escaping', async () => {
@@ -1300,7 +1301,7 @@ test('K3: no inline event handlers, an explicit action allowlist, and no unsafe-
   assert.doesNotMatch(shell, /<script(?![^>]*\ssrc=)[^>]*>/, 'no inline script blocks');
   assert.doesNotMatch(js, /\beval\(|new Function\(|setTimeout\(\s*['"`]|setInterval\(\s*['"`]|javascript:/, 'nothing a strict CSP would block');
   // Every action named in markup is on the allowlist, and nothing else is.
-  const used = new Set([...(shell + js).matchAll(/data-(?:action|change|input|submit)="([A-Za-z]+)"/g)].map(m => m[1]));
+  const used = new Set([...(shell + js + await readRaw('deluxe.js')).matchAll(/data-(?:action|change|input|submit)="([A-Za-z]+)"/g)].map(m => m[1]));
   const block = js.slice(js.indexOf('const UI_ACTIONS=Object.freeze({'), js.indexOf('function bindUiActions'));
   const defined = new Set([...block.matchAll(/(?:^|[,{ ])([A-Za-z]+):(?:\(|el)/gm)].map(m => m[1]));
   assert.ok(used.size >= 70);
@@ -1326,7 +1327,7 @@ test('K3: no inline styles anywhere, so the CSP allows styles only from files', 
   assert.doesNotMatch(js, /createElement(NS)?\([^)]*'style'\)|setAttribute\('style'|insertAdjacentHTML\([^)]*<style/, 'no style elements created at run time');
   assert.equal(count(svg, /\sstyle="/g) + count(svg, /<style/g), 0, 'the muscle map uses presentation attributes, not styles');
   // Every class the conversion created exists in app.css, and every rule is used.
-  const used = new Set([...(shell + js).matchAll(/\b(st-\d+)\b/g)].map(m => m[1]));
+  const used = new Set([...(shell + js + await readRaw('deluxe.js')).matchAll(/\b(st-\d+)\b/g)].map(m => m[1]));
   const defined = new Set([...css.matchAll(/\.(st-\d+)\.\1\{/g)].map(m => m[1]));
   assert.ok(used.size >= 60);
   assert.deepEqual([...used].filter(c => !defined.has(c)), []);
@@ -1552,4 +1553,83 @@ test('DX4: admin payment health check never returns secrets; refunds link to Str
 test('DX5: hidden buttons are really hidden (owners never see "Unlock Deluxe")', async () => {
   const css = await readRaw('app.css');
   assert.match(css, /\.btn\[hidden\],button\[hidden\]\{display:none!important\}/);
+});
+
+// ===== Deluxe upgrade: six real tools, sample previews, signature themes =====
+test('DX6: signature themes meet WCAG AA and only apply while Deluxe is active', async () => {
+  const css = await readRaw('app.css'), dx = await readRaw('deluxe.js'), js = await readRaw('app.js');
+  const lum = hex => { const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const skins = [...dx.matchAll(/\{ id: '([a-z]+)', name: '[A-Za-z]+', base: '(dark|light)'/g)].map(m => ({ id: m[1], base: m[2] }));
+  assert.deepEqual(skins.map(s => s.id), ['obsidian', 'aurora', 'ember', 'glacier']);
+  const failures = [];
+  for (const skin of skins) {
+    const rule = new RegExp('html\\[data-skin="' + skin.id + '"\\]:not\\(\\[data-contrast="high"\\]\\)\\{([^}]*)\\}').exec(css);
+    assert.ok(rule, skin.id + ' has a theme rule that outweighs the built-in tokens');
+    const own = Object.fromEntries([...rule[1].matchAll(/(--[a-z-]+):(#[0-9a-f]{6})/g)].map(m => [m[1], m[2]])), base = colourTokens(css, skin.base, 'gold', 'normal');
+    const t = name => own[name] || base(name);
+    for (const name of ['--bg', '--panel', '--panel-hover', '--ink', '--muted', '--line', '--field-line', '--brand', '--brand-ink', '--brand-text', '--brand-light', '--danger', '--success', '--focus-ring']) assert.ok(own[name], skin.id + ' sets ' + name);
+    const check = (fg, bg, need) => { const r = ratio(t(fg), t(bg)); if (r + 0.005 < need) failures.push(skin.id + ' ' + fg + ' on ' + bg + ' = ' + r.toFixed(2)); };
+    for (const surface of ['--bg', '--panel', '--panel-hover', '--brand-light']) for (const fg of ['--ink', '--muted', '--brand-text']) check(fg, surface, 4.5);
+    for (const surface of ['--bg', '--panel', '--panel-hover']) { check('--danger', surface, 4.5); check('--focus-ring', surface, 3); }
+    for (const surface of ['--bg', '--panel', '--brand-light']) check('--success', surface, 4.5);
+    check('--brand-ink', '--brand', 4.5); check('--field-line', '--bg', 3); check('--field-line', '--panel', 3);
+    check('--deluxe-text', '--panel', 4.5); check('--deluxe-line', '--panel', 3);
+    assert.match(js, new RegExp("skin:\\[[^\\]]*'" + skin.id + "'[^\\]]*\\]\\.includes\\(rawDeluxe\\.skin\\)"), skin.id + ' survives the state sanitizer');
+  }
+  assert.deepEqual(failures, []);
+  // A theme is cosmetic and tied to the entitlement: no Deluxe (refund, sign-out) or high contrast means no theme.
+  const apply = new Function('deluxeEnabled', 'state', 'DX_SKINS', 'deluxeAccess', 'currentUser', 'readDeluxeCache', extractFunctions(dx, ['dxSkin', 'dxSkinAllowed', 'applyDeluxeSkin']) + ';return applyDeluxeSkin;');
+  const run = (enabled, contrast, skin, access = { checked: true }, cache = null) => { const attrs = { 'data-theme': 'dark' }, el = { setAttribute: (k, v) => { attrs[k] = v; }, removeAttribute: k => { delete attrs[k]; } }; apply(() => enabled, { settings: { contrast }, deluxe: { skin } }, [{ id: '', base: '' }, { id: 'glacier', base: 'light' }], access, { id: 'u1' }, () => cache)(el); return attrs; };
+  assert.deepEqual(run(true, 'normal', 'glacier'), { 'data-theme': 'light', 'data-skin': 'glacier' });
+  assert.deepEqual(run(false, 'normal', 'glacier'), { 'data-theme': 'dark' }, 'not without Deluxe');
+  assert.deepEqual(run(true, 'high', 'glacier'), { 'data-theme': 'dark' }, 'high contrast always wins');
+  assert.deepEqual(run(true, 'normal', 'nope'), { 'data-theme': 'dark' });
+  // Before the server answers, an owner's saved answer keeps the theme (no flash on launch); once it answers, it wins.
+  assert.equal(run(false, 'normal', 'glacier', { checked: false }, { deluxe: true })['data-skin'], 'glacier');
+  assert.equal(run(false, 'normal', 'glacier', { checked: false }, { deluxe: false })['data-skin'], undefined);
+  assert.equal(run(false, 'normal', 'glacier', { checked: true }, { deluxe: true })['data-skin'], undefined, 'a refund removes the theme as soon as the server says so');
+  assert.match(js, /if\(typeof applyDeluxeSkin==='function'\)applyDeluxeSkin\(document\.documentElement\);/);
+});
+
+test('DX7: deluxe.js follows the K3 rules and the tools stay behind the entitlement', async () => {
+  const shell = await readRaw('index.html'), dx = await readRaw('deluxe.js'), js = await readRaw('app.js');
+  assert.doesNotThrow(() => new Function(dx));
+  assert.equal(count(dx, /\son[a-z]+\s*=\s*\\?["']/gi), 0, 'no inline handlers');
+  assert.equal(count(dx, /\sstyle=\\?["']/g), 0, 'no inline styles');
+  assert.doesNotMatch(dx, /\beval\(|new Function\(|javascript:|\.style\.|<\/?script/i);
+  // Actions are named in markup directly, or through the Reports tab's act('name', …) button helper.
+  const used = new Set([...(shell + dx).matchAll(/data-dx(?:-change)?="([A-Za-z]+)"|\bact\('([A-Za-z]+)'/g)].map(m => m[1] || m[2]));
+  const block = dx.slice(dx.indexOf('const DELUXE_ACTIONS = Object.freeze({'), dx.indexOf('function bindDeluxeActions'));
+  const defined = new Set([...block.matchAll(/(?:^|[,{ ])([A-Za-z]+): (?:\(|el)/gm)].map(m => m[1]));
+  assert.ok(used.size >= 12);
+  assert.deepEqual([...used].filter(x => !defined.has(x)), [], 'every Deluxe action in markup is allowlisted');
+  assert.deepEqual([...defined].filter(x => !used.has(x)), [], 'no unused allowlist entries');
+  assert.match(dx, /Object\.prototype\.hasOwnProperty\.call\(DELUXE_ACTIONS, name\)/);
+  // Names typed by the user (exercises, plans) are escaped wherever they reach markup, and spreadsheets are formula-safe.
+  for (const field of ['lift.name', 't.name', 'plan.name', 'n.name', 'x.title', 'x.detail', 'g.group', 'l.name']) assert.ok(dx.includes('esc(' + field), field + ' is escaped');
+  assert.ok(count(dx, /row\.map\(csvCell\)/g) === 2 && !/deluxeCSVCell/.test(dx + js), 'exports use the formula-safe CSV cell');
+  // The real tools only render for an owner; everyone else gets the labelled sample.
+  assert.match(dx, /function renderDeluxeTools\(enabled\) \{\n  const tools = \$\('deluxeTools'\); if \(!tools \|\| !enabled \|\| activeScreenId\(\) !== 'deluxe'\) return;/);
+  assert.match(js, /if\(deluxeEnabled\(\)&&typeof openDeluxeFeature==='function'&&openDeluxeFeature\(name\)\)return;/);
+  assert.match(shell, /id="deluxeModalSample" hidden>Sample data\./);
+  assert.match(dx, /function dxSampleContext\(\) \{[^}]*sample: true \}/);
+  // Six tools, six tabs, six sales cards with a preview each.
+  const features = [...dx.matchAll(/feature: '([^']+)'/g)].map(m => m[1]);
+  assert.equal(features.length, 6);
+  for (const f of features) { assert.ok(shell.includes('data-action="previewDeluxeFeature" data-arg="' + f + '"'), f + ' has a preview button'); assert.ok(js.includes("'" + f + "':'"), f + ' has preview copy'); assert.ok(dx.includes("name === '" + f + "'"), f + ' has a sample'); }
+  assert.match(shell, /Free stays complete/);
+  // Nothing free moved behind the paywall: the only limit on free accounts is still the routine count.
+  assert.doesNotMatch(await readRaw('plus.js'), /deluxeEnabled|deluxeOwned/, 'the free feature file has no Deluxe gates');
+});
+
+test('DX8: programmes carry their schedule through the sanitizer and into the training log', async () => {
+  const js = await readRaw('app.js'), dx = await readRaw('deluxe.js');
+  assert.match(js, /program:GymLib\.sanitizePlanProgram\(p\.program\)/);
+  assert.match(js, /GymLib\.progressedTarget\(e,plan\.program,weekIndex,weightUnit\(\)==='lb'\?KG_PER_LB:0\.5\)/);
+  assert.match(js, /plan:\{sets:t\.sets,reps:t\.reps,kg:t\.kg,name:plan\.name,day:day\.day\}/, 'planned-vs-completed is judged against the week’s target');
+  assert.match(js, /confetti:\['gold','power'\]\.includes\(rawDeluxe\.confetti\)\?rawDeluxe\.confetti:'classic'/);
+  assert.match(js, /const bits=\(deluxeEnabled\(\)&&state\.deluxe&&CONFETTI_SETS\[state\.deluxe\.confetti\]\)\|\|CONFETTI_SETS\.classic;/);
+  assert.match(dx, /kg: dxStartKg\(name\)/, 'template weights come from the user’s own history or start empty');
+  assert.match(await readRaw('index.html'), /Generic examples to build on\. They are not personal advice\./);
 });

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'gymplified-shell-v31';
+const CACHE_NAME = 'gymplified-shell-v32';
 // K4: the Supabase SDK is self-hosted (pinned, from the npm package), so the app loads no third-party script.
 const SUPABASE_SDK = './sdk/supabase-2.57.4.js';
 const APP_SHELL = [
@@ -8,6 +8,7 @@ const APP_SHELL = [
   './lib.js',
   './app.js',
   './plus.js',
+  './deluxe.js',
   SUPABASE_SDK,
   './analytics.js',
   './manifest.webmanifest',
@@ -68,7 +69,7 @@ self.addEventListener('fetch', event => {
   }
 
   // The app code and styles change with every release, so they follow index.html: network first, cache as the offline fallback.
-  if (/\/(app|lib|plus)\.(js|css)$/.test(url.pathname)) {
+  if (/\/(app|lib|plus|deluxe)\.(js|css)$/.test(url.pathname)) {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE_NAME);
       try {

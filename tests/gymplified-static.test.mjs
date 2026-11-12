@@ -300,17 +300,19 @@ test('A3: dead Gym Machines code is gone and every machine is in the exercise li
   for (const [machine, exercise] of Object.entries(machines)) assert.ok(names.includes(exercise), machine + ' needs library entry ' + exercise);
 });
 
-test('A4: the local Deluxe demo unlock only works behind the ?demo=1 developer flag', async () => {
+test('A4: the local Deluxe demo unlock only works behind ?demo=1 on a local dev host', async () => {
   const html = await read('index.html');
   const js = appScript(html);
   assert.doesNotMatch(html, /onclick="toggleDeluxeDemo\(\)"/);
   assert.match(html, /id="deluxeDemoControls"[^>]*\shidden>/);
-  assert.match(js, /TODO\(H3\)/);
-  const build = (search, stored, access = { deluxe: false, userId: '' }, user = null) => new Function('location', 'localStorage', 'deluxeAccess', 'currentUser', "const DELUXE_DEMO_KEY='gymplified_deluxe_demo';" + extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return deluxeEnabled();')({ search }, { getItem: () => stored }, access, user);
+  const build = (search, stored, access = { deluxe: false, userId: '' }, user = null, hostname = 'localhost') => new Function('location', 'localStorage', 'deluxeAccess', 'currentUser', "const DELUXE_DEMO_KEY='gymplified_deluxe_demo';" + extractFunctions(js, ['deluxeDemoAllowed', 'deluxeDemoOn', 'deluxeOwned', 'deluxeEnabled']) + ';return deluxeEnabled();')({ search, hostname }, { getItem: () => stored }, access, user);
   assert.equal(build('', '1'), false, 'console-set flag must not unlock production');
   assert.equal(build('?demo=0', '1'), false);
   assert.equal(build('?demo=1', null), false);
   assert.equal(build('?demo=1', '1'), true);
+  for (const host of ['gymplified.com', 'www.gymplified.com', 'localhost.gymplified.com', ''])
+    assert.equal(build('?demo=1', '1', undefined, null, host), false, 'the demo flag must never unlock Deluxe on ' + (host || 'an unknown host'));
+  assert.equal(build('?demo=1', '1', undefined, null, '127.0.0.1'), true);
   // Batch 9: the server entitlement unlocks Deluxe, but only for the account it was fetched for
   assert.equal(build('', null, { deluxe: true, userId: 'u1' }, { id: 'u1' }), true);
   assert.equal(build('', null, { deluxe: true, userId: 'u1' }, { id: 'u2' }), false, 'another account after switching');

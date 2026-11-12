@@ -2938,7 +2938,7 @@ function initLibraryControls(){
 
 // ===== Batch 9: Deluxe entitlement, purchase, restore, free-tier limits, planner upgrades =====
 // Deluxe comes from the server (public.deluxe_entitlements via the gymplified-deluxe function).
-// The ?demo=1 developer unlock still exists for testing and is never shown to normal visitors.
+// The ?demo=1 developer unlock still exists for local testing (localhost only) and is never shown to visitors.
 const DELUXE_PRICE_LABEL='€9.99';
 const FREE_ROUTINE_LIMIT=5;
 const DELUXE_CACHE_PREFIX='gymplified_deluxe_access_v1:';
@@ -3337,12 +3337,12 @@ window.addEventListener('pageshow',updateInstallUI);
 
 /* ===== Gymplified Deluxe: real, data-driven tools ===== */
 let deluxePlanDraft=[];
-// TODO(H3): this is NOT a paywall. Before any payment goes live, Deluxe entitlement must come from a
-// server-side column (e.g. profiles.deluxe_until / profiles.deluxe_lifetime) enforced in RLS/RPC.
-// Until then the local demo flag is only honoured behind the ?demo=1 developer flag.
+// Deluxe ownership comes from the server entitlement (deluxe_entitlements, granted only by the Stripe
+// webhook or an admin). The local demo flag is a developer aid: it needs ?demo=1 AND a local dev host,
+// so it can never unlock Deluxe on the live site now that Deluxe is sold for real money.
 const DELUXE_DEMO_KEY='gymplified_deluxe_demo';
-function deluxeDemoAllowed(){try{return new URLSearchParams(location.search).get('demo')==='1';}catch(e){return false;}}
-// A4: Deluxe is unlocked by the server entitlement; the local demo flag only works behind ?demo=1.
+function deluxeDemoAllowed(){try{return /^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&new URLSearchParams(location.search).get('demo')==='1';}catch(e){return false;}}
+// A4: Deluxe is unlocked by the server entitlement; the local demo flag only works behind ?demo=1 on localhost.
 function deluxeEnabled(){return deluxeOwned()||deluxeDemoOn();}
 function deluxeDownload(filename,content,type){
  const blob=new Blob([content],{type:type||'text/plain;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');

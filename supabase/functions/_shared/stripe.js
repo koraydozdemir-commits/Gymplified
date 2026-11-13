@@ -75,7 +75,7 @@ export function disputedPaymentIntent(dispute) {
 // With Stripe Managed Payments (Stripe as merchant of record, on by default for the account) Stripe itself
 // sends receipts and invoices, calculates VAT and controls the checkout text, so those parameters are rejected
 // and must not be sent. They are only used when Managed Payments is turned off.
-export function deluxeCheckoutParams({ priceId, userId, email, siteUrl, termsRequired = false, submitNote = '', automaticTax = false, managedPayments = true }) {
+export function deluxeCheckoutParams({ priceId, userId, email, siteUrl, termsRequired = false, submitNote = '', automaticTax = false, managedPayments = true, expiresAt = null }) {
   const params = {
     mode: 'payment',
     line_items: [{ price: priceId, quantity: 1 }],
@@ -87,6 +87,7 @@ export function deluxeCheckoutParams({ priceId, userId, email, siteUrl, termsReq
     payment_intent_data: { metadata: { product: DELUXE_PRODUCT_TAG, user_id: userId } }
   };
   if (email) params.customer_email = email;
+  if (Number.isInteger(expiresAt)) params.expires_at = expiresAt;
   if (termsRequired) params.consent_collection = { terms_of_service: 'required' };
   if (!managedPayments) {
     params.invoice_creation = { enabled: true };
@@ -95,4 +96,29 @@ export function deluxeCheckoutParams({ priceId, userId, email, siteUrl, termsReq
     if (automaticTax) params.automatic_tax = { enabled: true };
   }
   return params;
+}
+
+// ---------- Flash sale ----------
+// The sale is configured server-side only: a Stripe price id in a secret, and an end time and price in
+// public.deluxe_settings. The browser never chooses the price; it only displays what the server reports.
+export const DELUXE_LIST_PRICE_CENTS = 999;
+const STRIPE_MIN_CHARGE_CENTS = 50;
+const SALE_PRICE_ID = /^price_[A-Za-z0-9]{6,100}$/;
+
+// The sale in force at `now` (milliseconds), or null: ends in the future, has a real Stripe price id, and
+// is a genuine discount that Stripe can charge.
+export function activeFlashSale({ priceId, endsAt, priceCents, listPriceCents = DELUXE_LIST_PRICE_CENTS, now = Date.now() }) {
+  const end = typeof endsAt === 'string' || endsAt instanceof Date ? Date.parse(endsAt) : NaN;
+  if (!Number.isFinite(end) || end <= now) return null;
+  if (typeof priceId !== 'string' || !SALE_PRICE_ID.test(priceId)) return null;
+  if (!Number.isInteger(priceCents) || priceCents < STRIPE_MIN_CHARGE_CENTS || priceCents >= listPriceCents) return null;
+  return { priceId, endsAt: new Date(end).toISOString(), priceCents, percentOff: Math.round((1 - priceCents / listPriceCents) * 100) };
+}
+
+// Stripe only accepts a Checkout Session expiry between 30 minutes and 24 hours away. Expiring the session
+// at the sale's end stops a link opened during the sale from being paid at the sale price afterwards; in the
+// last half hour the earliest allowed expiry is used, so a sale price can outlive the sale by under 31 minutes.
+export function saleSessionExpiry(endsAtMs, nowMs = Date.now()) {
+  const earliest = nowMs + 31 * 60 * 1000, latest = nowMs + 24 * 60 * 60 * 1000;
+  return Math.floor(Math.min(Math.max(endsAtMs, earliest), latest) / 1000);
 }

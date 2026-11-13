@@ -127,3 +127,24 @@ To go back to the sandbox, put the three sandbox values back.
 - **Paid but still locked:** Stripe → Webhooks → check the delivery. A failed delivery can be resent. The buyer can also tap "Restore purchase", which looks the payment up directly.
 - **Need to give or remove Deluxe by hand:** `admin-users.html` → open the member → Gymplified Deluxe. Choose *Permanently* or a length (7, 30, 90 days, 1 year, or a custom number of days) and press Give Deluxe; use Change length to adjust a gift later. A temporary gift ends by itself, the member can still buy Deluxe to keep it, and a real payment always makes it permanent. Removing Deluxe does not refund a paying customer.
 - **Turn sales off quickly:** delete `STRIPE_PRICE_DELUXE`. Checkout is refused at once; existing owners keep Deluxe.
+
+## Running a flash sale
+
+The sale price is enforced on the server. The app only displays what `gymplified-deluxe` reports.
+
+**One-time setup**
+1. Apply `supabase/migrations/20261113120000_gymplified_deluxe_flash_sale.sql`.
+2. Deploy the updated `gymplified-deluxe` function.
+3. Stripe → Product catalogue → Gymplified Deluxe → add a second **one-time** price (same tax code), for example €4.99. Copy the `price_…` id.
+
+**Start a sale** (amount in cents must equal the Stripe price; 50 to 998)
+1. Set the secret `STRIPE_PRICE_DELUXE_SALE` to the sale `price_…` id.
+2. Run: `UPDATE public.deluxe_settings SET sale_price_cents = 499, sale_ends_at = '2026-11-15 20:00:00+00' WHERE id = 1;`
+3. Open the Deluxe screen: the banner, countdown and struck-through €9.99 appear.
+
+**End a sale** early: `UPDATE public.deluxe_settings SET sale_ends_at = NULL WHERE id = 1;`. It also ends by itself at `sale_ends_at`.
+
+Notes
+- Checkout links expire at the sale end (Stripe requires 30 minutes to 24 hours), so in the last 30 minutes a link can still be paid for up to 31 minutes.
+- Refund terms are unchanged: 14 days, and the 100% refund is of the price paid.
+- The founder offer (`founder_until`) is independent and can run at the same time.

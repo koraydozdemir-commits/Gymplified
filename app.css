@@ -1277,3 +1277,11 @@ html[data-skin="glacier"]:not([data-contrast="high"]){--bg:#f2f7fb;--panel:#ffff
 /* The heading sits beside the floated screen picture instead of running underneath it. */
 .screen-art~h1,.screen-art~.eyebrow{display:flow-root}
 .toast.toast-xp{border-radius:18px}
+
+/* Deluxe flash sale: countdown banner and struck-through list price. Theme tokens only. */
+.deluxe-sale{margin:12px 0 0;padding:10px 14px;border:2px solid var(--deluxe-text);border-radius:12px;font-size:calc(14px * var(--text-scale,1));line-height:1.5;color:var(--ink);max-width:64ch}
+.deluxe-sale[hidden]{display:none}
+.deluxe-sale-left{display:inline-block;margin-left:4px;font-weight:800;color:var(--deluxe-text);font-variant-numeric:tabular-nums}
+.deluxe-price-was{margin-right:8px;color:var(--muted);font-weight:600;text-decoration-thickness:2px}
+.deluxe-price-was[hidden]{display:none}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}

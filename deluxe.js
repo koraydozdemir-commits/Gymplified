@@ -693,6 +693,28 @@ function renderFounderLine(enabled) {
   if (!enabled && open && deluxeAccess.salesOpen) { el.hidden = false; el.innerHTML = '<strong>Founding member offer.</strong> Unlock Deluxe by ' + esc(dxLongDay(dayKey(new Date(until)))) + ' and keep a <span class="deluxe-pill is-founder">FOUNDING MEMBER</span> badge on your profile and your friends’ leaderboards, for good.'; return; }
   el.hidden = true; el.textContent = '';
 }
+// Flash sale: the price, the struck-through list price, the buy buttons and a countdown banner. Everything
+// shown comes from the server's status answer; when the end time passes the page quietly returns to the list price.
+let dxSaleTimer = null;
+function dxSaleCountdown(msLeft) {
+  const mins = Math.max(0, Math.ceil(msLeft / 60000)), days = Math.floor(mins / 1440), hours = Math.floor((mins % 1440) / 60);
+  return days ? days + 'd ' + hours + 'h left' : hours ? hours + 'h ' + (mins % 60) + 'm left' : mins + 'm left';
+}
+function renderDeluxeSalePrice(canBuy) {
+  const sale = deluxeSaleActive() ? deluxeAccess.sale : null, label = deluxePriceLabel();
+  const banner = $('deluxeSale'), was = $('deluxePriceWas'), amount = $('deluxePriceAmount');
+  if (amount) amount.textContent = label;
+  if (was) was.hidden = !(sale && canBuy);
+  ['deluxeBuyBtn', 'deluxeModalBuy'].forEach(id => { const b = $(id); if (b) b.textContent = 'Unlock Deluxe · ' + label; });
+  clearTimeout(dxSaleTimer); dxSaleTimer = null;
+  if (!banner) return;
+  if (!(sale && canBuy)) { banner.hidden = true; banner.textContent = ''; return; }
+  const end = Date.parse(sale.endsAt), until = new Date(end).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
+  banner.hidden = false;
+  banner.innerHTML = '<strong>Flash sale: ' + sale.percentOff + '% off.</strong> Ends ' + esc(until) + '. <span class="deluxe-sale-left" aria-hidden="true">' + esc(dxSaleCountdown(end - Date.now())) + '</span>';
+  // Re-render each minute, and exactly at the end so an expired sale never lingers on screen.
+  dxSaleTimer = setTimeout(renderDeluxeUI, Math.min(60000, Math.max(1000, end - Date.now() + 500)));
+}
 function renderDeluxeSales(enabled) {
   const sales = $('deluxeSales'), ready = $('deluxeReady');
   renderFounderLine(enabled);

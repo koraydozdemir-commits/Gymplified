@@ -3005,7 +3005,10 @@ function initLibraryControls(){
 // ===== Batch 9: Deluxe entitlement, purchase, restore, free-tier limits, planner upgrades =====
 // Deluxe comes from the server (public.deluxe_entitlements via the gymplified-deluxe function).
 // The ?demo=1 developer unlock still exists for local testing (localhost only) and is never shown to visitors.
-const DELUXE_PRICE_LABEL='€9.99';
+const DELUXE_LIST_PRICE_LABEL='€9.99';
+// The price shown to the buyer: the flash-sale price while the server reports a sale that has not ended.
+function deluxeSaleActive(){const sale=deluxeAccess.sale;return !!(sale&&Date.parse(sale.endsAt)>Date.now());}
+function deluxePriceLabel(){return deluxeSaleActive()?'€'+(deluxeAccess.sale.priceCents/100).toFixed(2):DELUXE_LIST_PRICE_LABEL;}
 const FREE_ROUTINE_LIMIT=5;
 const DELUXE_CACHE_PREFIX='gymplified_deluxe_access_v1:';
 let deluxeAccess={checked:false,deluxe:false,salesOpen:false,userId:''};
@@ -3036,10 +3039,11 @@ async function callDeluxe(action){
 }
 // The server answer always wins. A cached answer is only used when the server cannot be reached
 // (offline), so a paying user keeps Deluxe in the gym without signal.
+function parseDeluxeSale(raw){return raw&&typeof raw.endsAt==='string'&&Number.isFinite(Date.parse(raw.endsAt))&&Number.isInteger(raw.priceCents)&&raw.priceCents>0&&Number.isInteger(raw.percentOff)?{endsAt:raw.endsAt,priceCents:raw.priceCents,percentOff:raw.percentOff}:null;}
 async function refreshDeluxeAccess(){
  if(!sb||!currentUser){deluxeAccess={checked:true,deluxe:false,salesOpen:false,userId:'',confirming:!!deluxeAccess.confirming};renderDeluxeUI();return deluxeAccess;}
  const uid=currentUser.id;
- try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,expiresAt:typeof d.expiresAt==='string'?d.expiresAt:null,founder:!!(d.deluxe&&d.founder),founderUntil:typeof d.founderUntil==='string'&&Number.isFinite(Date.parse(d.founderUntil))?d.founderUntil:null,salesOpen:!!d.salesOpen,mode:d.mode==='test'||d.mode==='live'?d.mode:null,userId:uid,confirming:!!deluxeAccess.confirming};writeDeluxeCache(uid,deluxeAccess);}
+ try{const d=await callDeluxe('status');deluxeAccess={checked:true,deluxe:!!d.deluxe,expiresAt:typeof d.expiresAt==='string'?d.expiresAt:null,founder:!!(d.deluxe&&d.founder),founderUntil:typeof d.founderUntil==='string'&&Number.isFinite(Date.parse(d.founderUntil))?d.founderUntil:null,salesOpen:!!d.salesOpen,sale:parseDeluxeSale(d.sale),mode:d.mode==='test'||d.mode==='live'?d.mode:null,userId:uid,confirming:!!deluxeAccess.confirming};writeDeluxeCache(uid,deluxeAccess);}
  catch(e){const c=readDeluxeCache(uid);deluxeAccess={checked:true,deluxe:!!(c&&c.deluxe),expiresAt:c&&typeof c.expiresAt==='string'?c.expiresAt:null,founder:!!(c&&c.deluxe&&c.founder),founderUntil:null,salesOpen:!!(c&&c.salesOpen),userId:uid,offline:true};}
  if(currentUser&&currentUser.id===uid){applySettings();renderDeluxeUI();try{renderWorkoutHero();}catch(e){}try{renderAccountDeluxe();}catch(e){}}
  return deluxeAccess;
@@ -3192,7 +3196,7 @@ function renderAccountChrome(){
 let accountDeluxeCache=null;
 function formatMoney(cents,currency){const n=Number(cents);if(!Number.isFinite(n)||!currency)return '';try{return new Intl.NumberFormat(undefined,{style:'currency',currency:String(currency).toUpperCase()}).format(n/100);}catch(e){return (n/100).toFixed(2)+' '+String(currency).toUpperCase();}}
 function accountDeluxeSummary(row,owned){
- if(!owned||!row||row.revoked_at)return 'You don’t have Deluxe yet. It’s a one-time '+DELUXE_PRICE_LABEL+' unlock, no subscription.';
+ if(!owned||!row||row.revoked_at)return 'You don’t have Deluxe yet. It’s a one-time '+deluxePriceLabel()+' unlock, no subscription.';
  const when=row.granted_at?new Date(row.granted_at).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
  if(row.source==='admin')return 'Deluxe is unlocked: a gift from Gymplified'+(when?' on '+when:'')+'.';
  const price=formatMoney(row.amount_total,row.currency);
@@ -3543,16 +3547,17 @@ function renderDeluxeUI(){
  const set=(id,text)=>{const el=$(id);if(el)el.textContent=text;};
  const confirming=!!deluxeAccess.confirming&&!owned;
  const gift=owned&&!!deluxeAccess.expiresAt,giftUntil=gift?new Date(deluxeAccess.expiresAt).toLocaleDateString(undefined,{day:'numeric',month:'short',year:'numeric'}):'';
- if(status){status.textContent=gift?'✓ DELUXE UNTIL '+giftUntil.toUpperCase():owned?'✓ DELUXE UNLOCKED':demo?'✓ DEMO UNLOCKED':confirming?'CONFIRMING PAYMENT…':open?'ONE-TIME '+DELUXE_PRICE_LABEL:!signedIn?'SIGN IN TO BUY':'COMING SOON';status.classList.toggle('is-unlocked',enabled);}
+ if(status){status.textContent=gift?'✓ DELUXE UNTIL '+giftUntil.toUpperCase():owned?'✓ DELUXE UNLOCKED':demo?'✓ DEMO UNLOCKED':confirming?'CONFIRMING PAYMENT…':open?'ONE-TIME '+deluxePriceLabel():!signedIn?'SIGN IN TO BUY':'COMING SOON';status.classList.toggle('is-unlocked',enabled);}
  const badge=$('deluxeModeBadge');if(badge)badge.hidden=!(open&&deluxeAccess.mode==='test');
  if($('deluxeBuyBtn'))$('deluxeBuyBtn').hidden=(owned&&!gift)||confirming||!(open||!signedIn);
  if($('deluxeRestoreBtn'))$('deluxeRestoreBtn').hidden=owned||!(open||!signedIn);
+ renderDeluxeSalePrice(open&&!owned);
  set('deluxePriceNote',gift?'one-time · keep it for good':owned?'one-time · paid':open||!signedIn?'one-time · no subscription':'one-time · coming soon');
  set('deluxeHeadline',enabled?'Your training, in full colour.':'See exactly what your training is doing.');
  set('deluxeHeroText',gift?'Deluxe is unlocked on your account until '+giftUntil+'. Buy it once to keep it for good.':owned?'Thank you for supporting Gymplified. Deluxe is part of your account on every device.':'Tools that turn the workouts and meals you already log into trends, targets and a plan that adapts to you. The free tracker stays complete without them.');
- set('deluxeSalesNote',gift?'Your Deluxe access is a gift and ends on '+giftUntil+'. Unlock Deluxe once to keep it on every device, with no subscription.':owned?'Deluxe is linked to your account. Sign in on any device to use it.':!signedIn?'Deluxe is linked to your Gymplified account. Sign in to buy it or restore an earlier purchase.':confirming?'We’re confirming your payment with Stripe. This usually takes a few seconds.':open?'One-time payment of '+DELUXE_PRICE_LABEL+'. No subscription. Sold through Link (Stripe), which shows any tax at checkout and emails your receipt. Changed your mind? Get a full refund within 14 days. Bought it before? Tap Restore purchase.':'Deluxe is not on sale yet. No payment is taken on this page.');
+ set('deluxeSalesNote',gift?'Your Deluxe access is a gift and ends on '+giftUntil+'. Unlock Deluxe once to keep it on every device, with no subscription.':owned?'Deluxe is linked to your account. Sign in on any device to use it.':!signedIn?'Deluxe is linked to your Gymplified account. Sign in to buy it or restore an earlier purchase.':confirming?'We’re confirming your payment with Stripe. This usually takes a few seconds.':open?'One-time payment of '+deluxePriceLabel()+'. No subscription. Sold through Link (Stripe), which shows any tax at checkout and emails your receipt. Changed your mind? Get a full refund within 14 days. Bought it before? Tap Restore purchase.':'Deluxe is not on sale yet. No payment is taken on this page.');
  set('deluxeLockedTitle',open?'Unlock Deluxe to use these tools.':'Deluxe tools are locked.');
- set('deluxeLockedText',open?'A one-time '+DELUXE_PRICE_LABEL+' purchase unlocks them on your account.':!signedIn?'Sign in to see whether Deluxe is available for your account.':'Deluxe is not on sale yet, so these tools cannot be unlocked.');
+ set('deluxeLockedText',open?'A one-time '+deluxePriceLabel()+' purchase unlocks them on your account.':!signedIn?'Sign in to see whether Deluxe is available for your account.':'Deluxe is not on sale yet, so these tools cannot be unlocked.');
  if(toggle)toggle.textContent=demo?'Demo unlocked on this device':deluxeAccess.offline&&owned?'Offline — using your saved Deluxe status':'';
  if(demoBox)demoBox.hidden=!deluxeDemoAllowed();if(demoBtn)demoBtn.textContent=deluxeDemoOn()?'Turn off demo unlock':'Enable demo unlock';
  if(locked)locked.hidden=enabled;if(tools)tools.hidden=!enabled;
@@ -3583,7 +3588,7 @@ function previewDeluxeFeature(name){
  if(deluxeEnabled()&&typeof openDeluxeFeature==='function'&&openDeluxeFeature(name))return;
  const open=deluxeAccess.salesOpen,signedIn=!!currentUser;
  $('deluxeModalTitle').textContent=name;
- $('deluxeModalText').textContent=(DELUXE_PREVIEW_COPY[name]||'This tool is part of Gymplified Deluxe.')+(open?' Included in the one-time '+DELUXE_PRICE_LABEL+' unlock.':signedIn?' Deluxe is not on sale yet.':'');
+ $('deluxeModalText').textContent=(DELUXE_PREVIEW_COPY[name]||'This tool is part of Gymplified Deluxe.')+(open?' Included in the one-time '+deluxePriceLabel()+' unlock.':signedIn?' Deluxe is not on sale yet.':'');
  if(typeof renderDeluxePreview==='function')renderDeluxePreview(name);
  const buy=$('deluxeModalBuy');if(buy)buy.hidden=deluxeEnabled()||!(open||!signedIn);
  const dialog=$('deluxeModal');if(dialog&&!dialog.open)dialog.showModal();

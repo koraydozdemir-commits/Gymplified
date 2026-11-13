@@ -2,10 +2,11 @@
 // Secrets (Supabase > Edge Functions > Secrets): STRIPE_SECRET_KEY, STRIPE_PRICE_DELUXE.
 // Optional: DELUXE_SITE_URL (default https://gymplified.com), DELUXE_REQUIRE_TERMS=1 (needs a terms URL in
 // Stripe's public settings), DELUXE_CHECKOUT_NOTE (owner-approved text shown above the pay button),
+// STRIPE_PRICE_DELUXE_SALE (the flash-sale price id; the sale itself is switched on in public.deluxe_settings),
 // STRIPE_AUTOMATIC_TAX=1 (only after Stripe Tax is set up), STRIPE_MANAGED_PAYMENTS=0 (only if Managed
 // Payments is turned off in Stripe; while it is on, Stripe handles VAT, receipts and checkout text itself).
 import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
-import { deluxeCheckoutParams, formEncode, DELUXE_PRODUCT_TAG } from '../_shared/stripe.js';
+import { deluxeCheckoutParams, formEncode, activeFlashSale, saleSessionExpiry, DELUXE_PRODUCT_TAG } from '../_shared/stripe.js';
 
 const ALLOWED_ORIGINS = ['https://gymplified.com', 'https://www.gymplified.com'];
 function cors(origin) {
@@ -58,20 +59,31 @@ Deno.serve(async (req) => {
     const owned = async () => (await entitlement()).deluxe;
     // A temporary gift from an admin does not stop the member buying Deluxe for good.
     const ownedForGood = async () => { const e = await entitlement(); return e.deluxe && !e.expiresAt; };
+    // Flash sale: on only while the secret price id exists AND deluxe_settings has a future end time. A database
+    // without the sale columns, or any read error, simply means no sale; the normal price is never affected.
+    const currentSale = async () => {
+      if (!salesOpen) return null;
+      const { data, error } = await admin.from('deluxe_settings').select('sale_ends_at, sale_price_cents').eq('id', 1).maybeSingle();
+      if (error || !data) return null;
+      return activeFlashSale({ priceId: Deno.env.get('STRIPE_PRICE_DELUXE_SALE'), endsAt: data.sale_ends_at, priceCents: data.sale_price_cents });
+    };
     const body = await req.json().catch(() => ({}));
     const action = String(body.action || 'status');
 
     if (action === 'status') {
-      const e = await entitlement(), until = typeof e.founderUntil === 'string' && !Number.isNaN(Date.parse(e.founderUntil)) ? e.founderUntil : null;
-      return json({ deluxe: e.deluxe, expiresAt: e.deluxe ? e.expiresAt : null, founder: !!(e.deluxe && e.founder), founderUntil: salesOpen ? until : null, salesOpen, mode: salesOpen ? stripeMode(Deno.env.get('STRIPE_SECRET_KEY')) : null }, 200, origin);
+      const e = await entitlement(), sale = await currentSale(), until = typeof e.founderUntil === 'string' && !Number.isNaN(Date.parse(e.founderUntil)) ? e.founderUntil : null;
+      return json({ deluxe: e.deluxe, expiresAt: e.deluxe ? e.expiresAt : null, founder: !!(e.deluxe && e.founder), founderUntil: salesOpen ? until : null, salesOpen, sale: sale ? { endsAt: sale.endsAt, priceCents: sale.priceCents, percentOff: sale.percentOff } : null, mode: salesOpen ? stripeMode(Deno.env.get('STRIPE_SECRET_KEY')) : null }, 200, origin);
     }
 
     if (action === 'checkout') {
       if (!salesOpen) return json({ error: 'Deluxe is not on sale yet.', code: 'not_on_sale' }, 409, origin);
       if (await ownedForGood()) return json({ deluxe: true, alreadyOwned: true }, 200, origin);
       if (!user.email_confirmed_at) return json({ error: 'Please verify your email address before buying Deluxe.', code: 'email_unverified' }, 403, origin);
+      const sale = await currentSale();
       const session = await stripe('checkout/sessions', { method: 'POST', params: deluxeCheckoutParams({
-        priceId: Deno.env.get('STRIPE_PRICE_DELUXE'), userId: user.id, email: user.email,
+        priceId: sale ? sale.priceId : Deno.env.get('STRIPE_PRICE_DELUXE'),
+        expiresAt: sale ? saleSessionExpiry(Date.parse(sale.endsAt)) : null,
+        userId: user.id, email: user.email,
         siteUrl: Deno.env.get('DELUXE_SITE_URL') || 'https://gymplified.com',
         termsRequired: Deno.env.get('DELUXE_REQUIRE_TERMS') === '1',
         submitNote: Deno.env.get('DELUXE_CHECKOUT_NOTE') || '',

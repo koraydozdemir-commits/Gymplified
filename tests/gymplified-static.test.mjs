@@ -1556,7 +1556,7 @@ test('DX2: purchase states — opening checkout, confirming payment, test-mode b
 
 test('DX3: the Account screen shows how Deluxe was obtained', async () => {
   const js = await readRaw('app.js');
-  const api = new Function('DELUXE_PRICE_LABEL', extractFunctions(js, ['formatMoney', 'accountDeluxeSummary']) + ';return accountDeluxeSummary;')('€9.99');
+  const api = new Function('deluxePriceLabel', extractFunctions(js, ['formatMoney', 'accountDeluxeSummary']) + ';return accountDeluxeSummary;')(() => '€9.99');
   assert.match(api(null, false), /don’t have Deluxe yet.*€9\.99/);
   assert.match(api({ source: 'stripe_checkout', granted_at: '2026-11-12T10:00:00Z', amount_total: 999, currency: 'eur' }, true), /purchased on .* for .*9[.,]99.*Stripe emailed your receipt/);
   assert.match(api({ source: 'admin', granted_at: '2026-11-12T10:00:00Z' }, true), /gift from Gymplified/);
@@ -1898,4 +1898,44 @@ test('XP1: streak bonus, daily goal, daily chest and one combined XP toast', asy
   assert.match(js, /role="progressbar" aria-label="XP to next level"/);
   assert.match(js, /role="progressbar" aria-label="Daily XP goal"/);
   assert.doesNotMatch(css, /mascot-bob/, 'the emblem does not bounce');
+});
+
+test('SALE1: the flash sale is server-controlled, validated and expires its checkout links', async () => {
+  const { activeFlashSale, saleSessionExpiry, deluxeCheckoutParams, formEncode } = await stripeHelpers();
+  const now = Date.parse('2026-11-14T10:00:00Z'), ends = '2026-11-15T10:00:00Z', priceId = 'price_sale123';
+  const sale = activeFlashSale({ priceId, endsAt: ends, priceCents: 499, now });
+  assert.deepEqual(sale, { priceId, endsAt: ends.replace('Z', '.000Z'), priceCents: 499, percentOff: 50 });
+  const off = (over) => activeFlashSale({ priceId, endsAt: ends, priceCents: 499, now, ...over });
+  assert.equal(off({ endsAt: null }), null, 'no end time, no sale');
+  assert.equal(off({ endsAt: '2026-11-14T09:59:59Z' }), null, 'a passed end time ends the sale');
+  assert.equal(off({ endsAt: 'garbage' }), null);
+  assert.equal(off({ priceId: undefined }), null, 'no secret price id, no sale');
+  assert.equal(off({ priceId: 'prod_123456' }), null, 'only price ids are accepted');
+  assert.equal(off({ priceCents: 999 }), null, 'a sale must be cheaper than the list price');
+  assert.equal(off({ priceCents: 49 }), null, 'below the Stripe minimum charge');
+  assert.equal(off({ priceCents: 4.5 }), null);
+  assert.equal(off({ priceCents: null }), null);
+  const h = 60 * 60 * 1000;
+  assert.equal(saleSessionExpiry(now + 5 * h, now), Math.floor((now + 5 * h) / 1000), 'expires at the sale end');
+  assert.equal(saleSessionExpiry(now + 10 * 60 * 1000, now), Math.floor((now + 31 * 60 * 1000) / 1000), 'Stripe needs 30+ minutes');
+  assert.equal(saleSessionExpiry(now + 72 * h, now), Math.floor((now + 24 * h) / 1000), 'Stripe allows 24 hours at most');
+  const user = '0f8fad5b-d9cb-469f-a165-70867728950e', base = { priceId, userId: user, email: 'a@b.co', siteUrl: 'https://gymplified.com' };
+  assert.equal(formEncode(deluxeCheckoutParams({ ...base, expiresAt: 1800000000 })).get('expires_at'), '1800000000');
+  assert.equal(formEncode(deluxeCheckoutParams(base)).get('expires_at'), null, 'normal checkouts keep Stripe’s default expiry');
+  assert.equal(formEncode(deluxeCheckoutParams({ ...base, expiresAt: '1800000000' })).get('expires_at'), null, 'only integers are sent');
+});
+
+test('SALE2: the app shows only a sale the server reports, and never trusts a passed one', async () => {
+  const js = await readRaw('app.js');
+  const run = (access) => new Function('deluxeAccess', extractFunctions(js, ['parseDeluxeSale', 'deluxeSaleActive', 'deluxePriceLabel']) + "const DELUXE_LIST_PRICE_LABEL='€9.99';return {parse:parseDeluxeSale,label:deluxePriceLabel,active:deluxeSaleActive};")(access);
+  const future = new Date(Date.now() + 3600000).toISOString(), past = new Date(Date.now() - 1000).toISOString();
+  assert.equal(run({}).parse({ endsAt: 'x', priceCents: 499, percentOff: 50 }), null);
+  assert.equal(run({}).parse({ endsAt: future, priceCents: '499', percentOff: 50 }), null);
+  assert.equal(run({}).parse(null), null);
+  assert.equal(run({ sale: { endsAt: future, priceCents: 499, percentOff: 50 } }).label(), '€4.99');
+  assert.equal(run({ sale: { endsAt: past, priceCents: 499, percentOff: 50 } }).label(), '€9.99', 'an ended sale returns to the list price');
+  assert.equal(run({}).label(), '€9.99');
+  const html = await readRaw('index.html');
+  assert.match(html, /id="deluxeSale"[^>]*hidden/, 'banner is hidden until the server reports a sale');
+  assert.match(html, /id="deluxePriceWas"[^>]*hidden/);
 });

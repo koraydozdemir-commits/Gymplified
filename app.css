@@ -1171,15 +1171,11 @@ html[data-skin="glacier"]:not([data-contrast="high"]){--bg:#f2f7fb;--panel:#ffff
 .progress-bar i{position:relative;border-radius:99px;min-width:0}
 .progress-bar i::after{content:"";position:absolute;left:6px;right:6px;top:2px;height:3px;border-radius:99px;background:rgb(255 255 255 / .32)}
 
-/* Dashboard hero with the mascot */
+/* Dashboard hero with the kettlebell emblem (still: it is an object, not a character) */
 .workout-hero{flex-wrap:nowrap;background:radial-gradient(circle at 0 0,color-mix(in srgb,var(--brand) 24%,transparent),transparent 58%),var(--panel);border-width:1px 1px 4px}
 .hero-mascot{flex-shrink:0}.hero-mascot .mascot{width:104px;height:104px}
 .hero-text{flex:1;min-width:0}
 .hero-actions{justify-content:flex-end}
-@keyframes mascot-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
-.hero-mascot .mascot{animation:mascot-bob 3.2s ease-in-out infinite}
-html[data-motion="reduced"] .hero-mascot .mascot{animation:none}
-@media(prefers-reduced-motion:reduce){.hero-mascot .mascot{animation:none}}
 @media(max-width:640px){.workout-hero{flex-wrap:wrap}.hero-mascot .mascot{width:72px;height:72px}.hero-text{flex:1 1 60%}.hero-actions{flex:1 1 100%;justify-content:stretch}.hero-actions .hero-btn{flex:1}}
 
 /* Level ring and today's XP */

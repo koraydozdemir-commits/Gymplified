@@ -40,17 +40,20 @@ function artSvg(inner,cls,box){return '<svg class="art'+(cls?' '+cls:'')+'" view
 // One icon by name. Unknown names fall back to the star so a typo never leaves a hole in the page.
 function art(name,cls){return artSvg(ART[name]||ART.star,cls);}
 
-// --- Mascot: a friendly gold kettlebell. Moods: happy, cheer, focused, sleepy. ---
-const MASCOT_BODY='<path d="M38 54c-9-22 3-40 22-40s31 18 22 40" fill="none" stroke="#b07d1e" stroke-width="11" stroke-linecap="round"/><ellipse cx="60" cy="76" rx="41" ry="36" fill="#f2c14e"/><path d="M20 84a41 36 0 0 0 80 0 46 30 0 0 1-80 0z" fill="#d9a436"/><ellipse cx="40" cy="57" rx="9" ry="4.5" fill="#ffe7a3" transform="rotate(-32 40 57)"/>';
-const MASCOT_EYES='<ellipse cx="47" cy="74" rx="8" ry="9" fill="#fff"/><ellipse cx="73" cy="74" rx="8" ry="9" fill="#fff"/><circle cx="49" cy="75" r="4.3" fill="#2b2110"/><circle cx="75" cy="75" r="4.3" fill="#2b2110"/><circle cx="50.6" cy="73.3" r="1.5" fill="#fff"/><circle cx="76.6" cy="73.3" r="1.5" fill="#fff"/>';
-const MASCOT_CHEEKS='<ellipse cx="36" cy="86" rx="5" ry="3" fill="#ff8a6b" opacity=".55"/><ellipse cx="84" cy="86" rx="5" ry="3" fill="#ff8a6b" opacity=".55"/>';
-const MASCOT_FACES={
- happy:MASCOT_EYES+MASCOT_CHEEKS+'<path d="M52 88q8 7 16 0" fill="none" stroke="#2b2110" stroke-width="3.5" stroke-linecap="round"/>',
- cheer:'<path d="M21 68 9 50M99 68l12-18" stroke="#b07d1e" stroke-width="7" stroke-linecap="round"/><circle cx="8" cy="48" r="5.5" fill="#f2c14e"/><circle cx="112" cy="48" r="5.5" fill="#f2c14e"/>'+MASCOT_EYES+MASCOT_CHEEKS+'<path d="M50 86h20a10 10 0 0 1-20 0z" fill="#2b2110"/><path d="M55 92.500a6 4 0 0 1 10 0 8 8 0 0 1-10 0z" fill="#ff7a8a"/><path d="m18 18 1.8 4.200L24 24l-4.2 1.800L18 30l-1.8-4.200L12 24l4.2-1.800zM102 12l1.5 3.500L107 17l-3.5 1.500L102 22l-1.5-3.500L97 17l3.5-1.500z" fill="#ffe08a"/>',
- focused:'<path d="M21 66q39-17 78 0" fill="none" stroke="#ff5d5d" stroke-width="7" stroke-linecap="round"/>'+MASCOT_EYES+'<path d="M38 62l15 4M82 62l-15 4" stroke="#2b2110" stroke-width="3.5" stroke-linecap="round"/><path d="M53 89q7 4 14 0" fill="none" stroke="#2b2110" stroke-width="3.5" stroke-linecap="round"/><path d="M100 58c2.5 3.5 4 5.5 4 7.500a4 4 0 0 1-8 0c0-2 1.5-4 4-7.500z" fill="#4cc2ff"/>',
- sleepy:MASCOT_CHEEKS+'<path d="M40 75q7 5 14 0M66 75q7 5 14 0" fill="none" stroke="#2b2110" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="60" cy="89" rx="3.5" ry="3" fill="#2b2110"/><path d="M92 30h9l-9 10h9M104 14h6l-6 7h6" fill="none" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
+// --- Emblem: a gold kettlebell, drawn as an object (no face). The accent around it changes with the moment:
+// happy = ready, cheer = something achieved, focused = workout running, sleepy = nothing logged yet. ---
+const MASCOT_BODY='<path d="M40 52C33 31 44 16 60 16s27 15 20 36" fill="none" stroke="#b07d1e" stroke-width="11" stroke-linecap="round"/><path d="M41 47c-4-15 5-25 19-25" fill="none" stroke="#e0b04a" stroke-width="3.5" stroke-linecap="round"/>'+
+ '<path d="M38 100h44a4.5 4.5 0 0 1 0 9H38a4.5 4.5 0 0 1 0-9z" fill="#8a5a22"/><circle cx="60" cy="74" r="36" fill="#f2c14e"/><path d="M94 62a36 36 0 0 1-34 48 46 46 0 0 0 34-48z" fill="#d9a436"/>'+
+ '<path d="M32 66a29 29 0 0 1 15-18" fill="none" stroke="#ffe7a3" stroke-width="4" stroke-linecap="round"/><circle cx="60" cy="76" r="19" fill="none" stroke="#b07d1e" stroke-width="3"/>'+
+ '<g fill="#8a5a22"><rect x="50" y="73.5" width="20" height="5" rx="1.5"/><rect x="46" y="68" width="5.5" height="16" rx="2"/><rect x="68.5" y="68" width="5.5" height="16" rx="2"/></g>';
+const MASCOT_SPARK='<path d="m0-8 2.2 5.800L8 0 2.2 2.2 0 8l-2.2-5.800L-8 0l5.8-2.200z" fill="#ffe08a"/>';
+const MASCOT_ACCENTS={
+ happy:'<g transform="translate(100 24)">'+MASCOT_SPARK+'</g><g transform="translate(18 38) scale(.6)">'+MASCOT_SPARK+'</g>',
+ cheer:'<g fill="none" stroke="#ffe08a" stroke-width="4" stroke-linecap="round"><path d="M13 46l9 5M107 46l-9 5M25 21l6 8M95 21l-6 8M7 74h10M113 74h-10"/></g><g transform="translate(104 12) scale(.8)">'+MASCOT_SPARK+'</g><g transform="translate(14 14) scale(.6)">'+MASCOT_SPARK+'</g>',
+ focused:'<g fill="none" stroke="#8b8f98" stroke-width="4" stroke-linecap="round"><path d="M5 62h13M1 76h15M6 90h12"/></g><g transform="translate(84 2) scale(.72)">'+ART.flame+'</g>',
+ sleepy:'<g transform="translate(84 2) scale(.64)">'+ART.moon+'</g><g transform="translate(20 30) scale(.5)">'+MASCOT_SPARK+'</g>'
 };
-function mascot(mood,cls){const face=MASCOT_FACES[mood]||MASCOT_FACES.happy;return artSvg(MASCOT_BODY+face,'mascot mascot-'+(MASCOT_FACES[mood]?mood:'happy')+(cls?' '+cls:''),'120 120');}
+function mascot(mood,cls){const known=Object.prototype.hasOwnProperty.call(MASCOT_ACCENTS,mood);return artSvg(MASCOT_ACCENTS[known?mood:'happy']+MASCOT_BODY,'mascot mascot-'+(known?mood:'happy')+(cls?' '+cls:''),'120 120');}
 
 // --- Medallions for badges ---
 const BADGE_TIERS={bronze:['#d9935a','#9a5b2c'],silver:['#cfd6dd','#8d97a3'],gold:['#f2c14e','#b07d1e'],diamond:['#7ee0f2','#2a9bb5'],ruby:['#ff7a8a','#c23a4d']};

@@ -1844,14 +1844,16 @@ test('ART1: art.js loads first, is cached offline and follows the CSP rules', as
 
 test('ART2: every picture the app asks for exists, and every badge has a medallion', async () => {
   const artJs = await readRaw('art.js'), js = await readRaw('app.js'), shell = await readRaw('index.html');
-  const api = new Function(artJs + ';return {ART,BADGE_ART,BADGE_TIERS,MASCOT_FACES,art,mascot,badgeArt,rankShield,rankTier,medalArt,ringArt,waterGlassArt};')();
+  const api = new Function(artJs + ';return {ART,BADGE_ART,BADGE_TIERS,MASCOT_ACCENTS,MASCOT_BODY,art,mascot,badgeArt,rankShield,rankTier,medalArt,ringArt,waterGlassArt};')();
   const asked = new Set([...(js + await readRaw('growth.js')).matchAll(/\bart\('([A-Za-z]+)'/g)].map(m => m[1]));
   for (const m of shell.matchAll(/data-art="([A-Za-z]+)"/g)) asked.add(m[1]);
   for (const m of js.matchAll(/\bart:'([A-Za-z]+)'/g)) asked.add(m[1]);
   assert.ok(asked.size >= 12, 'the app uses a real set of pictures, got ' + asked.size);
   assert.deepEqual([...asked].filter(name => !api.ART[name]), [], 'no missing pictures');
   const moods = new Set([...js.matchAll(/mascot\('([a-z]+)'\)/g)].map(m => m[1]));
-  assert.deepEqual([...moods].filter(m => !api.MASCOT_FACES[m]), []);
+  assert.deepEqual([...moods].filter(m => !api.MASCOT_ACCENTS[m]), []);
+  // the emblem is an object, not a character: no eyes, cheeks or mouth
+  assert.doesNotMatch(api.MASCOT_BODY + Object.values(api.MASCOT_ACCENTS).join(''), /<ellipse|opacity=/);
   const block = js.slice(js.indexOf('const BADGES=['), js.indexOf('function badgeProgress'));
   const ids = [...block.matchAll(/\{id:'([a-z0-9]+)'/g)].map(m => m[1]);
   assert.deepEqual(ids.filter(id => !api.BADGE_ART[id]), [], 'every badge has its own medallion');
@@ -1895,7 +1897,5 @@ test('XP1: streak bonus, daily goal, daily chest and one combined XP toast', asy
   assert.match(js, /g\.daily\.xp>=goal\?'✓ Goal reached'/);
   assert.match(js, /role="progressbar" aria-label="XP to next level"/);
   assert.match(js, /role="progressbar" aria-label="Daily XP goal"/);
-  // new motion respects both reduced-motion switches
-  assert.match(css, /html\[data-motion="reduced"\] \.hero-mascot \.mascot\{animation:none\}/);
-  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.hero-mascot \.mascot\{animation:none\}\}/);
+  assert.doesNotMatch(css, /mascot-bob/, 'the emblem does not bounce');
 });

@@ -104,6 +104,36 @@ function dxRadar(groups) {
 }
 
 // ---------- Advanced analytics ----------
+// Training load: the last seven days against a usual week. Always a word, never colour alone.
+const DX_LOAD = { none: ['No recent training', ''], new: ['Building a baseline', ''], easing: ['Lighter than usual', ''], steady: ['✓ In your usual range', ' is-in'], building: ['Above your usual', ' is-in'], spike: ['Big jump', ' is-low'] };
+function dxLoadChip(load) { return '<span class="dx-chip' + DX_LOAD[load.status][1] + '">' + DX_LOAD[load.status][0] + '</span>'; }
+function dxLoadSentence(load) {
+  if (load.status === 'none') return 'No lifting logged in the last five weeks.';
+  if (load.status === 'new') return fmtVolume(load.recent) + ' in the last 7 days. A usual week appears once there are earlier weeks to compare with.';
+  return fmtVolume(load.recent) + ' in the last 7 days, ' + Math.round(load.ratio * 100) + '% of a usual week (' + fmtVolume(load.usual) + ').' + (load.status === 'spike' ? ' That is a big jump on your usual week.' : '');
+}
+// A year of training days as a calendar grid (half a year on phones, so the squares stay readable).
+function dxHeatmapMarkup(ctx) {
+  const weeks = dxNarrow() ? 26 : 53, map = GymLib.yearHeatmap(ctx.sessions, ctx.today, ctx.weekStart, weeks);
+  const P = 15, C = 12, L = 30, T = 18, W = L + weeks * P, H = T + 7 * P, names = ctx.weekStart === 'sun' ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  let cells = '', labels = '', lastLabel = -9, lastMonth = '';
+  map.weeks.forEach((week, w) => {
+    const month = week[0].day.slice(0, 7);
+    if (month !== lastMonth) { if (w - lastLabel >= 3 && w <= weeks - 2) { labels += '<text class="dx-axis" x="' + (L + w * P) + '" y="11">' + esc(new Date(week[0].day + 'T12:00:00').toLocaleDateString(undefined, { month: 'short' })) + '</text>'; lastLabel = w; } lastMonth = month; }
+    week.forEach((d, i) => {
+      if (d.future) return;
+      const tip = dxLongDay(d.day) + ': ' + (d.workouts ? plural(d.workouts, 'workout') + (d.vol > 0 ? ' · ' + fmtVolume(d.vol) : '') : 'rest day');
+      cells += '<g class="dx-pt" data-tip="' + esc(tip) + '"><rect class="dx-heat dx-heat-' + d.level + '" x="' + (L + w * P) + '" y="' + (T + i * P) + '" width="' + C + '" height="' + C + '" rx="3"/></g>';
+    });
+  });
+  [0, 2, 4].forEach(i => { labels += '<text class="dx-axis" x="0" y="' + (T + i * P + 10) + '">' + names[i] + '</text>'; });
+  const months = {}; map.weeks.forEach(week => week.forEach(d => { if (d.future) return; const m = months[d.day.slice(0, 7)] || (months[d.day.slice(0, 7)] = { days: 0, workouts: 0, vol: 0 }); if (d.workouts) { m.days++; m.workouts += d.workouts; m.vol += d.vol; } }));
+  const span = weeks === 53 ? '12 months' : '6 months';
+  return '<div class="panel dx-block"><div class="section-title"><span>Your training year</span><span class="dx-legend">Less' + [0, 1, 2, 3, 4].map(n => '<i class="dx-key dx-heat-' + n + '" aria-hidden="true"></i>').join('') + '<span class="dx-legend-end">More</span></span></div>' +
+    '<svg class="dx-chart dx-heatmap" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Training days over the last ' + span + ': ' + esc(plural(map.activeDays, 'active day')) + ' and ' + esc(plural(map.workouts, 'workout')) + '. Darker squares are bigger days. The table below has each month.">' + labels + cells + '</svg>' +
+    '<p class="dx-readout" data-default="' + esc(plural(map.activeDays, 'active day')) + ' in the last ' + span + '. Hover or tap a square for that day." aria-hidden="true">' + esc(plural(map.activeDays, 'active day')) + ' in the last ' + span + '. Hover or tap a square for that day.</p>' +
+    dxTable('Training days by month', ['Month', 'Active days', 'Workouts', 'Volume'], Object.keys(months).sort().reverse().map(k => [fmtMonth(k), String(months[k].days), String(months[k].workouts), fmtVolume(months[k].vol)])) + '</div>';
+}
 // Where the work went in the chosen range: the top lifts by volume, with their share of the total.
 function dxVolumeSplitMarkup(ctx, from) {
   const split = GymLib.volumeByExercise(ctx.sessions, from, ctx.today, 6);
@@ -129,7 +159,7 @@ function dxAnalyticsMarkup(ctx, range) {
   const all = GymLib.weeklySeries(ctx.sessions, ctx.today, range * 2, ctx.weekStart), series = all.slice(-range), change = GymLib.periodChange(all);
   const from = series[0].week, inRange = ctx.sessions.filter(s => s.date >= from && s.date <= ctx.today), prs = inRange.reduce((n, s) => n + (Array.isArray(s.prs) ? s.prs.length : 0), 0);
   const days = GymLib.weekdayPattern(ctx.sessions, from), cons = GymLib.consistency(ctx.sessions, ctx.today, 12, ctx.weeklyGoal, ctx.weekStart);
-  const recent = GymLib.weeklySeries(ctx.sessions, ctx.today, 12, ctx.weekStart), goal = cons.goal, dayMax = Math.max(1, ...days.counts);
+  const recent = GymLib.weeklySeries(ctx.sessions, ctx.today, 12, ctx.weekStart), goal = cons.goal, dayMax = Math.max(1, ...days.counts), load = GymLib.trainingLoad(ctx.sessions, ctx.today);
   const controls = ctx.sample ? '' : '<div class="row-wrap dx-range" role="group" aria-label="Time range">' + DX_RANGES.map(r => '<button type="button" class="btn range-btn" data-dx="setRange" data-arg="' + r + '" aria-pressed="' + (r === range) + '">' + (r === 52 ? '1 year' : r + ' weeks') + '</button>').join('') + '</div>';
   return controls +
     '<div class="dx-tiles">' +
@@ -137,10 +167,12 @@ function dxAnalyticsMarkup(ctx, range) {
       dxTile('Workouts', dxInt(change.workouts.now), dxDelta(change.workouts.pct) + ' <span>' + (change.workouts.now / range).toFixed(1) + ' a week</span>') +
       dxTile('Average session', change.length.now ? change.length.now + ' min' : '—', dxDelta(change.length.pct, true) + ' <span>' + dxInt(change.sets.now) + ' working sets</span>') +
       dxTile('Personal bests', dxInt(prs), '<span>set in this period</span>') +
+      dxTile('Last 7 days', esc(fmtVolume(load.recent)), dxLoadChip(load) + (load.ratio === null ? '' : ' <span>' + Math.round(load.ratio * 100) + '% of a usual week</span>')) +
     '</div>' +
     '<div class="panel dx-block"><div class="section-title"><span>Weekly volume</span><span class="dx-legend"><i class="dx-key dx-key-bar" aria-hidden="true"></i>Week <i class="dx-key dx-key-line" aria-hidden="true"></i>4-week average</span></div>' +
       dxVolumeChart(series, ctx.today) + '<p class="dx-readout" data-default="Hover or tap a bar for that week’s numbers." aria-hidden="true">Hover or tap a bar for that week’s numbers.</p>' +
       dxTable('Weekly training volume', ['Week of', 'Volume', 'Workouts', 'Sets', '4-week average'], series.map(w => [dxLongDay(w.week), fmtVolume(w.vol), String(w.workouts), String(w.sets), fmtVolume(w.avg)])) + '</div>' +
+    dxHeatmapMarkup(ctx) +
     '<div class="dx-two">' +
       '<div class="panel dx-block"><div class="section-title"><span>Where your volume goes</span><span class="sub">' + (range === 52 ? 'LAST YEAR' : 'LAST ' + range + ' WEEKS') + '</span></div>' + dxVolumeSplitMarkup(ctx, from) + '</div>' +
       '<div class="panel dx-block"><div class="section-title"><span>All-time highlights</span><span class="sub">YOUR WHOLE LOG</span></div>' + dxHighlightsMarkup(ctx) + '</div>' +
@@ -253,8 +285,90 @@ function removeGoal() { const lift = dxCurrentLift(dxContext()), goal = lift && 
 function openGoal(i) {
   const goal = dxGoals()[i]; if (!goal) return;
   if (!GymLib.exerciseHistory(dxSessions(), goal.name).length) return dxDropGoal(goal, 'No sessions left for ' + goal.name + ', so its goal was removed');
-  dxLift = GymLib.exerciseNames(dxSessions()).find(n => n.name.toLowerCase() === goal.name.toLowerCase()).name; renderDeluxeTools(deluxeEnabled());
+  dxSelectLift(goal.name); renderDeluxeTools(deluxeEnabled());
   $('dxLiftSelect')?.focus();
+}
+function dxSelectLift(name) { const key = String(name || '').trim().toLowerCase(), hit = GymLib.exerciseNames(dxSessions()).find(n => n.name.toLowerCase() === key); if (hit) dxLift = hit.name; return !!hit; }
+
+// ---------- Deluxe in the rest of the app: workout card, workout summary, Home ----------
+// A goal follows its lift into the training log: the target, and what today's ticked sets are worth.
+function dxGoalLine(w) {
+  if (!deluxeEnabled() || !w || !w.name) return '';
+  const goal = dxGoalFor(w.name); if (!goal) return '';
+  const p = GymLib.goalProgress(goal, GymLib.exerciseHistory(dxSessions(), goal.name), dxToday()); if (p.done) return '';
+  const now = Math.max(0, ...(w.setList || []).filter(x => x && x.done && setTypeOf(x) !== 'warmup').map(x => GymLib.e1rm(x.kg, x.reps)));
+  const right = now >= p.target ? 'Today reaches it 🎉' : now > p.current ? 'New best today: ' + fmtWeight(now) + ' · ' + fmtWeight(p.target - now) + ' to go' : fmtWeight(p.remaining) + ' to go' + (now > 0 ? ' · today ' + fmtWeight(now) : '');
+  return '<div class="plan-line dx-goal-line"><span><span aria-hidden="true">🎯 </span>Goal: ' + esc(fmtWeight(p.target)) + ' estimated max</span><span>' + esc(right) + '</span></div>';
+}
+// The debrief: each lift against the last time it was trained, goals that moved, and the week's load.
+const DX_DEBRIEF = { best: ['★ New best', ' is-done'], up: ['Up', ' is-in'], same: ['Same as last time', ''], down: ['Down', ' is-low'], first: ['First time', ''] };
+function dxDebriefLead(counts) {
+  const bits = [];
+  if (counts.best) bits.push(plural(counts.best, 'new best'));
+  if (counts.up) bits.push(counts.up + ' moved up');
+  if (counts.same) bits.push(counts.same + ' held steady');
+  if (counts.down) bits.push(counts.down + ' dipped');
+  if (counts.first) bits.push(plural(counts.first, 'first-time lift'));
+  return bits.join(', ') + '.';
+}
+function dxDebriefGoals(session, sessions, goals, lifts) {
+  const before = sessions.filter(s => s !== session && !(s.id && s.id === session.id));
+  return goals.map(goal => {
+    if (!lifts.some(l => l.name.toLowerCase() === goal.name.toLowerCase())) return '';
+    const was = GymLib.goalProgress(goal, GymLib.exerciseHistory(before, goal.name), session.date), is = GymLib.goalProgress(goal, GymLib.exerciseHistory(sessions, goal.name), session.date);
+    if (was.done || !(is.done || is.pct > was.pct)) return '';
+    return '<p class="dx-goal-note"><span aria-hidden="true">🎯 </span>' + (is.done ? '<strong>Goal reached:</strong> ' + esc(goal.name) + ' at ' + esc(fmtWeight(is.target)) + ' estimated max.' : esc(goal.name) + ' goal: ' + was.pct + '% → <strong>' + is.pct + '%</strong>, ' + esc(fmtWeight(is.remaining)) + ' to go.') + '</p>';
+  }).join('');
+}
+function dxDebriefBody(session, sessions, goals, today) {
+  const d = GymLib.sessionDebrief(session, sessions); if (!d.lifts.length) return '';
+  const chip = l => { const [label, cls] = DX_DEBRIEF[l.status], pct = l.status === 'up' || l.status === 'down' ? ' ' + Math.abs(l.change) + '%' : ''; return '<span class="dx-chip' + cls + '">' + (l.status === 'up' ? '<span aria-hidden="true">▲ </span>' : l.status === 'down' ? '<span aria-hidden="true">▼ </span>' : '') + label + pct + '</span>'; };
+  return '<div class="dx-debrief"><p class="dx-goal-note">' + esc(dxDebriefLead(d.counts)) + '</p><ul class="plain-list dx-lifts">' +
+    d.lifts.map(l => '<li><span class="dx-lift-name">' + esc(l.name) + '</span>' + chip(l) + '<span class="dx-lift-num">' + esc(fmtWeight(l.e1rm)) + '</span><span class="sub">estimated max' + (l.prev ? ' · last time ' + esc(fmtWeight(l.prev)) + ' on ' + esc(dxLongDay(l.prevDate)) : '') + '</span></li>').join('') + '</ul>' +
+    dxDebriefGoals(session, sessions, goals, d.lifts) +
+    (session.date === today ? '<p class="sub">' + esc(dxLoadSentence(GymLib.trainingLoad(sessions, today))) + '</p>' : '') + '</div>';
+}
+function dxDebriefMarkup(m) {
+  if (!deluxeEnabled() || !m || !m.id) return '';
+  const sessions = dxSessions(), session = sessions.find(s => s.id === m.id); if (!session) return '';
+  const body = dxDebriefBody(session, sessions, dxGoals(), dxToday());
+  return body ? '<div class="sub-h">Deluxe debrief</div>' + body : '';
+}
+// The brief on Home: this week's load, the goal closest to done and the coach's first note.
+function dxBriefOn() { return !(state.deluxe && state.deluxe.brief === false); }
+function dxClosestGoal(ctx) {
+  let pick = null;
+  dxGoals().forEach(goal => { const history = GymLib.exerciseHistory(ctx.sessions, goal.name); if (!history.length) return; const p = GymLib.goalProgress(goal, history, ctx.today); if (!p.done && (!pick || p.pct > pick.p.pct)) pick = { goal, p }; });
+  return pick;
+}
+function dxBriefHtml(ctx) {
+  const load = GymLib.trainingLoad(ctx.sessions, ctx.today), pick = dxClosestGoal(ctx), goals = dxGoals();
+  const notes = GymLib.coachInsights(ctx.sessions, ctx.today, { weekStart: ctx.weekStart, weeklyGoal: ctx.weeklyGoal }), note = notes.find(x => x.tone === 'warn') || notes[0];
+  const tile = (tab, label, body, lift) => '<button type="button" class="dx-brief-tile" data-dx="openTool" data-arg="' + tab + '"' + (lift ? ' data-lift="' + esc(lift) + '"' : '') + '><span class="eyebrow">' + label + '</span>' + body + '</button>';
+  const goalTile = pick
+    ? tile('lab', 'Closest goal', '<strong>' + esc(pick.goal.name) + '</strong><span class="progress-bar" role="img" aria-label="' + pick.p.pct + ' percent of the way"><i data-w="' + pick.p.pct + '"></i></span><span class="sub">' + esc(fmtWeight(pick.p.current)) + ' of ' + esc(fmtWeight(pick.p.target)) + ' · ' + DX_GOAL_STATUS[pick.p.status] + '</span>', pick.goal.name)
+    : tile('lab', 'Strength goals', '<strong>' + (goals.length ? 'Every goal reached 🎉' : 'No goal yet') + '</strong><span class="sub">' + (goals.length ? 'Raise one in the Lift lab for your next target.' : 'Pick a target for a lift and track it from here.') + '</span>');
+  return '<div class="section-title"><span><span class="dx-brief-mark" aria-hidden="true">✦ </span>Deluxe brief</span><span class="sub">TODAY</span></div><div class="dx-brief-grid">' +
+    tile('analytics', 'Last 7 days', '<strong class="dx-brief-num">' + esc(fmtVolume(load.recent)) + '</strong>' + dxLoadChip(load) + (load.ratio === null ? '' : '<span class="sub">' + Math.round(load.ratio * 100) + '% of a usual week</span>')) +
+    goalTile +
+    (note ? tile('coach', 'Coach note', '<strong>' + esc(note.title) + '</strong><span class="sub dx-brief-clamp">' + esc(note.detail) + '</span>') : '') + '</div>';
+}
+// The dashboard re-renders on every ticked set, so the brief is rebuilt only when its inputs change.
+let dxBriefKey = '';
+function renderDeluxeBrief() {
+  const host = $('deluxeBrief'); if (!host) return;
+  const ctx = dxContext();
+  if (!deluxeEnabled() || !dxBriefOn() || !ctx.sessions.length) { host.hidden = true; host.textContent = ''; dxBriefKey = ''; return; }
+  const key = [ctx.sessions.length, ctx.sessions.reduce((n, s) => n + (Number(s.vol) || 0), 0), ctx.sessions[0].id || ctx.sessions[0].date, ctx.today, ctx.weekStart, ctx.weeklyGoal, weightUnit(), JSON.stringify(dxGoals())].join('|');
+  host.hidden = false;
+  if (key === dxBriefKey && host.childElementCount) return;
+  dxBriefKey = key; host.innerHTML = dxBriefHtml(ctx);
+}
+function setBrief(el) { state.deluxe = state.deluxe || {}; state.deluxe.brief = !!el.checked; saveState(); renderDeluxeBrief(); showToast(el.checked ? 'Deluxe brief shown on Home' : 'Deluxe brief hidden'); }
+function openTool(el) {
+  const tab = el.dataset.arg; if (!DX_TABS.some(t => t.id === tab)) return;
+  if (el.dataset.lift) dxSelectLift(el.dataset.lift);
+  showScreen('deluxe'); setDeluxeTab(tab, true);
 }
 function dxTrainingWeightsMarkup(best) {
   const lb = weightUnit() === 'lb', rows = GymLib.trainingWeights(best, lb ? 5 * KG_PER_LB : 2.5);
@@ -564,7 +678,8 @@ function dxStyleMarkup(preview) {
       (high && !preview ? '<p class="sub" role="note">High contrast is on in Settings, so the app keeps its high-contrast colours. Your choice is saved for when you turn it off.</p>' : '<p class="sub">Themes restyle the whole app on every device you sign in to. Every theme meets the same contrast standard as the built-in ones.</p>') + '</div>' +
     '<div class="dx-two"><div class="panel dx-block"><div class="section-title"><span>Celebrations</span></div><fieldset class="dx-confetti"><legend class="sub">What rains down when you finish a workout</legend>' +
       DX_CONFETTI.map(c => '<label class="dx-option"><input type="radio" name="dxConfetti" value="' + c.id + '"' + (preview ? ' disabled' : ' data-dx-change="setConfetti"') + (c.id === confettiNow ? ' checked' : '') + '><span><strong>' + c.name + '</strong> <span aria-hidden="true">' + c.sample + '</span></span></label>').join('') + '</fieldset></div>' +
-    '<div class="panel dx-block"><div class="section-title"><span>Profile flair</span></div><label class="st-40"><input type="checkbox"' + (preview ? ' disabled checked' : ' data-dx-change="setFlair"' + (state.deluxe && state.deluxe.profileFlair !== false ? ' checked' : '')) + '> Show the <span class="deluxe-pill">DELUXE</span> badge on my profile</label><p class="sub st-3">Accent colours, light and dark mode, text size and fonts stay free in Settings.</p></div></div>';
+    '<div class="panel dx-block"><div class="section-title"><span>Profile flair</span></div><label class="st-40"><input type="checkbox"' + (preview ? ' disabled checked' : ' data-dx-change="setFlair"' + (state.deluxe && state.deluxe.profileFlair !== false ? ' checked' : '')) + '> Show the <span class="deluxe-pill">DELUXE</span> badge on my profile</label><p class="sub st-3">Accent colours, light and dark mode, text size and fonts stay free in Settings.</p></div>' +
+    '<div class="panel dx-block"><div class="section-title"><span>Home screen</span></div><label class="st-40"><input type="checkbox"' + (preview ? ' disabled checked' : ' data-dx-change="setBrief"' + (dxBriefOn() ? ' checked' : '')) + '> Show the Deluxe brief on Home</label><p class="sub st-3">Your week’s training load, the goal closest to done and the coach’s first note, at the top of your day.</p></div></div>';
 }
 function setSkin(el) {
   const skin = DX_SKINS.find(s => s.id === el.value); if (!skin) return;
@@ -663,7 +778,7 @@ function dxNutritionPreview() {
 }
 function dxPreviewHtml(name, ctx) {
   if (name === 'Advanced analytics') return dxAnalyticsMarkup(ctx, 12);
-  if (name === 'Smart training insights') return dxCoachMarkup(ctx);
+  if (name === 'Smart training insights') { const last = ctx.sessions.slice().sort((a, b) => String(b.date).localeCompare(String(a.date)))[0], debrief = last ? dxDebriefBody(last, ctx.sessions, [], ctx.today) : ''; return (debrief ? '<div class="sub-h">After every workout</div>' + debrief : '') + dxCoachMarkup(ctx); }
   if (name === 'Performance lab') return dxLabMarkup(ctx, ctx.mine ? (dxTopLifts(ctx.sessions, ctx.today, 1)[0] || {}).name : 'Barbell Back Squat');
   if (name === 'Nutrition coach') return dxNutritionPreview();
   if (name === 'Friend challenges') return typeof challengePreviewMarkup === 'function' ? challengePreviewMarkup() : '';
@@ -711,6 +826,7 @@ const DELUXE_ACTIONS = Object.freeze({
   setRange: el => { const n = Number(el.dataset.arg); if (DX_RANGES.includes(n)) { dxRange = n; renderDeluxeTools(deluxeEnabled()); } },
   setLift: el => { dxLift = el.value; renderDeluxeTools(deluxeEnabled()); },
   saveGoal: () => saveGoal(), removeGoal: () => removeGoal(), openGoal: el => openGoal(Number(el.dataset.arg)),
+  openTool: el => openTool(el), setBrief: el => setBrief(el),
   useTemplate: el => useTemplate(el.dataset.arg), restartPlan: el => restartPlan(Number(el.dataset.i)), syncPlanProgramFields: () => syncPlanProgramFields(),
   shareShareCard: () => shareShareCard(), downloadShareCard: () => downloadShareCard(), exportDeluxeReport: () => exportDeluxeReport(), exportDeluxeCSV: () => exportDeluxeCSV(), exportDeluxeLifts: () => exportDeluxeLifts(),
   setSkin: el => setSkin(el), setConfetti: el => setConfetti(el), setFlair: el => setFlair(el),

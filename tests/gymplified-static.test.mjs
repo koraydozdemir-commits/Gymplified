@@ -1828,3 +1828,44 @@ test('DX14: strength goals, training weights, volume breakdown and highlights ar
   assert.match(shell, /<li>Strength goals with a progress bar and an honest finish date<\/li><li>Training weights for every intensity, ready to load<\/li>/);
   assert.match(shell, /<li>Where your volume goes, lift by lift<\/li><li>All-time highlights and weekly-goal streaks<\/li>/);
 });
+
+test('DX15: the Home brief, workout goal line, debrief and training year are owner-only, escaped and cheap to render', async () => {
+  const shell = await readRaw('index.html'), dx = await readRaw('deluxe.js'), js = await readRaw('app.js'), css = await readRaw('app.css'), sw = await readRaw('sw.js');
+  // app.js only calls into deluxe.js behind typeof checks, so the free app works even if that file fails to load.
+  assert.match(js, /if \(typeof renderDeluxeBrief === 'function'\) renderDeluxeBrief\(\);/);
+  assert.match(js, /planLineMarkup\(w\)\+\(typeof dxGoalLine==='function'\?dxGoalLine\(w\):''\)\+/);
+  assert.match(js, /\(typeof dxDebriefMarkup==='function'\?dxDebriefMarkup\(m\):''\)\+\(typeof summaryDeluxeTip==='function'\?summaryDeluxeTip\(m\):''\)/);
+  assert.match(js, /if\(typeof renderDeluxeBrief==='function'\)renderDeluxeBrief\(\);\n\}/, 'the brief follows the entitlement when it changes');
+  // Each of the three checks the entitlement itself before showing anything.
+  assert.match(dx, /function dxGoalLine\(w\) \{\n  if \(!deluxeEnabled\(\) \|\| !w \|\| !w\.name\) return '';/);
+  assert.match(dx, /function dxDebriefMarkup\(m\) \{\n  if \(!deluxeEnabled\(\) \|\| !m \|\| !m\.id\) return '';/);
+  assert.match(dx, /if \(!deluxeEnabled\(\) \|\| !dxBriefOn\(\) \|\| !ctx\.sessions\.length\) \{ host\.hidden = true; host\.textContent = ''; dxBriefKey = ''; return; \}/);
+  assert.doesNotMatch(await readRaw('plus.js'), /dxGoalLine|dxDebrief|renderDeluxeBrief/, 'the free feature file stays free of Deluxe hooks');
+  // The brief: a labelled region that is hidden until filled, rebuilt only when its inputs change, and switchable off.
+  assert.match(shell, /<div class="panel dx-brief" id="deluxeBrief" role="region" aria-label="Deluxe brief" hidden><\/div>/);
+  assert.match(dx, /if \(key === dxBriefKey && host\.childElementCount\) return;/);
+  assert.match(js, /brief:rawDeluxe\.brief!==false,/);
+  assert.match(dx, /data-dx-change="setBrief"/);
+  const open = new Function('DX_TABS', 'dxSelectLift', 'showScreen', 'setDeluxeTab', extractFunctions(dx, ['openTool']) + ';return openTool;');
+  const calls = [], tool = open([{ id: 'lab' }, { id: 'coach' }], n => calls.push('lift:' + n), s => calls.push('screen:' + s), (t, f) => calls.push('tab:' + t + ':' + f));
+  tool({ dataset: { arg: 'lab', lift: 'Squat' } }); tool({ dataset: { arg: 'nope' } }); tool({ dataset: { arg: 'coach' } });
+  assert.deepEqual(calls, ['lift:Squat', 'screen:deluxe', 'tab:lab:true', 'screen:deluxe', 'tab:coach:true'], 'only real tabs can be opened');
+  // Text typed by the user is escaped in every new block; tiles are real buttons with a 44px minimum.
+  for (const field of ['pick.goal.name', 'note.title', 'note.detail', 'l.name', 'goal.name', 'tip', 'right', 'lift']) assert.ok(dx.includes('esc(' + field), field + ' is escaped');
+  assert.match(dx, /'<button type="button" class="dx-brief-tile" data-dx="openTool" data-arg="' \+ tab \+ '"'/);
+  assert.match(css, /\.dx-brief-tile\{[^}]*min-height:44px/);
+  assert.match(css, /\.dx-brief-tile:focus-visible\{outline:3px solid var\(--focus-ring\)/);
+  // Status is always words: load, debrief and goal lines never rely on colour.
+  for (const status of ['none', 'new', 'easing', 'steady', 'building', 'spike']) assert.match(dx.slice(dx.indexOf('const DX_LOAD = {'), dx.indexOf('function dxLoadChip')), new RegExp(status + ": \\['[^']+'"), status + ' has a label');
+  for (const status of ['best', 'up', 'same', 'down', 'first']) assert.match(dx.slice(dx.indexOf('const DX_DEBRIEF = {'), dx.indexOf('function dxDebriefLead')), new RegExp(status + ": \\['[^']+'"), status + ' has a label');
+  // The training year: an image with a text alternative, a per-day read-out and a table; colours come from tokens.
+  assert.match(dx, /<svg class="dx-chart dx-heatmap" viewBox="0 0 ' \+ W \+ ' ' \+ H \+ '" role="img" aria-label="Training days over the last /);
+  assert.match(dx, /dxTable\('Training days by month', \['Month', 'Active days', 'Workouts', 'Volume'\]/);
+  assert.match(dx, /if \(d\.future\) return;/, 'days that have not happened are not drawn');
+  for (const n of [0, 1, 2, 3, 4]) assert.match(css, new RegExp('\\.dx-heat-' + n + '\\{fill:[^;#]*var\\(--(muted|brand-text)\\)'), 'level ' + n + ' uses a theme token');
+  // Described where people decide, and shipped with a fresh cache.
+  assert.match(shell, /<li>Your whole training year on one calendar<\/li>/);
+  assert.match(shell, /<li>A debrief after every workout and a daily brief on Home<\/li>/);
+  assert.match(shell, /<li>Goals that follow you into your workout<\/li>/);
+  assert.ok(Number(sw.match(/gymplified-shell-v(\d+)/)[1]) >= 36);
+});

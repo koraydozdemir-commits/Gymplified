@@ -397,6 +397,7 @@ function renderDashboard() {
   renderWorkoutHero();
   renderHydrationNudge();
   if (typeof renderDeluxeTip === 'function') renderDeluxeTip();
+  if (typeof renderDeluxeBrief === 'function') renderDeluxeBrief();
 
   document.getElementById('dashWorkoutCount').textContent = state.workouts.length + ' Exercises';
 
@@ -957,6 +958,7 @@ function sanitizeStateSnapshot(raw){
   skin:['obsidian','aurora','ember','glacier'].includes(rawDeluxe.skin)?rawDeluxe.skin:'',
   confetti:['gold','power'].includes(rawDeluxe.confetti)?rawDeluxe.confetti:'classic',
   goals:GymLib.sanitizeGoals(rawDeluxe.goals),
+  brief:rawDeluxe.brief!==false,
   nutrition:{goal:GymLib.CALORIE_GOALS.includes(rawDeluxe.nutrition&&rawDeluxe.nutrition.goal)?rawDeluxe.nutrition.goal:'maintain',rate:Math.round(safeStateNumber(rawDeluxe.nutrition&&rawDeluxe.nutrition.rate,0,1,0.5)*100)/100}
  };
  if(settings.theme==='light'||settings.theme==='dark')state.settings.theme=settings.theme;
@@ -1777,7 +1779,7 @@ function exerciseCardMarkup(w,i){
  const pending=w.setList.some(x=>x.auto&&!x.done);
  return '<div class="st-14 panel ex-card'+(w.group?' in-superset':'')+'">'+(typeof supersetLabelMarkup==='function'?supersetLabelMarkup(w,i):'')+'<div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="st-7 btn btn-icon-only" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
   '<div class="setrow sub" aria-hidden="true"><span>Set</span><span>'+weightUnit()+'</span><span>Reps</span><span>Done</span><span></span></div>'+
-  planLineMarkup(w)+w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
+  planLineMarkup(w)+(typeof dxGoalLine==='function'?dxGoalLine(w):'')+w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
   '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+exerciseRestMarkup(w,i)+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
   (typeof exerciseCardExtras==='function'?exerciseCardExtras(w,i):'')+
   '<div class="st-59 sub">Volume: <span id="exVolume-'+i+'">'+volumeNumber(vol(w))+'</span> '+weightUnit()+' <span class="sub">· warm-up sets (W) are not counted</span></div></div>';
@@ -1888,7 +1890,7 @@ function sessionSummaryMarkup(){
   '<div class="sub-h">PRs hit</div>'+(prs.length?'<div class="tag-list">'+prs.map(x=>'<span class="tag primary">🏆 '+esc(x.name)+' · '+esc(fmtWeight(x.kg,2))+' × '+esc(Number(x.reps))+'</span>').join('')+'</div>':'<p class="sub">No new PRs this time — beat a previous best set to earn one.</p>')+
   (m.plan&&m.plan.planned?'<div class="sub-h">Plan</div><p class="plan-result">📋 '+esc(m.plan.name||'Plan')+(m.plan.day?' · '+esc(m.plan.day):'')+': <strong>'+Number(m.plan.completed)+' of '+Number(m.plan.planned)+'</strong> exercise'+(m.plan.planned===1?'':'s')+' done as planned'+(m.plan.completed===m.plan.planned?' ✓':'')+'</p>':'')+
   '<div class="sub-h">Muscles worked</div>'+(muscles.length?'<div class="tag-list">'+muscles.map(x=>'<span class="tag">'+esc(x)+'</span>').join('')+'</div>':'<p class="sub">No muscle groups recorded.</p>')+
-  (typeof summaryDeluxeTip==='function'?summaryDeluxeTip(m):'')+'<p class="st-3 sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc((m.names||[]).join(', '))+'</p></div>';
+  (typeof dxDebriefMarkup==='function'?dxDebriefMarkup(m):'')+(typeof summaryDeluxeTip==='function'?summaryDeluxeTip(m):'')+'<p class="st-3 sub">'+(p&&p.vol?(m.vol>=p.vol?'▲ ':'▼ ')+Math.abs(Math.round((m.vol-p.vol)/p.vol*100))+'% volume vs your previous session · ':'')+wi.n+'/'+wi.g+' workouts this week · '+esc((m.names||[]).join(', '))+'</p></div>';
 }
 
 // --- B21/B22: forgiving exercise search, favourites and recents ---
@@ -3510,6 +3512,8 @@ function renderDeluxeUI(){
  const hero=document.querySelector('#deluxe .deluxe-hero');if(hero)hero.classList.toggle('is-owned',enabled);
  if(typeof renderDeluxeSales==='function')renderDeluxeSales(enabled);
  if(typeof renderDeluxeTools==='function')renderDeluxeTools(enabled);
+ // Home shows a Deluxe brief to owners, so it follows the entitlement too.
+ if(typeof renderDeluxeBrief==='function')renderDeluxeBrief();
 }
 function updateDeluxeUI(){renderDeluxeUI();}
 function toggleDeluxeDemo(){
@@ -3519,12 +3523,12 @@ function toggleDeluxeDemo(){
 }
 function openDeluxeDemo(){if(!deluxeEnabled()){previewDeluxeFeature('Advanced analytics');return;}$('deluxeTools')?.scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'start'});}
 const DELUXE_PREVIEW_COPY={
- 'Advanced analytics':'Weekly volume with a trend line, every number compared with the period before, where your volume goes, your training rhythm and your all-time highlights.',
- 'Smart training insights':'Notes on what is working and what has stalled, a muscle balance map and the momentum of every lift you train.',
+ 'Advanced analytics':'Weekly volume with a trend line, a calendar of your whole training year, your training load, where your volume goes and your all-time highlights.',
+ 'Smart training insights':'A debrief after every workout, a daily brief on your Home screen, notes on what is working and what has stalled, and a muscle balance map.',
  'Workout planner':'Pick a proven programme or build your own. Each target checks how your last session went: up after a hit, repeat after a miss, and today’s session waits on your dashboard.',
  'Nutrition coach':'Your real maintenance calories, worked out from your food log and weigh-ins, with a target and macros for losing, keeping or gaining weight at a safe pace.',
  'Friend challenges':'Start a workout or volume challenge and invite your friends. They join for free, and the standings respect everyone’s privacy settings.',
- 'Performance lab':'A strength curve for every exercise, strength goals with an honest finish date, training weights for every intensity and a rep-max table.',
+ 'Performance lab':'A strength curve for every exercise, strength goals that follow you into your workout, training weights for every intensity and a rep-max table.',
  'Complete data tools':'A progress card to share, a print-ready training report and analysis-ready spreadsheets.',
  'Deluxe customisation':'Signature themes that restyle the whole app, celebration styles and a Deluxe badge for your profile.'
 };

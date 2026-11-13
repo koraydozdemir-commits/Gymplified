@@ -754,6 +754,67 @@
   const WEEKLY_SET_MIN = 10, WEEKLY_SET_LIGHT = 5;
   function setRangeStatus(perWeek) { const n = Number(perWeek) || 0; return n <= 0 ? 'none' : n < WEEKLY_SET_LIGHT ? 'low' : n < WEEKLY_SET_MIN ? 'mid' : 'in'; }
 
+  // ---- DX15: training year, training load and the post-workout debrief ----------------------------
+  // A calendar grid of whole weeks ending with the week that contains `today`. Each trained day gets a
+  // level from 1 to 4 by where its volume sits among the trained days shown (quartiles); days with
+  // work but no weighted volume (cardio, body weight) are level 1.
+  function yearHeatmap(sessions, today, weekStart, weeks) {
+    const count = Math.round(num(weeks, 4, 53, 53)), start = addDays(weekStartOf(today, weekStart), -7 * (count - 1)), byDay = {};
+    validSessions(sessions).forEach(s => {
+      if (s.date < start || s.date > today) return;
+      const d = byDay[s.date] || (byDay[s.date] = { vol: 0, workouts: 0 }); d.vol += sessionVolume(s); d.workouts++;
+    });
+    const vols = Object.values(byDay).map(d => d.vol).filter(v => v > 0).sort((a, b) => a - b);
+    const cut = f => (vols.length ? vols[Math.min(vols.length - 1, Math.floor(f * vols.length))] : 0), cuts = [cut(0.25), cut(0.5), cut(0.75)];
+    const out = { start, weeks: [], activeDays: 0, workouts: 0 };
+    for (let w = 0; w < count; w++) {
+      const row = [];
+      for (let d = 0; d < 7; d++) {
+        const day = addDays(start, w * 7 + d), hit = byDay[day], future = day > today;
+        const level = !hit ? 0 : hit.vol > cuts[2] ? 4 : hit.vol > cuts[1] ? 3 : hit.vol > cuts[0] ? 2 : 1;
+        if (hit) { out.activeDays++; out.workouts += hit.workouts; }
+        row.push({ day, vol: hit ? round(hit.vol, 1) : 0, workouts: hit ? hit.workouts : 0, level, future });
+      }
+      out.weeks.push(row);
+    }
+    return out;
+  }
+
+  // The last seven days of volume against a normal week (the mean of the four weeks before them).
+  // A rolling window, so the reading does not swing with which weekday it is.
+  const LOAD_STATUSES = ['none', 'new', 'easing', 'steady', 'building', 'spike'];
+  function trainingLoad(sessions, today) {
+    const list = validSessions(sessions), vol = (from, to) => list.reduce((n, s) => n + (s.date >= from && s.date <= to ? sessionVolume(s) : 0), 0);
+    const recent = vol(addDays(today, -6), today), usual = vol(addDays(today, -34), addDays(today, -7)) / 4;
+    const ratio = usual > 0 ? round(recent / usual, 2) : null;
+    const status = ratio === null ? (recent > 0 ? 'new' : 'none') : ratio < 0.8 ? 'easing' : ratio <= 1.3 ? 'steady' : ratio <= 1.5 ? 'building' : 'spike';
+    return { recent: round(recent, 1), usual: round(usual, 1), ratio, status };
+  }
+
+  // How one finished session compares with what came before it: for each lift, the best estimate
+  // against the last time that lift was trained and against its record until then.
+  function sessionDebrief(session, sessions) {
+    const out = { lifts: [], counts: { best: 0, up: 0, same: 0, down: 0, first: 0 }, volume: 0 };
+    if (!session || !isDay(session.date) || !Array.isArray(session.exercises)) return out;
+    const stamp = s => s.date + ' ' + String(s.startedAt || ''), mine = stamp(session);
+    const earlier = validSessions(sessions).filter(s => s !== session && !(s.id && s.id === session.id) && (s.date < session.date || (s.date === session.date && !!s.startedAt && !!session.startedAt && stamp(s) < mine)))
+      .sort((a, b) => stamp(b).localeCompare(stamp(a)));
+    const bestOf = (s, key) => s.exercises.reduce((n, ex) => (String(ex.name || '').trim().toLowerCase() === key ? workingSets(ex).reduce((m, x) => Math.max(m, e1rm(x.kg, x.reps)), n) : n), 0);
+    const seen = new Set();
+    session.exercises.forEach(ex => {
+      const name = String(ex.name || '').trim(), key = name.toLowerCase(); if (!name || seen.has(key)) return;
+      const now = bestOf(session, key); if (!(now > 0)) return;
+      seen.add(key);
+      let prev = 0, prevDate = '', record = 0;
+      earlier.forEach(s => { const b = bestOf(s, key); if (!(b > 0)) return; if (!prev) { prev = b; prevDate = s.date; } if (b > record) record = b; });
+      const change = pctChange(now, prev), status = !prev ? 'first' : now > record ? 'best' : change >= 1 ? 'up' : change <= -1 ? 'down' : 'same';
+      out.counts[status]++;
+      out.lifts.push({ name, e1rm: round(now, 1), prev: round(prev, 1), prevDate, record: round(record, 1), change, status });
+    });
+    out.volume = round(sessionVolume(session), 1);
+    return out;
+  }
+
   root.GymLib = Object.freeze({
     DEFAULT_PLATES_KG, DEFAULT_PLATES_LB, MEASURE_FIELDS, DEFAULT_SUPPLEMENTS, STARTER_ROUTINES,
     platesPerSide, warmupSets, overloadSuggestion, parseQuickAdd, quickAlias, QUICK_ALIASES, moveItem, groupBounds, restDueAfterSet, normaliseGroups,
@@ -761,6 +822,7 @@
     MUSCLE_GROUPS, REP_TARGETS, PLAN_TEMPLATES, WEEKDAY_NAMES, e1rm, sessionVolume, weeklySeries, periodChange, weekdayPattern, consistency, exerciseHistory, exerciseNames,
     repMaxes, projection, liftTrends, muscleBalance, risingWeeks, coachInsights, sanitizePlanProgram, planWeek, progressedTarget, planAdherence,
     planExerciseResults, targetSetsHit, adaptiveTarget, KCAL_PER_KG, CALORIE_GOALS, energyBalance, calorieTarget, macroTargets, pickNudge, CHALLENGE_METRICS, rankChallenge,
-    GOAL_LIMIT, WEEKLY_SET_MIN, WEEKLY_SET_LIGHT, sanitizeGoals, goalProgress, trainingWeights, trainingHighlights, volumeByExercise, setRangeStatus
+    GOAL_LIMIT, WEEKLY_SET_MIN, WEEKLY_SET_LIGHT, sanitizeGoals, goalProgress, trainingWeights, trainingHighlights, volumeByExercise, setRangeStatus,
+    LOAD_STATUSES, yearHeatmap, trainingLoad, sessionDebrief
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

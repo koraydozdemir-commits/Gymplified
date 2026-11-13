@@ -487,3 +487,52 @@ test('DX14: strength goals, training weights, highlights and the volume breakdow
   // Weekly set guidance never says "too much".
   assert.deepEqual([0, 3, 5, 9.9, 10, 40].map(L.setRangeStatus), ['none', 'low', 'mid', 'mid', 'in', 'in']);
 });
+
+test('DX15: training year, training load and the post-workout debrief', async () => {
+  const L = await loadLib(), sessions = [];
+  // Ten Mondays: squats go up every week, curls dip in the last one, and the last one adds a new lift.
+  for (let w = 0; w < 10; w++) sessions.push({ id: 's' + w, date: L.addDays('2026-09-07', w * 7), exercises: [{ name: 'Squat', sets: [{ kg: 40, reps: 5, type: 'warmup' }, { kg: 80 + w * 2.5, reps: 5 }] }, { name: 'Curl', sets: [{ kg: 20, reps: w === 9 ? 8 : 10 }] }].concat(w === 9 ? [{ name: 'Lunge', sets: [{ kg: 10, reps: 10 }] }] : []) });
+  const today = '2026-11-13';
+  // Heatmap: whole weeks ending with this week, future days marked, levels by quartile of the days shown.
+  const map = L.yearHeatmap(sessions, today, 'mon', 12);
+  assert.deepEqual([map.start, map.weeks.length, map.activeDays, map.workouts], ['2026-08-24', 12, 10, 10]);
+  assert.ok(map.weeks.every(w => w.length === 7));
+  assert.equal(map.weeks.map(w => w[0].level).join(''), '001112223344', 'heavier days get higher levels');
+  assert.deepEqual(plain(map.weeks[11].map(d => [d.day, d.level, d.future])), [['2026-11-09', 4, false], ['2026-11-10', 0, false], ['2026-11-11', 0, false], ['2026-11-12', 0, false], ['2026-11-13', 0, false], ['2026-11-14', 0, true], ['2026-11-15', 0, true]]);
+  assert.equal(L.yearHeatmap(sessions, today, 'sun', 12).start, '2026-08-23', 'Sunday-start weeks');
+  assert.equal(L.yearHeatmap(sessions, today, 'mon', 999).weeks.length, 53, 'never more than a year');
+  assert.equal(L.yearHeatmap([{ date: today, exercises: [{ name: 'Run', sets: [{ kg: 0, reps: 0, duration: 600 }] }] }], today, 'mon', 4).weeks[3][4].level, 1, 'a day with work but no weighted volume still shows');
+  const two = L.yearHeatmap([{ date: '2026-11-10', exercises: [{ name: 'A', sets: [{ kg: 10, reps: 10 }] }] }, { date: '2026-11-10', exercises: [{ name: 'A', sets: [{ kg: 10, reps: 10 }] }] }], today, 'mon', 4);
+  assert.deepEqual([two.activeDays, two.workouts, two.weeks[3][1].vol], [1, 2, 200], 'two workouts on one day are one active day');
+  assert.deepEqual([L.yearHeatmap([], today, 'mon', 4).activeDays, L.yearHeatmap([], today, 'mon', 4).weeks.length], [0, 4]);
+  // Training load: the last seven days against the mean of the four weeks before.
+  assert.deepEqual(plain(L.trainingLoad(sessions, today)), { recent: 772.5, usual: 681.3, ratio: 1.13, status: 'steady' });
+  assert.deepEqual(plain(L.trainingLoad([], today)), { recent: 0, usual: 0, ratio: null, status: 'none' });
+  assert.equal(L.trainingLoad(sessions.slice(9), today).status, 'new', 'no earlier weeks to compare with');
+  assert.equal(L.trainingLoad(sessions.slice(0, 9), today).status, 'easing', 'nothing in the last seven days');
+  const week = vol => ({ date: '2026-11-12', exercises: [{ name: 'A', sets: [{ kg: vol, reps: 1 }] }] }), base = [1, 2, 3, 4].map(i => ({ date: L.addDays(today, -7 * i - 1), exercises: [{ name: 'A', sets: [{ kg: 100, reps: 1 }] }] }));
+  assert.deepEqual([79, 80, 130, 131, 150, 151].map(v => L.trainingLoad(base.concat(week(v)), today).status), ['easing', 'steady', 'steady', 'building', 'building', 'spike']);
+  assert.deepEqual(plain(L.LOAD_STATUSES), ['none', 'new', 'easing', 'steady', 'building', 'spike']);
+  // Debrief: each lift against the last time it was trained and its record before this session.
+  const d = L.sessionDebrief(sessions[9], sessions);
+  assert.deepEqual(plain(d.lifts), [
+    { name: 'Squat', e1rm: 119.6, prev: 116.7, prevDate: '2026-11-02', record: 116.7, change: 2.5, status: 'best' },
+    { name: 'Curl', e1rm: 25.3, prev: 26.7, prevDate: '2026-11-02', record: 26.7, change: -5, status: 'down' },
+    { name: 'Lunge', e1rm: 13.3, prev: 0, prevDate: '', record: 0, change: null, status: 'first' }]);
+  assert.deepEqual(plain(d.counts), { best: 1, up: 0, same: 0, down: 1, first: 1 });
+  assert.equal(d.volume, 772.5);
+  assert.deepEqual(plain(L.sessionDebrief(sessions[0], sessions).counts), { best: 0, up: 0, same: 0, down: 0, first: 2 }, 'later sessions never count as "before"');
+  // Up without a record, the same, and same-day ordering by start time.
+  const mk = (id, date, kg, startedAt) => ({ id, date, startedAt, exercises: [{ name: 'Press', sets: [{ kg, reps: 5 }] }] });
+  const log = [mk('a', '2026-10-01', 60), mk('b', '2026-10-08', 50), mk('c', '2026-10-15', 55), mk('d', '2026-10-22', 55)];
+  assert.equal(L.sessionDebrief(log[2], log).lifts[0].status, 'up', 'better than last time, below the record');
+  assert.equal(L.sessionDebrief(log[3], log).lifts[0].status, 'same');
+  const sameDay = [mk('m', '2026-11-01', 50, '2026-11-01T08:00:00.000Z'), mk('e', '2026-11-01', 60, '2026-11-01T18:00:00.000Z')];
+  assert.equal(L.sessionDebrief(sameDay[1], sameDay).lifts[0].status, 'best', 'an earlier session the same day counts as before');
+  assert.equal(L.sessionDebrief(sameDay[0], sameDay).lifts[0].status, 'first', 'a later session the same day does not');
+  assert.equal(L.sessionDebrief(mk('a', '2026-10-01', 60), [mk('a', '2026-10-01', 60)]).lifts[0].status, 'first', 'a copy of the same session is not its own past');
+  // Warm-ups and repeats of one lift in a session: one row, from the working sets only.
+  const twice = { id: 'x', date: '2026-11-05', exercises: [{ name: 'Press', sets: [{ kg: 200, reps: 5, type: 'warmup' }, { kg: 50, reps: 5 }] }, { name: 'press', sets: [{ kg: 52, reps: 5 }] }] };
+  assert.deepEqual(plain(L.sessionDebrief(twice, log.concat(twice)).lifts.map(l => [l.name, l.e1rm])), [['Press', 60.7]]);
+  for (const bad of [null, {}, { date: 'nope', exercises: [] }, { date: today }]) assert.deepEqual(plain(L.sessionDebrief(bad, sessions).lifts), []);
+});

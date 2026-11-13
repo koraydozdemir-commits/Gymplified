@@ -1148,3 +1148,30 @@ html[data-skin="glacier"]:not([data-contrast="high"]){--bg:#f2f7fb;--panel:#ffff
 .dx-highlights .sub{margin:0}
 .dx-row .dx-chip{margin-left:8px}
 .account-hint+.account-form{margin-top:12px}
+/* DX15: training year, Deluxe brief on Home, goal line in the workout, post-workout debrief */
+.dx-heat{stroke:none}
+.dx-heat-0{fill:color-mix(in srgb,var(--muted) 16%,transparent);background:color-mix(in srgb,var(--muted) 16%,transparent)}
+.dx-heat-1{fill:color-mix(in srgb,var(--brand-text) 30%,transparent);background:color-mix(in srgb,var(--brand-text) 30%,transparent)}
+.dx-heat-2{fill:color-mix(in srgb,var(--brand-text) 52%,transparent);background:color-mix(in srgb,var(--brand-text) 52%,transparent)}
+.dx-heat-3{fill:color-mix(in srgb,var(--brand-text) 76%,transparent);background:color-mix(in srgb,var(--brand-text) 76%,transparent)}
+.dx-heat-4{fill:var(--brand-text);background:var(--brand-text)}
+.dx-pt:hover .dx-heat{stroke:var(--ink);stroke-width:1.5}
+.dx-legend .dx-key[class*=dx-heat-]{margin-left:3px}
+.dx-legend-end{margin-left:6px}
+.dx-brief{border-color:var(--deluxe-line);margin-bottom:18px}
+.dx-brief-mark{color:var(--deluxe-text)}
+.dx-brief-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,210px),1fr));gap:10px}
+.dx-brief-tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-height:44px;min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);text-align:left;font:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.dx-brief-tile:hover{border-color:var(--field-line);background:var(--panel-hover)}
+.dx-brief-tile:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px}
+.dx-brief-tile strong{font-size:calc(15px * var(--text-scale,1));line-height:1.3;overflow-wrap:anywhere}
+.dx-brief-tile .dx-brief-num{font:800 calc(22px * var(--text-scale,1))/1.1 var(--font-heading);letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+.dx-brief-tile .progress-bar{display:block;width:100%;margin:2px 0}
+.dx-brief-tile .sub{line-height:1.45}
+.dx-brief-clamp{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dx-goal-line{border-color:var(--deluxe-line);color:var(--ink)}
+.dx-debrief{border:1px solid var(--deluxe-line);border-radius:12px;padding:12px 14px}
+.dx-debrief .dx-lifts{margin:4px 0 8px}
+.dx-debrief .dx-lift-num{font-weight:700;font-variant-numeric:tabular-nums}
+.dx-debrief>.sub{margin:6px 0 0}
+.dx-debrief .dx-chip{gap:4px}

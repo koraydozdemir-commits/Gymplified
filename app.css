@@ -1113,3 +1113,38 @@ html[data-skin="glacier"]:not([data-contrast="high"]){--bg:#f2f7fb;--panel:#ffff
 .challenge-invites legend{font-weight:700;margin-bottom:4px}
 .challenge-upsell{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0}
 @media (max-width:480px){.challenge-row{grid-template-columns:28px minmax(0,1fr)}.challenge-value{grid-column:2;text-align:left}}
+/* Password reset: the "forgot" link beside Log in, and the new-password dialog */
+.auth-submit-row{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap}
+.btn.auth-link{border-color:transparent;background:transparent;color:var(--brand-text);padding-inline:6px;text-decoration:underline;text-underline-offset:3px}
+.btn.auth-link:hover{background:var(--brand-light);border-color:transparent}
+.app-dialog .password-hint{margin:6px 0 0;font-size:calc(12px * var(--text-scale,1))}
+.app-dialog .password-show{display:flex;align-items:center;gap:10px;min-height:44px;margin:10px 0 0;font-weight:600;cursor:pointer}
+.app-dialog .password-show input{width:18px;height:18px;padding:0;flex:none;accent-color:var(--brand)}
+.app-dialog .password-error{margin:6px 0 0;min-height:20px;color:var(--danger);font-weight:600}
+/* DX14: strength goals, training weights, volume breakdown and highlights */
+.dx-goal-head{display:flex;align-items:baseline;justify-content:space-between;gap:6px 12px;flex-wrap:wrap}
+.dx-goal-num{font:800 calc(26px * var(--text-scale,1)) var(--font-heading);letter-spacing:-.03em;color:var(--ink)}
+.dx-goal-num small{font:600 calc(13px * var(--text-scale,1)) var(--font-base);letter-spacing:0;color:var(--muted)}
+.dx-goal-bar.progress-bar{height:10px;border-radius:99px;margin:10px 0 8px}
+.dx-goal-bar.is-done i{background:var(--success)}
+.dx-goal-note{margin:0 0 4px;font-size:calc(13px * var(--text-scale,1));line-height:1.5;color:var(--ink)}
+.dx-goal-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:0 12px;align-items:end;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}
+.dx-goal-form .field{margin-bottom:10px}
+.dx-goal-form .row-wrap{margin-bottom:10px}
+.dx-chip.is-done,.dx-chip.is-ontrack,.dx-chip.is-in{color:var(--success);border-color:var(--success)}
+.dx-chip.is-behind,.dx-chip.is-overdue,.dx-chip.is-low{color:var(--deluxe-text);border-color:var(--deluxe-line)}
+.dx-goals{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.dx-goal-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;align-items:center;width:100%;min-height:44px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);text-align:left;cursor:pointer;font:inherit}
+.dx-goal-item:hover{border-color:var(--field-line);background:var(--panel-hover)}
+.dx-goal-item[aria-current=true]{border-color:var(--deluxe-line)}
+.dx-goal-item strong{overflow-wrap:anywhere}
+.dx-goal-item .progress-bar{grid-column:1/-1;margin:6px 0 0}
+.dx-goal-item .sub{grid-column:1/-1}
+.dx-highlights{list-style:none;margin:0;padding:0;display:grid;gap:0}
+.dx-highlights li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:2px 12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.dx-highlights li:last-child{border-bottom:0;padding-bottom:0}
+.dx-highlights .dx-hl-icon{grid-row:1/3;font-size:calc(20px * var(--text-scale,1))}
+.dx-highlights strong{font-size:calc(15px * var(--text-scale,1));font-variant-numeric:tabular-nums}
+.dx-highlights .sub{margin:0}
+.dx-row .dx-chip{margin-left:8px}
+.account-hint+.account-form{margin-top:12px}

@@ -660,12 +660,107 @@
       .concat(list.filter(m => m && (m.progress === null || m.progress === undefined)).map(m => Object.assign({}, m, { rank: null, pct: 0, done: false })));
   }
 
+  // ---- DX14: strength goals, training weights, highlights and volume breakdown ---------------------
+  // A goal is an estimated one-rep max to reach on one lift, with an optional deadline.
+  const GOAL_LIMIT = 30;
+  function sanitizeGoals(raw) {
+    const seen = new Set(), out = [];
+    (Array.isArray(raw) ? raw : []).forEach((g, i) => {
+      if (!g || typeof g !== 'object' || out.length >= GOAL_LIMIT) return;
+      const name = text(g.name, 80), key = name.toLowerCase(), targetKg = round(num(g.targetKg, 0, 1000, 0), 2);
+      if (!name || seen.has(key) || !(targetKg > 0)) return;
+      seen.add(key);
+      const id = String(g.id == null ? '' : g.id).trim();
+      out.push({ id: /^[A-Za-z0-9_-]{1,120}$/.test(id) ? id : 'goal-' + i, name, targetKg, startKg: round(num(g.startKg, 0, 1000, 0), 2), createdAt: isDay(g.createdAt) ? g.createdAt : '', by: isDay(g.by) ? g.by : '' });
+    });
+    return out;
+  }
+  // Where a goal stands: how far the best estimate has come from the starting point, when it was reached,
+  // and, while it is open, whether the current pace gets there before the deadline.
+  function goalProgress(goal, history, today) {
+    const target = num(goal && goal.targetKg, 0, 1000, 0), pts = (history || []).filter(p => p && p.e1rm > 0 && p.date <= today);
+    const current = pts.reduce((n, p) => Math.max(n, p.e1rm), 0), since = goal && isDay(goal.createdAt) ? goal.createdAt : '';
+    const start = Math.min(num(goal && goal.startKg, 0, 1000, 0), target), hit = pts.find(p => p.e1rm >= target && p.date >= since);
+    const done = target > 0 && !!hit, remaining = done ? 0 : round(Math.max(0, target - current), 2);
+    const pct = done ? 100 : target > start ? Math.max(0, Math.min(99, Math.round((current - start) / (target - start) * 100))) : 0;
+    const out = { target, start, current: round(current, 1), remaining, pct, done, reachedOn: hit ? hit.date : '', perWeek: null, eta: '', weeks: null, by: goal && isDay(goal.by) ? goal.by : '', daysLeft: null, needPerWeek: null, status: done ? 'done' : 'open' };
+    if (done || !(target > 0)) return out;
+    const pace = projection(pts, today, target, 84);
+    if (pace) { out.perWeek = pace.perWeek; out.eta = pace.day; out.weeks = pace.weeks; }
+    if (out.by) {
+      out.daysLeft = dayDiff(today, out.by);
+      if (out.daysLeft > 0) out.needPerWeek = round(remaining / (out.daysLeft / 7), 2);
+      out.status = out.daysLeft < 0 ? 'overdue' : out.eta && out.eta <= out.by ? 'ontrack' : pace ? 'behind' : 'open';
+    }
+    return out;
+  }
+
+  // Working weights at set fractions of the best estimate, rounded to something loadable. Reps come
+  // from the same Epley formula, turned around.
+  const TRAINING_ZONES = [[95, 'Heavy singles'], [90, 'Max strength'], [85, 'Strength'], [80, 'Strength and size'], [75, 'Muscle building'], [70, 'Muscle building'], [65, 'Volume work'], [60, 'Technique and speed']];
+  function trainingWeights(bestKg, roundKg) {
+    const best = num(bestKg, 0, 1000, 0), step = num(roundKg, 0.25, 25, 2.5);
+    if (!(best > 0)) return [];
+    return TRAINING_ZONES.map(([pct, use]) => ({ pct, use, kg: round(Math.max(step, Math.round(best * pct / 100 / step) * step), 2), reps: Math.max(1, Math.floor(30 * (100 / pct - 1) + 1e-9)) }));
+  }
+
+  // All-time records worth showing off: the biggest week, session and month, and weekly-goal streaks.
+  function trainingHighlights(sessions, today, weekStart, weeklyGoal) {
+    const list = validSessions(sessions).filter(s => s.date <= today), goal = Math.round(num(weeklyGoal, 1, 14, 3));
+    const out = { workouts: list.length, volume: 0, firstDate: '', bestWeek: null, bestSession: null, longestSession: null, bestMonth: null, streak: { best: 0, current: 0, goal } };
+    if (!list.length) return out;
+    const weeks = {}, months = {};
+    list.forEach(s => {
+      const vol = sessionVolume(s), mins = Number(s.mins) || 0, wk = weekStartOf(s.date, weekStart), mo = s.date.slice(0, 7);
+      out.volume += vol;
+      if (!out.firstDate || s.date < out.firstDate) out.firstDate = s.date;
+      const w = weeks[wk] || (weeks[wk] = { week: wk, vol: 0, workouts: 0 }); w.vol += vol; w.workouts++;
+      const m = months[mo] || (months[mo] = { month: mo, workouts: 0, vol: 0 }); m.workouts++; m.vol += vol;
+      if (vol > 0 && (!out.bestSession || vol > out.bestSession.vol)) out.bestSession = { date: s.date, vol: round(vol, 1) };
+      if (mins > 0 && (!out.longestSession || mins > out.longestSession.mins)) out.longestSession = { date: s.date, mins: Math.round(mins) };
+    });
+    out.volume = round(out.volume, 1);
+    Object.values(weeks).forEach(w => { if (w.vol > 0 && (!out.bestWeek || w.vol > out.bestWeek.vol)) out.bestWeek = { week: w.week, vol: round(w.vol, 1), workouts: w.workouts }; });
+    Object.values(months).forEach(m => { if (!out.bestMonth || m.workouts > out.bestMonth.workouts || (m.workouts === out.bestMonth.workouts && m.month > out.bestMonth.month)) out.bestMonth = { month: m.month, workouts: m.workouts, vol: round(m.vol, 1) }; });
+    // Weekly-goal streaks, walking week by week. The week in progress extends a streak but never breaks one.
+    const thisWeek = weekStartOf(today, weekStart);
+    let run = 0;
+    for (let wk = weekStartOf(out.firstDate, weekStart), guard = 0; wk <= thisWeek && guard < 1500; wk = addDays(wk, 7), guard++) {
+      const hit = weeks[wk] && weeks[wk].workouts >= goal;
+      if (hit) run++; else if (wk !== thisWeek) run = 0;
+      if (run > out.streak.best) out.streak.best = run;
+    }
+    out.streak.current = run;
+    return out;
+  }
+
+  // Which exercises the work went into between two days: volume, working sets and share of the total.
+  function volumeByExercise(sessions, from, to, limit) {
+    const seen = {}, max = Math.round(num(limit, 1, 50, 6));
+    let total = 0;
+    validSessions(sessions).filter(s => s.date >= from && s.date <= to).forEach(s => s.exercises.forEach(ex => {
+      const name = String(ex.name || '').trim(), sets = workingSets(ex); if (!name || !sets.length) return;
+      const vol = sets.reduce((n, x) => n + Number(x.kg) * Number(x.reps), 0), row = seen[name.toLowerCase()] || (seen[name.toLowerCase()] = { name, vol: 0, sets: 0 });
+      row.vol += vol; row.sets += sets.length; total += vol;
+    }));
+    const rows = Object.values(seen).sort((a, b) => b.vol - a.vol || a.name.localeCompare(b.name)), share = v => (total > 0 ? round(v / total * 100, 1) : 0);
+    const top = rows.slice(0, max).map(r => ({ name: r.name, vol: round(r.vol, 1), sets: r.sets, share: share(r.vol) })), rest = rows.slice(max);
+    const otherVol = rest.reduce((n, r) => n + r.vol, 0);
+    return { total: round(total, 1), exercises: rows.length, rows: top, other: rest.length ? { count: rest.length, vol: round(otherVol, 1), share: share(otherVol) } : null };
+  }
+
+  // Weekly working sets per muscle group against a common target for growth. The groups are broad
+  // (Arms, Legs), so this praises enough and notes very little, and never calls anything too much.
+  const WEEKLY_SET_MIN = 10, WEEKLY_SET_LIGHT = 5;
+  function setRangeStatus(perWeek) { const n = Number(perWeek) || 0; return n <= 0 ? 'none' : n < WEEKLY_SET_LIGHT ? 'low' : n < WEEKLY_SET_MIN ? 'mid' : 'in'; }
+
   root.GymLib = Object.freeze({
     DEFAULT_PLATES_KG, DEFAULT_PLATES_LB, MEASURE_FIELDS, DEFAULT_SUPPLEMENTS, STARTER_ROUTINES,
     platesPerSide, warmupSets, overloadSuggestion, parseQuickAdd, quickAlias, QUICK_ALIASES, moveItem, groupBounds, restDueAfterSet, normaliseGroups,
     sessionTotals, calendarWeeks, monthReport, muscleRecency, weightTrend, storageUse, sanitizeExtras, sanitizeGear, isDay, addDays,
     MUSCLE_GROUPS, REP_TARGETS, PLAN_TEMPLATES, WEEKDAY_NAMES, e1rm, sessionVolume, weeklySeries, periodChange, weekdayPattern, consistency, exerciseHistory, exerciseNames,
     repMaxes, projection, liftTrends, muscleBalance, risingWeeks, coachInsights, sanitizePlanProgram, planWeek, progressedTarget, planAdherence,
-    planExerciseResults, targetSetsHit, adaptiveTarget, KCAL_PER_KG, CALORIE_GOALS, energyBalance, calorieTarget, macroTargets, pickNudge, CHALLENGE_METRICS, rankChallenge
+    planExerciseResults, targetSetsHit, adaptiveTarget, KCAL_PER_KG, CALORIE_GOALS, energyBalance, calorieTarget, macroTargets, pickNudge, CHALLENGE_METRICS, rankChallenge,
+    GOAL_LIMIT, WEEKLY_SET_MIN, WEEKLY_SET_LIGHT, sanitizeGoals, goalProgress, trainingWeights, trainingHighlights, volumeByExercise, setRangeStatus
   });
 })(typeof globalThis !== 'undefined' ? globalThis : this);

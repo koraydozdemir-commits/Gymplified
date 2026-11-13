@@ -104,6 +104,26 @@ function dxRadar(groups) {
 }
 
 // ---------- Advanced analytics ----------
+// Where the work went in the chosen range: the top lifts by volume, with their share of the total.
+function dxVolumeSplitMarkup(ctx, from) {
+  const split = GymLib.volumeByExercise(ctx.sessions, from, ctx.today, 6);
+  if (!split.total) return '<p class="sub">No working sets in this period yet.</p>';
+  const top = Math.max(1, ...split.rows.map(l => l.vol));
+  return split.rows.map(l => '<div class="dx-row"><div class="meta-row"><strong>' + esc(l.name) + '</strong><span>' + esc(fmtVolume(l.vol)) + ' · ' + Math.round(l.share) + '%</span></div><div class="progress-bar"><i data-w="' + (l.vol / top * 100) + '"></i></div></div>').join('') +
+    (split.other ? '<p class="sub">' + esc(plural(split.other.count, 'other exercise')) + ' make up the remaining ' + Math.round(split.other.share) + '%.</p>' : '');
+}
+// All-time records, from the whole log rather than the chosen range.
+function dxHighlightsMarkup(ctx) {
+  const h = GymLib.trainingHighlights(ctx.sessions, ctx.today, ctx.weekStart, ctx.weeklyGoal);
+  const item = (icon, value, label) => '<li><span class="dx-hl-icon" aria-hidden="true">' + icon + '</span><strong>' + esc(value) + '</strong><span class="sub">' + esc(label) + '</span></li>';
+  return '<ul class="dx-highlights">' +
+    (h.bestWeek ? item('🏔️', fmtVolume(h.bestWeek.vol), 'Biggest week · week of ' + dxLongDay(h.bestWeek.week) + ' · ' + plural(h.bestWeek.workouts, 'workout')) : '') +
+    (h.bestSession ? item('💥', fmtVolume(h.bestSession.vol), 'Biggest session · ' + dxLongDay(h.bestSession.date)) : '') +
+    (h.longestSession ? item('⏱️', h.longestSession.mins + ' min', 'Longest session · ' + dxLongDay(h.longestSession.date)) : '') +
+    (h.bestMonth ? item('📅', plural(h.bestMonth.workouts, 'workout'), 'Busiest month · ' + fmtMonth(h.bestMonth.month)) : '') +
+    item('🔥', plural(h.streak.best, 'week'), 'Longest weekly-goal streak at ' + h.streak.goal + ' a week' + (h.streak.current ? ' · ' + (h.streak.current === h.streak.best ? 'still going' : 'now on ' + h.streak.current) : '')) +
+    item('🏋️', fmtVolume(h.volume), 'Lifted in total · ' + plural(h.workouts, 'workout') + ' since ' + dxLongDay(h.firstDate)) + '</ul>';
+}
 function dxAnalyticsMarkup(ctx, range) {
   if (!ctx.sessions.length) return dxEmpty('Your analytics start with your first finished workout', 'Volume trends, training rhythm and consistency are all built from the workouts you log.');
   const all = GymLib.weeklySeries(ctx.sessions, ctx.today, range * 2, ctx.weekStart), series = all.slice(-range), change = GymLib.periodChange(all);
@@ -122,6 +142,10 @@ function dxAnalyticsMarkup(ctx, range) {
       dxVolumeChart(series, ctx.today) + '<p class="dx-readout" data-default="Hover or tap a bar for that week’s numbers." aria-hidden="true">Hover or tap a bar for that week’s numbers.</p>' +
       dxTable('Weekly training volume', ['Week of', 'Volume', 'Workouts', 'Sets', '4-week average'], series.map(w => [dxLongDay(w.week), fmtVolume(w.vol), String(w.workouts), String(w.sets), fmtVolume(w.avg)])) + '</div>' +
     '<div class="dx-two">' +
+      '<div class="panel dx-block"><div class="section-title"><span>Where your volume goes</span><span class="sub">' + (range === 52 ? 'LAST YEAR' : 'LAST ' + range + ' WEEKS') + '</span></div>' + dxVolumeSplitMarkup(ctx, from) + '</div>' +
+      '<div class="panel dx-block"><div class="section-title"><span>All-time highlights</span><span class="sub">YOUR WHOLE LOG</span></div>' + dxHighlightsMarkup(ctx) + '</div>' +
+    '</div>' +
+    '<div class="dx-two">' +
       '<div class="panel dx-block"><div class="section-title"><span>Your training rhythm</span></div><div class="dx-days" role="img" aria-label="Workouts by weekday: ' + esc(days.counts.map((c, i) => GymLib.WEEKDAY_NAMES[i] + ' ' + c).join(', ')) + '.">' +
         days.counts.map((c, i) => '<div class="dx-day' + (i === days.best ? ' is-best' : '') + '"><span class="dx-day-num">' + c + '</span><span class="dx-day-col"><i data-h="' + (c / dayMax * 100) + '"></i></span><span class="dx-day-name">' + GymLib.WEEKDAY_NAMES[i].slice(0, 3) + '</span></div>').join('') + '</div>' +
         '<p class="sub">' + (days.best === null ? 'No workouts in this period yet.' : esc(GymLib.WEEKDAY_NAMES[days.best]) + ' is your most-trained day in this period.') + '</p></div>' +
@@ -134,6 +158,10 @@ function dxAnalyticsMarkup(ctx, range) {
 // ---------- Smart training insights ("Coach") ----------
 const DX_TONE = { good: ['▲', 'Going well'], warn: ['◆', 'Worth a look'], info: ['●', 'Good to know'] };
 const DX_STATUS = { rising: 'Rising', steady: 'Steady', plateau: 'Levelled off', falling: 'Dipped' };
+function dxSetChip(perWeek) {
+  const status = GymLib.setRangeStatus(perWeek);
+  return status === 'low' ? '<span class="dx-chip is-low">Light</span>' : status === 'in' ? '<span class="dx-chip is-in">✓ ' + GymLib.WEEKLY_SET_MIN + '+ a week</span>' : '';
+}
 function dxCoachMarkup(ctx) {
   const insights = GymLib.coachInsights(ctx.sessions, ctx.today, { weekStart: ctx.weekStart, weeklyGoal: ctx.weeklyGoal });
   // An own-log preview shows the first two notes and says how many more there are.
@@ -147,7 +175,8 @@ function dxCoachMarkup(ctx) {
   return cards +
     '<div class="dx-two">' +
       '<div class="panel dx-block"><div class="section-title"><span>Muscle balance</span><span class="sub">LAST 4 WEEKS</span></div>' + (bal.total ? dxRadar(bal.groups) + split : '<p class="sub">No working sets logged in the last 4 weeks.</p>') + '</div>' +
-      '<div class="panel dx-block"><div class="section-title"><span>Sets per week</span><span class="sub">BY MUSCLE GROUP</span></div>' + bal.groups.map(g => '<div class="dx-row"><div class="meta-row"><strong>' + esc(g.group) + '</strong><span>' + g.perWeek + ' a week · ' + g.sets + ' total</span></div><div class="progress-bar"><i data-w="' + (g.sets / top * 100) + '"></i></div></div>').join('') +
+      '<div class="panel dx-block"><div class="section-title"><span>Sets per week</span><span class="sub">BY MUSCLE GROUP</span></div>' + bal.groups.map(g => '<div class="dx-row"><div class="meta-row"><strong>' + esc(g.group) + dxSetChip(g.perWeek) + '</strong><span>' + g.perWeek + ' a week · ' + g.sets + ' total</span></div><div class="progress-bar"><i data-w="' + (g.sets / top * 100) + '"></i></div></div>').join('') +
+        '<p class="sub">' + GymLib.WEEKLY_SET_MIN + ' or more working sets a week per muscle group is a common target for growth, and under ' + GymLib.WEEKLY_SET_LIGHT + ' is light. A general guide, not a prescription.</p>' +
         (bal.other ? '<p class="sub">' + plural(bal.other, 'set') + ' from exercises without a muscle group are not shown.</p>' : '') + '</div>' +
     '</div>' +
     '<div class="panel dx-block"><div class="section-title"><span>Lift momentum</span><span class="sub">LAST 12 WEEKS</span></div>' + (trends.length
@@ -158,6 +187,81 @@ function dxCoachMarkup(ctx) {
 
 // ---------- Performance lab ("Lift lab") ----------
 function dxMilestoneKg(bestKg) { const lb = weightUnit() === 'lb', step = lb ? 10 : 5, shown = kgToDisplay(bestKg, 1), next = (Math.floor(shown / step + 1e-9) + 1) * step; return displayToKg(next); }
+// Strength goals: one target per lift, kept in state.deluxe.goals and judged by GymLib.goalProgress.
+const DX_GOAL_STATUS = { done: '✓ Reached', ontrack: 'On track', behind: 'Behind pace', overdue: 'Past its date', open: 'In progress' };
+function dxGoals() { state.deluxe = state.deluxe || {}; if (!Array.isArray(state.deluxe.goals)) state.deluxe.goals = []; return state.deluxe.goals; }
+function dxGoalFor(name) { const key = String(name || '').trim().toLowerCase(); return dxGoals().find(goal => goal.name.toLowerCase() === key) || null; }
+function dxCurrentLift(ctx) { const names = GymLib.exerciseNames(ctx.sessions); return names.find(n => n.name === dxLift) || names[0] || null; }
+function dxGoalSentence(p) {
+  if (p.done) return 'Reached on ' + dxLongDay(p.reachedOn) + '. Raise the target whenever you are ready for the next one.';
+  const bits = [];
+  if (p.eta) bits.push('At your current pace of +' + fmtWeight(p.perWeek, 2) + ' a week, you get there around ' + dxLongDay(p.eta) + '.');
+  else if (p.perWeek === null) bits.push('Log this lift on four days across three weeks and a finish date appears here.');
+  else if (p.perWeek <= 0) bits.push('This lift has been flat lately, so there is no finish date yet.');
+  else bits.push('At the current pace there is no finish date within a year yet.');
+  if (p.by && p.daysLeft < 0) bits.push('Your date of ' + dxLongDay(p.by) + ' has passed. Move it, or keep going.');
+  else if (p.by && p.needPerWeek !== null) bits.push('To make ' + dxLongDay(p.by) + ' you need about +' + fmtWeight(p.needPerWeek, 2) + ' a week.');
+  else if (p.by) bits.push('Your date is today.');
+  return bits.join(' ');
+}
+function dxGoalBar(p) { return '<div class="progress-bar dx-goal-bar' + (p.done ? ' is-done' : '') + '" role="img" aria-label="' + p.pct + ' percent of the way to the goal"><i data-w="' + p.pct + '"></i></div>'; }
+function dxGoalMarkup(ctx, lift, history, best, milestone) {
+  // Previews show a worked example: the next milestone as the target, counted from the first logged day.
+  const goal = ctx.sample ? { name: lift.name, targetKg: milestone, startKg: history[0].e1rm, createdAt: history[0].date, by: '' } : dxGoalFor(lift.name);
+  const p = goal ? GymLib.goalProgress(goal, history, ctx.today) : null, unit = weightUnit();
+  const head = p
+    ? '<div class="dx-goal-head"><span class="dx-goal-num">' + esc(fmtWeight(p.current)) + ' <small>of ' + esc(fmtWeight(p.target)) + ' estimated max</small></span><span class="sub">' + p.pct + '%' + (p.done ? '' : ' · ' + esc(fmtWeight(p.remaining)) + ' to go') + '</span></div>' + dxGoalBar(p) + '<p class="dx-goal-note">' + esc(dxGoalSentence(p)) + '</p>'
+    : '<p class="sub">Pick a number for this lift. The lab tracks every session against it and tells you honestly when you will get there.</p>';
+  const form = ctx.sample ? '' : '<div class="dx-goal-form"><div class="field"><label for="dxGoalTarget">Target estimated max (' + unit + ')</label><input id="dxGoalTarget" type="number" inputmode="decimal" min="1" max="' + kgToDisplay(1000, 0) + '" step="0.5" value="' + kgToDisplay(goal ? goal.targetKg : milestone, 1) + '"></div>' +
+    '<div class="field"><label for="dxGoalBy">Reach it by (optional)</label><input id="dxGoalBy" type="date" min="' + GymLib.addDays(ctx.today, 1) + '" value="' + esc(goal && goal.by > ctx.today ? goal.by : '') + '"></div>' +
+    '<div class="row-wrap"><button type="button" class="btn btn-primary" data-dx="saveGoal">' + (goal ? 'Update goal' : 'Set goal') + '</button>' + (goal ? '<button type="button" class="btn" data-dx="removeGoal">Remove</button>' : '') + '</div></div>';
+  return '<div class="panel dx-block"><div class="section-title"><span>Strength goal</span>' + (p ? '<span class="dx-chip is-' + p.status + '">' + DX_GOAL_STATUS[p.status] + '</span>' : ctx.sample ? '' : '<span class="sub">NOT SET</span>') + '</div>' + head + form + '</div>';
+}
+// Every goal at a glance. Shown once there is a goal on a lift other than the one on screen.
+function dxGoalListMarkup(ctx, lift) {
+  const goals = dxGoals(); if (ctx.sample || !goals.some(goal => goal.name.toLowerCase() !== lift.name.toLowerCase())) return '';
+  return '<div class="panel dx-block"><div class="section-title"><span>Your goals</span><span class="sub">' + goals.length + ' OF ' + GymLib.GOAL_LIMIT + '</span></div><ul class="dx-goals">' + goals.map((goal, i) => {
+    const p = GymLib.goalProgress(goal, GymLib.exerciseHistory(ctx.sessions, goal.name), ctx.today), here = goal.name.toLowerCase() === lift.name.toLowerCase();
+    return '<li><button type="button" class="dx-goal-item" data-dx="openGoal" data-arg="' + i + '" aria-current="' + here + '"><strong>' + esc(goal.name) + '</strong><span class="dx-chip is-' + p.status + '">' + DX_GOAL_STATUS[p.status] + '</span>' +
+      '<span class="sub">' + esc(fmtWeight(p.current)) + ' of ' + esc(fmtWeight(p.target)) + (goal.by && !p.done ? ' · by ' + esc(dxLongDay(goal.by)) : '') + '</span>' + dxGoalBar(p) + '</button></li>';
+  }).join('') + '</ul></div>';
+}
+function saveGoal() {
+  const ctx = dxContext(), lift = dxCurrentLift(ctx), input = $('dxGoalTarget'), byInput = $('dxGoalBy'); if (!lift || !input) return;
+  const shown = Number(input.value), targetKg = Math.round(displayToKg(shown) * 100) / 100, by = (byInput && byInput.value) || '', best = GymLib.repMaxes(ctx.sessions, lift.name).best;
+  if (!(shown > 0) || targetKg > 1000) { showToast('Enter the weight you are aiming for'); input.focus(); return; }
+  if (by && (!GymLib.isDay(by) || by <= ctx.today)) { showToast('Pick a date after today, or leave it empty'); byInput.focus(); return; }
+  const goals = dxGoals(), old = dxGoalFor(lift.name);
+  // A target at or below the best is only allowed while it is the goal that was already reached.
+  if (targetKg <= best && !(old && old.targetKg === targetKg)) { showToast('Aim above your current best of ' + fmtWeight(best)); input.focus(); return; }
+  if (!old && goals.length >= GymLib.GOAL_LIMIT) return showToast('You can keep up to ' + GymLib.GOAL_LIMIT + ' goals. Remove one first.');
+  if (old) {
+    const reached = GymLib.goalProgress(old, GymLib.exerciseHistory(ctx.sessions, lift.name), ctx.today).done;
+    // Raising a reached goal starts a fresh climb from today's best.
+    if (reached && targetKg > old.targetKg) { old.startKg = Math.round(best * 100) / 100; old.createdAt = ctx.today; }
+    old.targetKg = targetKg; old.by = by;
+  } else goals.push({ id: newRecordId('goal'), name: lift.name, targetKg, startKg: Math.round(best * 100) / 100, createdAt: ctx.today, by });
+  saveState(); renderDeluxeTools(deluxeEnabled());
+  showToast((old ? 'Goal updated: ' : 'Goal set: ') + lift.name + ' to ' + fmtWeight(targetKg));
+}
+function dxDropGoal(goal, message) {
+  const goals = dxGoals(), i = goals.indexOf(goal); if (i < 0) return;
+  goals.splice(i, 1); saveState(); renderDeluxeTools(deluxeEnabled());
+  showToast(message, { actionLabel: 'Undo', onAction: () => { if (!dxGoalFor(goal.name)) { dxGoals().splice(Math.min(i, dxGoals().length), 0, goal); saveState(); renderDeluxeTools(deluxeEnabled()); } } });
+}
+function removeGoal() { const lift = dxCurrentLift(dxContext()), goal = lift && dxGoalFor(lift.name); if (goal) dxDropGoal(goal, 'Goal removed'); }
+function openGoal(i) {
+  const goal = dxGoals()[i]; if (!goal) return;
+  if (!GymLib.exerciseHistory(dxSessions(), goal.name).length) return dxDropGoal(goal, 'No sessions left for ' + goal.name + ', so its goal was removed');
+  dxLift = GymLib.exerciseNames(dxSessions()).find(n => n.name.toLowerCase() === goal.name.toLowerCase()).name; renderDeluxeTools(deluxeEnabled());
+  $('dxLiftSelect')?.focus();
+}
+function dxTrainingWeightsMarkup(best) {
+  const lb = weightUnit() === 'lb', rows = GymLib.trainingWeights(best, lb ? 5 * KG_PER_LB : 2.5);
+  return '<div class="panel dx-block"><div class="section-title"><span>Training weights</span><span class="sub">FROM YOUR BEST</span></div><div class="dx-scroll"><table class="deluxe-table"><caption class="sr">Working weights at each intensity</caption><thead><tr><th scope="col">Intensity</th><th scope="col">Weight</th><th scope="col">About</th><th scope="col">Good for</th></tr></thead><tbody>' +
+    rows.map(r => '<tr><th scope="row">' + r.pct + '%</th><td>' + esc(fmtWeight(r.kg, 1)) + '</td><td>' + esc(plural(r.reps, 'rep')) + '</td><td>' + esc(r.use) + '</td></tr>').join('') +
+    '</tbody></table></div><p class="sub">Percentages of your best estimated max, rounded to the nearest ' + (lb ? '5 lb' : '2.5 kg') + '. The rep counts are the most the formula predicts at that weight, so stop a rep or two short on most sets.</p></div>';
+}
 function dxLabMarkup(ctx, liftName) {
   const names = GymLib.exerciseNames(ctx.sessions);
   if (!names.length) return dxEmpty('The lab opens with your first logged lift', 'Every exercise you finish gets its own strength curve, rep-max table and projection.');
@@ -178,10 +282,12 @@ function dxLabMarkup(ctx, liftName) {
       dxTile('Next milestone', esc(fmtWeight(target, 0)), '<span>' + esc(fmtWeight(Math.max(0, target - best))) + ' to go</span>') +
       (ctx.bodyKg > 0 ? dxTile('Relative strength', (best / ctx.bodyKg).toFixed(2) + '×', '<span>your body weight (' + esc(fmtWeight(ctx.bodyKg)) + ')</span>') : dxTile('Relative strength', '—', '<span>Log your body weight in Progress</span>')) +
     '</div>' +
+    dxGoalMarkup(ctx, lift, history, best, target) + dxGoalListMarkup(ctx, lift) +
     '<div class="panel dx-block"><div class="section-title"><span>Strength curve</span><span class="dx-legend"><i class="dx-key dx-key-pr" aria-hidden="true"></i>New best' + (proj && proj.day && proj.weeks <= 26 ? ' <i class="dx-key dx-key-dash" aria-hidden="true"></i>Projection' : '') + '</span></div>' +
       (history.length > 1 ? dxLineChart(history, proj, ctx.today) + '<p class="dx-readout" data-default="Hover or tap a point for the set behind it." aria-hidden="true">Hover or tap a point for the set behind it.</p>' : '<p class="sub">One training day so far. The curve appears after the next one.</p>') +
       '<p class="dx-outlook"><span aria-hidden="true">🎯 </span>' + esc(outlook) + '</p>' +
       dxTable('Training days for ' + lift.name, ['Date', 'Best set', 'Estimated max', 'Working sets', 'Volume'], history.slice().reverse().slice(0, 40).map(p => [dxLongDay(p.date), fmtWeight(p.kg, 2) + ' × ' + p.reps, fmtWeight(p.e1rm), String(p.sets), fmtVolume(p.vol)])) + '</div>' +
+    dxTrainingWeightsMarkup(best) +
     '<div class="panel dx-block"><div class="section-title"><span>Rep-max table</span><span class="sub">LIFTED vs PREDICTED</span></div><div class="dx-scroll"><table class="deluxe-table"><thead><tr><th scope="col">Reps</th><th scope="col">Heaviest lifted</th><th scope="col">When</th><th scope="col">Predicted from your best</th></tr></thead><tbody>' +
       maxes.rows.map(r => '<tr><th scope="row">' + r.reps + '</th><td>' + (r.kg ? esc(fmtWeight(r.kg, 2)) : '<span class="sub">not yet</span>') + '</td><td>' + (r.date ? esc(dxLongDay(r.date)) : '—') + '</td><td>' + esc(fmtWeight(r.predicted)) + '</td></tr>').join('') +
       '</tbody></table></div><p class="sub">“Heaviest lifted” counts any set of at least that many reps. Predictions use the Epley formula on your best set. Treat them as a guide and build up to heavy singles gradually.</p></div>';
@@ -604,6 +710,7 @@ const DELUXE_ACTIONS = Object.freeze({
   setTab: el => setDeluxeTab(el.dataset.arg, true),
   setRange: el => { const n = Number(el.dataset.arg); if (DX_RANGES.includes(n)) { dxRange = n; renderDeluxeTools(deluxeEnabled()); } },
   setLift: el => { dxLift = el.value; renderDeluxeTools(deluxeEnabled()); },
+  saveGoal: () => saveGoal(), removeGoal: () => removeGoal(), openGoal: el => openGoal(Number(el.dataset.arg)),
   useTemplate: el => useTemplate(el.dataset.arg), restartPlan: el => restartPlan(Number(el.dataset.i)), syncPlanProgramFields: () => syncPlanProgramFields(),
   shareShareCard: () => shareShareCard(), downloadShareCard: () => downloadShareCard(), exportDeluxeReport: () => exportDeluxeReport(), exportDeluxeCSV: () => exportDeluxeCSV(), exportDeluxeLifts: () => exportDeluxeLifts(),
   setSkin: el => setSkin(el), setConfetti: el => setConfetti(el), setFlair: el => setFlair(el),

@@ -1299,7 +1299,7 @@ test('K2: index.html is a thin shell; styles and app code live in app.css and ap
   const sw = await readRaw('sw.js');
   assert.match(sw, /'\.\/app\.css',\n  '\.\/lib\.js',\n  '\.\/app\.js',\n  '\.\/plus\.js',\n  '\.\/deluxe\.js',/);
   assert.match(shell, /<script src="\.\/plus\.js"><\/script>\n<script src="\.\/deluxe\.js"><\/script>/, 'the Deluxe tools load after the app and feature scripts');
-  assert.match(sw, /if \(\/\\\/\(app\|lib\|plus\|deluxe\|growth\)\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
+  assert.match(sw, /if \(\/\\\/\(app\|lib\|plus\|deluxe\|growth\|art\)\\\.\(js\|css\)\$\/\.test\(url\.pathname\)\)[\s\S]*?await fetch\(request\)[\s\S]*?cache\.match\(request, \{ignoreSearch:true\}\)/, 'app code is network-first with an offline fallback');
 });
 
 test('Deluxe admin toggle: service-role only, keeps paid records, and the admin page uses listeners and escaping', async () => {
@@ -1501,9 +1501,9 @@ test('C3: friendly moments — growing flame, set pop, new-record celebration; a
   const js = await readRaw('app.js'), css = await readRaw('app.css');
   const flameTier = new Function(extractFunctions(js, ['flameTier']) + ';return flameTier;')();
   assert.deepEqual([0, 1, 3, 7, 30, 100].map(flameTier), [0, 1, 2, 3, 4, 4]);
-  assert.match(js, /<span class="streak-flame flame-'\+flameTier\(streak\)\+'" aria-hidden="true">🔥<\/span>/);
+  assert.match(js, /<span class="streak-flame flame-'\+flameTier\(streak\)\+'" aria-hidden="true">'\+art\('flame'\)\+'<\/span>/);
   assert.match(js, /x\.done&&justTicked&&justTicked\.i===i&&justTicked\.j===j&&Date\.now\(\)-justTicked\.at<1500\?' just-done':''/, 'only the set just ticked pops');
-  assert.match(js, /celebrate\(\{icon:'🏆',title:'New personal record!'/);
+  assert.match(js, /celebrate\(\{icon:'🏆',art:art\('trophy'\),title:'New personal record!'/);
   assert.match(css, /@keyframes set-pop/);
   assert.match(css, /html\[data-motion="reduced"\] \.streak-flame\{animation:none\}/);
   assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.streak-flame\{animation:none\}\}/);
@@ -1827,4 +1827,75 @@ test('DX14: strength goals, training weights, volume breakdown and highlights ar
   assert.match(dx, /A general guide, not a prescription\./);
   assert.match(shell, /<li>Strength goals with a progress bar and an honest finish date<\/li><li>Training weights for every intensity, ready to load<\/li>/);
   assert.match(shell, /<li>Where your volume goes, lift by lift<\/li><li>All-time highlights and weekly-goal streaks<\/li>/);
+});
+
+// ===== Batch 14: illustrated UI and XP refinements =====
+test('ART1: art.js loads first, is cached offline and follows the CSP rules', async () => {
+  const shell = await readRaw('index.html'), artJs = await readRaw('art.js'), sw = await readRaw('sw.js');
+  assert.match(shell, /<script src="\.\/art\.js"><\/script>\n<script src="\.\/sdk\/supabase-2\.57\.4\.js"><\/script>/, 'pictures are defined before the app renders');
+  assert.match(sw, /'\.\/growth\.js',\n  '\.\/art\.js',/);
+  assert.ok(Number(sw.match(/gymplified-shell-v(\d+)/)[1]) >= 36, 'cache name bumped for the new file');
+  assert.doesNotThrow(() => new Function(artJs));
+  assert.equal(count(artJs, /\sstyle\s*=/g) + count(artJs, /<style/g), 0, 'no style attributes or style elements');
+  assert.equal(count(artJs, /\son[a-z]+\s*=\s*\\?["']/gi), 0, 'no inline handlers');
+  assert.doesNotMatch(artJs, /https?:\/\/|<image|xlink:href|\bhref=|url\(/, 'nothing is downloaded and nothing links out');
+  assert.doesNotMatch(artJs, /\beval\(|new Function\(/);
+});
+
+test('ART2: every picture the app asks for exists, and every badge has a medallion', async () => {
+  const artJs = await readRaw('art.js'), js = await readRaw('app.js'), shell = await readRaw('index.html');
+  const api = new Function(artJs + ';return {ART,BADGE_ART,BADGE_TIERS,MASCOT_FACES,art,mascot,badgeArt,rankShield,rankTier,medalArt,ringArt,waterGlassArt};')();
+  const asked = new Set([...(js + await readRaw('growth.js')).matchAll(/\bart\('([A-Za-z]+)'/g)].map(m => m[1]));
+  for (const m of shell.matchAll(/data-art="([A-Za-z]+)"/g)) asked.add(m[1]);
+  for (const m of js.matchAll(/\bart:'([A-Za-z]+)'/g)) asked.add(m[1]);
+  assert.ok(asked.size >= 12, 'the app uses a real set of pictures, got ' + asked.size);
+  assert.deepEqual([...asked].filter(name => !api.ART[name]), [], 'no missing pictures');
+  const moods = new Set([...js.matchAll(/mascot\('([a-z]+)'\)/g)].map(m => m[1]));
+  assert.deepEqual([...moods].filter(m => !api.MASCOT_FACES[m]), []);
+  const block = js.slice(js.indexOf('const BADGES=['), js.indexOf('function badgeProgress'));
+  const ids = [...block.matchAll(/\{id:'([a-z0-9]+)'/g)].map(m => m[1]);
+  assert.deepEqual(ids.filter(id => !api.BADGE_ART[id]), [], 'every badge has its own medallion');
+  for (const [id, spec] of Object.entries(api.BADGE_ART)) { assert.ok(api.ART[spec[0]], id + ' picture'); assert.ok(api.BADGE_TIERS[spec[1]], id + ' metal'); }
+  // decorative output only: hidden from screen readers, and bad input cannot break the markup
+  for (const svg of [api.art('flame'), api.art('nope'), api.mascot('cheer'), api.mascot('<x>'), api.badgeArt('ws10', true), api.badgeArt('"><x', false), api.rankShield(7), api.rankShield('<b>'), api.medalArt(1), api.ringArt(40), api.ringArt('x'), api.waterGlassArt(50)]) {
+    assert.match(svg, /^<svg class="art[^"<>]*" viewBox="0 0 [0-9 ]+" aria-hidden="true" focusable="false">/);
+    assert.doesNotMatch(svg, /<x|<b>|NaN|undefined/);
+  }
+  assert.equal(api.medalArt(4), '');
+  assert.match(api.badgeArt('ws10', false), /is-locked/);
+  assert.doesNotMatch(api.badgeArt('ws10', true), /is-locked/);
+  assert.deepEqual([1, 2, 3, 5, 8, 12, 16, 20, 30, 99].map(api.rankTier), [0, 0, 1, 2, 3, 4, 5, 6, 7, 7], 'shield colour follows the level titles');
+  const titles = js.match(/const LEVEL_TITLES=\[(.*?)\];/)[1];
+  assert.deepEqual([...titles.matchAll(/\[(\d+),/g)].map(m => Number(m[1])), [1, 3, 5, 8, 12, 16, 20, 30], 'RANK_FROM in art.js matches LEVEL_TITLES');
+  assert.match(api.ringArt(0), /ring-track/); assert.doesNotMatch(api.ringArt(0), /ring-value/);
+  assert.match(api.ringArt(250), /stroke-dasharray="326\.7 0\.0"/, 'ring is clamped to 100%');
+});
+
+test('XP1: streak bonus, daily goal, daily chest and one combined XP toast', async () => {
+  const js = await readRaw('app.js'), css = await readRaw('app.css');
+  const api = new Function(extractFunctions(js, ['streakBonusPct', 'xpToastText', 'pickShelfBadges']) + ';return {streakBonusPct,xpToastText,pickShelfBadges};')();
+  assert.deepEqual([0, 2, 3, 6, 7, 29, 30, 365].map(api.streakBonusPct), [0, 0, 10, 10, 20, 20, 30, 30]);
+  assert.equal(api.xpToastText({ n: 20, why: ['Exercise done'], goal: false }), '+20 XP · Exercise done');
+  assert.equal(api.xpToastText({ n: 175, why: ['a', 'b', 'c', 'd'], goal: true }), '+175 XP · a · b · +2 more · Daily goal reached!');
+  assert.match(js, /const bonus=Math\.round\(n\*streakBonusPct\(streak\)\/100\),total=n\+bonus;/);
+  assert.match(js, /g\.xp\+=total;g\.daily\.xp\+=total;xpLogAdd\(total,why\+\(bonus\?' \(streak bonus \+'\+bonus\+'\)':''\)\);/, 'the log says when a bonus was added');
+  assert.match(js, /g\.weekXp\.xp=Math\.min\(100000,g\.weekXp\.xp\+total\);/, 'leaderboard week XP includes the bonus');
+  assert.doesNotMatch(js, /showToast\('\+'\+n\+' XP/, 'XP gains no longer stack one toast each');
+  assert.match(js, /const DAILY_XP_GOALS = \[50, 100, 150, 200\], DAILY_XP_GOAL_DEFAULT = 100, DAILY_CHEST_XP = 30;/);
+  assert.match(js, /dailyGoal:DAILY_XP_GOALS\.includes\(Number\(rawGame\.dailyGoal\)\)\?Number\(rawGame\.dailyGoal\):DAILY_XP_GOAL_DEFAULT/, 'synced goal is validated against the allowed values');
+  assert.match(js, /xp:Math\.round\(safeStateNumber\(rawGame\.daily\.xp,0,100000,0\)\)/);
+  assert.match(js, /if\(!DAILY_XP_GOALS\.includes\(n\)\)return;\n  state\.game\.dailyGoal=n;saveState\(\);/, 'the goal buttons accept only the listed values');
+  assert.match(js, /const chestKey=questKey\('d','chest'\);if\(!g\.claimed\[chestKey\]&&QUESTS\.every\(q=>g\.claimed\[questKey\('d',q\.id\)\]\)\)\{g\.claimed\[chestKey\]=1;gainXP\(DAILY_CHEST_XP,'Daily chest opened'\);\}/, 'chest is date-stamped and paid once');
+  // badge shelf: newest unlocked first, then the closest locked ones
+  const badges = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((id, i) => ({ id, target: 10, p: i }));
+  assert.deepEqual(api.pickShelfBadges(badges, ['a', 'c'], b => b.p, 6).map(b => b.id), ['c', 'a', 'h', 'g', 'f', 'e']);
+  assert.deepEqual(api.pickShelfBadges(badges, [], b => b.p, 3).map(b => b.id), ['h', 'g', 'f']);
+  // finished quests and reached goals are marked with text, not colour alone
+  assert.match(js, /\(done\?'✓ earned':'\+'\+xp\+' XP'\)/);
+  assert.match(js, /g\.daily\.xp>=goal\?'✓ Goal reached'/);
+  assert.match(js, /role="progressbar" aria-label="XP to next level"/);
+  assert.match(js, /role="progressbar" aria-label="Daily XP goal"/);
+  // new motion respects both reduced-motion switches
+  assert.match(css, /html\[data-motion="reduced"\] \.hero-mascot \.mascot\{animation:none\}/);
+  assert.match(css, /@media\(prefers-reduced-motion:reduce\)\{\.hero-mascot \.mascot\{animation:none\}\}/);
 });

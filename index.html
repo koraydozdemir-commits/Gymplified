@@ -68,7 +68,7 @@
           <span class="nav-text nav-long">Training Log</span><span class="nav-text nav-short">Training</span>
         </button>
         <button data-screen="nutrition" data-action="showScreen" data-arg="nutrition">
-          <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M12 7.5c-1.6-1.8-7-1.9-7 4 0 4.6 2.7 9.5 5 9.5.9 0 1.3-.5 2-.5s1.1.5 2 .5c2.3 0 5-4.9 5-9.5 0-5.9-5.4-5.8-7-4z"/><path d="M12 7.5c0-2 1-3.6 3-4.3"/></svg>
           <span class="nav-text nav-long">Nutrition</span><span class="nav-text nav-short">Food</span>
         </button>
         <button data-screen="friends" data-action="showScreen" data-arg="friends">
@@ -118,11 +118,11 @@
           <div class="row-wrap"><button class="btn btn-primary" type="button" data-backup-action="export">⬇ Export backup</button><button class="btn" type="button" data-backup-action="snooze">Remind me in a week</button></div>
         </div>
         <div class="resume-banner" id="hydrationNudge" role="region" aria-label="Hydration reminder" hidden>
-          <div><strong>💧 Time for some water?</strong><p class="sub" id="hydrationNudgeText"></p></div>
+          <span class="banner-art" data-art="drop" aria-hidden="true"></span><div><strong>Time for some water?</strong><p class="sub" id="hydrationNudgeText"></p></div>
           <div class="row-wrap"><button class="btn btn-primary" type="button" id="hydrationNudgeAdd">+ 250 ml</button><button class="btn" type="button" data-nudge-action="dismiss-water">Not now</button></div>
         </div>
         <div class="resume-banner" id="streakNudge" role="region" aria-label="Streak reminder" hidden>
-          <div><strong>🔥 Keep your streak</strong><p class="sub" id="streakNudgeText"></p></div>
+          <span class="banner-art" data-art="flame" aria-hidden="true"></span><div><strong>Keep your streak</strong><p class="sub" id="streakNudgeText"></p></div>
           <div class="row-wrap"><button class="btn btn-primary" type="button" data-nudge-action="train">Log a workout</button><button class="btn" type="button" data-nudge-action="dismiss">Not today</button></div>
         </div>
         <div class="resume-banner deluxe-tip" id="deluxeTip" role="region" aria-label="Deluxe tip" hidden></div>
@@ -133,10 +133,10 @@
           <!-- Calorie Panel -->
           <div class="panel">
             <div class="metric-head">
-              <div>
+              <div class="metric-lead"><span class="metric-art" data-art="apple" aria-hidden="true"></span><div>
                 <div class="eyebrow">Energy Intake</div>
                 <div class="metric-num"><span id="dashCal">—</span> <span class="metric-unit">/ <span id="dashCalTarget">—</span> kcal</span></div>
-              </div>
+              </div></div>
               <button class="btn" data-action="openCalorieModal">+ Add Food</button>
             </div>
             <div class="progress-bar"><i id="dashCalBar" class="st-2"></i></div>
@@ -145,9 +145,9 @@
               <span id="dashCalPct">—</span>
             </div>
             <div class="macro-pills">
-              <div class="macro-pill"><strong id="dashProtein">0g</strong><span>Protein</span></div>
-              <div class="macro-pill"><strong id="dashCarbs">0g</strong><span>Carbs</span></div>
-              <div class="macro-pill"><strong id="dashFat">0g</strong><span>Fat</span></div>
+              <div class="macro-pill macro-protein"><strong id="dashProtein">0g</strong><span>Protein</span></div>
+              <div class="macro-pill macro-carbs"><strong id="dashCarbs">0g</strong><span>Carbs</span></div>
+              <div class="macro-pill macro-fat"><strong id="dashFat">0g</strong><span>Fat</span></div>
             </div>
           </div>
 
@@ -158,7 +158,7 @@
                 <div class="eyebrow">Hydration Target</div>
                 <div class="metric-num"><span id="dashWater">—</span> <span class="metric-unit">/ <span id="dashWaterGoal">—</span> <span id="dashWaterUnit">L</span></span></div>
               </div>
-              
+              <span class="water-glass-host" id="dashWaterGlass" aria-hidden="true"></span>
             </div>
             <div class="progress-bar"><i id="dashWaterBar" class="st-2"></i></div>
             <div class="meta-row">
@@ -187,7 +187,7 @@
 
       <!-- 2. PERSONAL RECORDS & MOTIVATION SCREEN -->
       <section id="prs" class="screen">
-        <div class="eyebrow">Milestones & Mindset</div>
+        <span class="screen-art" data-art="trophy" aria-hidden="true"></span><div class="eyebrow">Milestones & Mindset</div>
         <h1>Personal Records & Motivation</h1>
         <p class="subtitle">Track peak performance lifts, estimated 1-Rep Max calculations, and tactical wisdom.</p>
 
@@ -244,7 +244,7 @@
 
       <!-- 3. TRAINING LOG SCREEN -->
       <section id="training" class="screen">
-        <div class="eyebrow">Execution</div>
+        <span class="screen-art" data-art="dumbbell" aria-hidden="true"></span><div class="eyebrow">Execution</div>
         <h1>Workout Session</h1>
         <p class="subtitle">Start a session, pick exercises from the library, log every set, then finish to see your stats.</p>
 <div class="st-1 panel" id="sessBar" role="status" aria-live="polite" aria-atomic="true"></div>
@@ -275,7 +275,7 @@
 
       <!-- 5. NUTRITION SCREEN -->
       <section id="nutrition" class="screen">
-        <div class="eyebrow">Fueling</div><h1>Nutrition</h1>
+        <span class="screen-art" data-art="apple" aria-hidden="true"></span><div class="eyebrow">Fueling</div><h1>Nutrition</h1>
         <p class="subtitle">Build meals, track your macros and see how your day is adding up. Food values are estimates and vary by brand and preparation.</p>
         <div class="nutrition-summary">
           <div class="panel nutrition-calories">
@@ -344,7 +344,7 @@
       </section>
 
       <section id="friends" class="screen">
-        <div class="eyebrow">Community</div><h1>Friends & Community</h1>
+        <span class="screen-art" data-art="people" aria-hidden="true"></span><div class="eyebrow">Community</div><h1>Friends & Community</h1>
         <p class="subtitle">Add friends by username, compare weekly progress and cheer each other on.</p>
         <div class="panel account-nudge" id="friendsSignedOut" hidden>
           <div class="account-nudge-text"><strong>Sign in to add friends</strong><span>Friends, the leaderboard and the activity feed need a free Gymplified account.</span></div>
@@ -366,7 +366,7 @@
 
       <!-- ACCOUNT -->
       <section id="account" class="screen">
-        <div class="eyebrow">Your account</div><h1>Account</h1>
+        <span class="screen-art" data-art="user" aria-hidden="true"></span><div class="eyebrow">Your account</div><h1>Account</h1>
         <p class="subtitle" id="accountSubtitle">Sign in to back up your progress and use Gymplified on every device.</p>
         <div class="st-1 panel account-panel" id="friendStatus"></div>
         <div class="panel" id="accountDeluxePanel" hidden>
@@ -387,7 +387,7 @@
 
       <!-- PROGRESS -->
       <section id="progress" class="screen">
-        <div class="eyebrow">Your journey</div><h1>Progress</h1>
+        <span class="screen-art" data-art="chart" aria-hidden="true"></span><div class="eyebrow">Your journey</div><h1>Progress</h1>
         <p class="subtitle">How consistent you’ve been, what changed this month and how your body is responding.</p>
         <div class="st-1 panel" id="progressCalendar" role="region" aria-label="Training calendar"></div>
         <div class="st-1 panel" id="progressMonth" role="region" aria-label="Monthly report"></div>
@@ -402,11 +402,11 @@
       <section id="more" class="screen">
         <div class="eyebrow">Menu</div><h1>More</h1>
         <div class="more-grid">
-          <button class="more-tile" type="button" data-action="showScreen" data-arg="account"><span class="more-tile-icon" aria-hidden="true">👤</span><span><strong>Account</strong><small id="moreAccountHint">Sign in or create an account</small></span></button>
-          <button class="more-tile" type="button" data-action="showScreen" data-arg="prs"><span class="more-tile-icon" aria-hidden="true">🏆</span><span><strong>Personal Records</strong><small>Your best lifts</small></span></button>
-          <button class="more-tile" type="button" data-action="showScreen" data-arg="progress"><span class="more-tile-icon" aria-hidden="true">📈</span><span><strong>Progress</strong><small>Calendar, monthly report, body and recovery</small></span></button>
-          <button class="more-tile" type="button" data-action="showScreen" data-arg="deluxe"><span class="more-tile-icon" aria-hidden="true">✦</span><span><strong>Deluxe</strong><small>Analytics, coach, planner and themes</small></span></button>
-          <button class="more-tile" type="button" data-action="showScreen" data-arg="settings"><span class="more-tile-icon" aria-hidden="true">⚙</span><span><strong>Settings</strong><small>Units, rest timer, appearance, data</small></span></button>
+          <button class="more-tile" type="button" data-action="showScreen" data-arg="account"><span class="more-tile-icon" data-art="user" aria-hidden="true"></span><span><strong>Account</strong><small id="moreAccountHint">Sign in or create an account</small></span></button>
+          <button class="more-tile" type="button" data-action="showScreen" data-arg="prs"><span class="more-tile-icon" data-art="trophy" aria-hidden="true"></span><span><strong>Personal Records</strong><small>Your best lifts</small></span></button>
+          <button class="more-tile" type="button" data-action="showScreen" data-arg="progress"><span class="more-tile-icon" data-art="chart" aria-hidden="true"></span><span><strong>Progress</strong><small>Calendar, monthly report, body and recovery</small></span></button>
+          <button class="more-tile" type="button" data-action="showScreen" data-arg="deluxe"><span class="more-tile-icon" data-art="sparkle" aria-hidden="true"></span><span><strong>Deluxe</strong><small>Analytics, coach, planner and themes</small></span></button>
+          <button class="more-tile" type="button" data-action="showScreen" data-arg="settings"><span class="more-tile-icon" data-art="gear" aria-hidden="true"></span><span><strong>Settings</strong><small>Units, rest timer, appearance, data</small></span></button>
         </div>
       </section>
 
@@ -823,6 +823,7 @@
   <div class="progress-bar rest-bar-progress" aria-hidden="true"><i id="restBarFill"></i></div>
   <div class="rest-bar-actions"><button class="btn" type="button" data-rest-action="minus" aria-label="Subtract 15 seconds of rest">−15s</button><button class="btn" type="button" data-rest-action="plus" aria-label="Add 15 seconds of rest">+15s</button><button class="btn" type="button" data-rest-action="skip" aria-label="Skip rest">Skip</button></div>
 </div>
+<script src="./art.js"></script>
 <script src="./sdk/supabase-2.57.4.js"></script>
 <script src="./lib.js"></script>
 <script src="./app.js"></script>

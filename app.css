@@ -1148,3 +1148,136 @@ html[data-skin="glacier"]:not([data-contrast="high"]){--bg:#f2f7fb;--panel:#ffff
 .dx-highlights .sub{margin:0}
 .dx-row .dx-chip{margin-left:8px}
 .account-hint+.account-form{margin-top:12px}
+
+/* ===== Batch 14: illustrated UI — pictures from art.js, chunky buttons, level ring, quest cards =====
+   Illustration colours are fixed inside the SVGs; everything here that carries text uses the theme tokens. */
+.art{display:block;width:28px;height:28px;flex-shrink:0}
+.art-inline{display:inline-block;width:1.15em;height:1.15em;vertical-align:-.2em}
+.art-text{font-family:var(--font-heading);font-weight:800}
+.mascot{width:96px;height:96px}
+.medallion{width:64px;height:66px}
+.medallion.is-locked .medallion-face{filter:grayscale(1);opacity:.5}
+.ring-track{stroke:var(--line)}.ring-value{stroke:var(--brand-text)}
+
+/* Buttons you can press: a darker lip along the bottom that flattens when pushed. */
+.btn{box-shadow:inset 0 -2px 0 color-mix(in srgb,var(--line) 80%,transparent)}
+.btn:active{box-shadow:inset 0 0 0 transparent;transform:translateY(1px)}
+.btn-primary{padding-bottom:3px;box-shadow:inset 0 -4px 0 rgb(0 0 0 / .24),0 6px 16px -8px color-mix(in srgb,var(--brand) 70%,transparent)}
+.btn-primary:active{padding-bottom:0;box-shadow:inset 0 -1px 0 rgb(0 0 0 / .24);transform:translateY(2px)}
+.btn.auth-link,.btn.auth-link:active{box-shadow:none}
+
+/* Progress bars: thicker, fully rounded, with a soft highlight. */
+.progress-bar{height:12px;border-radius:99px}
+.progress-bar i{position:relative;border-radius:99px;min-width:0}
+.progress-bar i::after{content:"";position:absolute;left:6px;right:6px;top:2px;height:3px;border-radius:99px;background:rgb(255 255 255 / .32)}
+
+/* Dashboard hero with the mascot */
+.workout-hero{flex-wrap:nowrap;background:radial-gradient(circle at 0 0,color-mix(in srgb,var(--brand) 24%,transparent),transparent 58%),var(--panel);border-width:1px 1px 4px}
+.hero-mascot{flex-shrink:0}.hero-mascot .mascot{width:104px;height:104px}
+.hero-text{flex:1;min-width:0}
+.hero-actions{justify-content:flex-end}
+@keyframes mascot-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.hero-mascot .mascot{animation:mascot-bob 3.2s ease-in-out infinite}
+html[data-motion="reduced"] .hero-mascot .mascot{animation:none}
+@media(prefers-reduced-motion:reduce){.hero-mascot .mascot{animation:none}}
+@media(max-width:640px){.workout-hero{flex-wrap:wrap}.hero-mascot .mascot{width:72px;height:72px}.hero-text{flex:1 1 60%}.hero-actions{flex:1 1 100%;justify-content:stretch}.hero-actions .hero-btn{flex:1}}
+
+/* Level ring and today's XP */
+.game-head{display:flex;align-items:center;gap:18px;margin-bottom:16px}
+.level-ring{position:relative;width:116px;height:116px;flex-shrink:0}
+.level-ring .ring{width:100%;height:100%}
+.level-ring-core{position:absolute;inset:0;display:grid;place-items:center}
+.level-ring-core .rank-shield{width:58px;height:58px}
+.level-info{flex:1;min-width:0}
+.level-info .hero-title{font-size:calc(26px * var(--text-scale, 1));margin:0 0 2px}
+.level-xp{font-size:calc(13px * var(--text-scale, 1));color:var(--muted);margin:0 0 10px}.level-xp strong{color:var(--ink)}
+.daily-goal .meta-row{margin:0;gap:8px;flex-wrap:wrap}.daily-goal .progress-bar{margin:6px 0 0}
+.xp-bar{height:14px}
+@media(max-width:480px){.game-head{gap:12px}.level-ring{width:88px;height:88px}.level-ring-core .rank-shield{width:44px;height:44px}}
+
+/* Stat chips: picture, number, label */
+.game-chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 6px}
+.recap-chips{grid-template-columns:repeat(4,minmax(0,1fr))}
+.game-chip{display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--line);border-bottom-width:3px;border-radius:14px;background:var(--panel-hover);min-width:0}
+.game-chip-art{flex-shrink:0;display:grid;place-items:center}.game-chip-art .art{width:36px;height:36px}
+.game-chip>div{min-width:0;display:grid}
+.game-chip b{font:800 calc(22px * var(--text-scale, 1))/1.1 var(--font-heading);letter-spacing:-.03em}
+.game-chip span{font-size:calc(12px * var(--text-scale, 1));color:var(--muted);overflow-wrap:anywhere}
+@media(max-width:640px){.game-chip{flex-direction:column;text-align:center;gap:6px;padding:12px 8px}.game-chip>div{justify-items:center}.recap-chips{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Last 7 days: a flame for an active day, a snowflake for a frozen one, an empty ring otherwise */
+.week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.wd,.wd.on,.wd.frozen{width:auto;height:auto;border:0;border-radius:0;background:none;color:inherit;display:grid;justify-items:center;gap:4px}
+.wd-dot{width:40px;height:40px;max-width:100%;border-radius:50%;border:2px dashed var(--line);display:grid;place-items:center}
+.wd-dot .art{width:24px;height:24px}
+.wd.on .wd-dot{border:2px solid #ff8a1f;background:color-mix(in srgb,#ff8a1f 16%,var(--panel))}
+.wd.frozen .wd-dot{border:2px solid #4cc2ff;background:color-mix(in srgb,#4cc2ff 16%,var(--panel))}
+.wd-name{font-size:calc(11px * var(--text-scale, 1));font-weight:700;color:var(--muted)}
+.wd.today .wd-name{color:var(--brand-text)}.wd.today .wd-name::after{content:" •"}
+
+/* Quest cards */
+.quest-card{display:flex;align-items:center;gap:12px;padding:12px 14px;margin:0 0 8px;border:1px solid var(--line);border-bottom-width:3px;border-radius:14px;background:var(--panel)}
+.quest-icon{flex-shrink:0}.quest-icon .art{width:38px;height:38px}
+.quest-main{flex:1;min-width:0;display:grid;gap:6px}
+.quest-main strong{font-size:calc(14px * var(--text-scale, 1));overflow-wrap:anywhere}
+.quest-main .progress-bar{margin:0}
+.quest-reward{display:grid;justify-items:end;gap:4px;flex-shrink:0}
+.quest-count{font-size:calc(12px * var(--text-scale, 1));color:var(--muted);font-variant-numeric:tabular-nums;font-weight:700}
+.xp-chip{display:inline-flex;padding:3px 9px;border-radius:99px;border:1px solid color-mix(in srgb,var(--brand-text) 50%,transparent);background:var(--brand-light);color:var(--brand-text);font:800 calc(12px * var(--text-scale, 1)) var(--font-base);white-space:nowrap}
+.xp-chip.ok{color:var(--success);border-color:var(--success);background:transparent}
+.quest-card.ok{border-color:color-mix(in srgb,var(--success) 45%,var(--line))}
+.quest-card.ok .progress-bar i{background:var(--success)}
+.chest-card{border-style:dashed;background:var(--brand-light)}
+.chest-card.ok{border-style:solid}
+
+/* Badges */
+.badge-shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:10px;margin:4px 0 6px}
+.shelf-badge{display:grid;justify-items:center;gap:4px;padding:10px 6px;border:1px solid var(--line);border-radius:14px;background:var(--panel-hover);text-align:center}
+.shelf-badge.got{border-color:color-mix(in srgb,var(--brand) 55%,var(--line));background:var(--brand-light)}
+.shelf-badge small{font-size:calc(11px * var(--text-scale, 1));font-weight:700;line-height:1.25;color:var(--muted);overflow-wrap:anywhere}
+.shelf-badge.got small{color:var(--ink)}
+.badge-icon,.badge-card.got .badge-icon{filter:none;opacity:1}
+.badge-icon .art{width:52px;height:54px}
+.friend-badges li{display:inline-flex;align-items:center;gap:6px}.friend-badge-art .art{width:26px;height:27px}
+
+/* Celebration dialog: the picture pops in over a slow sunburst */
+.celebration-dialog{overflow-x:hidden}
+.celebration-icon{position:relative;min-height:132px;display:grid;place-items:center;margin-bottom:10px}
+.celebration-icon::before{content:"";position:absolute;left:50%;top:50%;width:190px;height:190px;margin:-95px 0 0 -95px;border-radius:50%;background:repeating-conic-gradient(color-mix(in srgb,var(--brand) 30%,transparent) 0 12deg,transparent 12deg 30deg);-webkit-mask:radial-gradient(circle,#000 28%,transparent 70%);mask:radial-gradient(circle,#000 28%,transparent 70%);animation:burst-spin 16s linear infinite}
+.celebration-icon>*{position:relative}
+.celebration-icon .art{width:116px;height:116px;animation:art-pop .5s var(--ease-spring) both}
+@keyframes burst-spin{to{transform:rotate(360deg)}}
+@keyframes art-pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
+.celebration-list li{display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:10px;align-items:center}
+.celebration-item-art{grid-row:span 2;display:grid;place-items:center;font-size:calc(26px * var(--text-scale, 1))}.celebration-item-art .art{width:38px;height:38px}
+.celebration-list li br{display:none}
+
+/* Confetti: paper pieces in the illustration colours */
+.cf-paper{width:9px;height:14px;border-radius:2px;top:-20px;animation-name:fall-paper;animation-duration:2.3s}
+.cf-paper.cf-round{width:10px;height:10px;border-radius:50%}
+.cf-c0{background:#f2c14e}.cf-c1{background:#ff8a1f}.cf-c2{background:#4cc2ff}.cf-c3{background:#58cc6b}.cf-c4{background:#ff5d5d}.cf-c5{background:#a78bfa}
+@keyframes fall-paper{to{transform:translate3d(36px,112vh,0) rotate(700deg)}}
+
+/* XP toast */
+.toast.toast-xp{font-size:calc(14px * var(--text-scale, 1));padding:8px 16px 8px 10px;border:2px solid var(--brand);border-radius:99px}
+.toast-art .art{width:28px;height:28px}
+
+/* Screen headers, menu tiles, dashboard tiles */
+.screen-art{float:right;width:68px;height:68px;margin:0 0 10px 14px;padding:11px;border-radius:20px;border:1px solid var(--line);border-bottom-width:4px;background:var(--panel)}
+.screen-art .art{width:100%;height:100%}
+@media(max-width:640px){.screen-art{width:54px;height:54px;padding:9px;border-radius:16px}}
+.more-tile{border-bottom-width:3px}.more-tile-icon .art{width:28px;height:28px}
+.metric-lead{display:flex;align-items:center;gap:12px;min-width:0}
+.metric-art{flex-shrink:0;width:46px;height:46px;padding:8px;border-radius:14px;background:var(--panel-hover);border:1px solid var(--line)}.metric-art .art{width:100%;height:100%}
+.water-glass-host .art{width:40px;height:54px}
+.macro-pill::before{content:"";display:block;width:28px;height:5px;border-radius:99px;margin:0 auto 8px;background:var(--line)}
+.macro-protein::before{background:#ff5d5d}.macro-carbs::before{background:#f2c14e}.macro-fat::before{background:#4cc2ff}
+.empty-art{display:block;margin:0 auto 8px;width:96px}.empty-art .mascot{width:96px;height:96px}
+.banner-art{flex-shrink:0;align-self:center}.banner-art .art{width:40px;height:40px}
+.lb-rank .medal{width:30px;height:30px;margin:0 auto}
+.summary-mascot{float:right;margin:0 0 6px 12px}.summary-mascot .mascot{width:84px;height:84px}
+.stat-xp b{display:flex;align-items:center;gap:6px}
+.resume-banner>.banner-art+div{flex:1;min-width:0}
+/* The heading sits beside the floated screen picture instead of running underneath it. */
+.screen-art~h1,.screen-art~.eyebrow{display:flow-root}
+.toast.toast-xp{border-radius:18px}

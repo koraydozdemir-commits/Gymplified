@@ -1743,3 +1743,88 @@ test('Admin account deletion: allowlisted, confirmed on the server, never self, 
   assert.match(page, /\$\('deleteConfirmValue'\)\.textContent=deleteTarget\(\)/, 'the email is shown with textContent, never as HTML');
   assert.match(page, /Deleting the account does not refund them/);
 });
+
+test('Password reset: a neutral request form, a new-password dialog from the emailed link, and no token left in the address', async () => {
+  const shell = await readRaw('index.html'), js = await readRaw('app.js'), css = await readRaw('app.css'), readme = await readRaw('supabase/templates/README.md');
+  // Step 1: "Forgot your password?" sits beside Log in only, and the request never says whether the address has an account.
+  assert.match(js, /\(up\?'':'<button class="btn auth-link" type="button" data-action="showPasswordReset">Forgot your password\?<\/button>'\)/);
+  assert.match(js, /<form class="account-form" data-submit="requestPasswordReset">/);
+  assert.match(js, /sb\.auth\.resetPasswordForEmail\(email,\{redirectTo:window\.location\.origin\+window\.location\.pathname\}\)/);
+  const request = extractFunctions(js, ['requestPasswordReset']);
+  assert.match(request, /msg\.textContent=PASSWORD_RESET_SENT;/);
+  assert.match(js, /const PASSWORD_RESET_SENT='If an account uses that address, a reset link is on its way\./);
+  assert.doesNotMatch(request, /textContent=\(?e\b|socialError\(|not found|no account/i, 'server wording never reaches the page, so the form cannot confirm who has an account');
+  assert.match(request, /PASSWORD_RESET_COOLDOWN_MS-\(Date\.now\(\)-passwordResetSentAt\)/, 'a second email inside a minute is held back');
+  assert.match(js, /value="'\+esc\(passwordResetEmail\)\+'"/, 'the typed address is escaped when it is carried into the form');
+  // Step 2: the link is read before the Supabase client starts (the client clears it), then removed from the address bar.
+  assert.ok(js.indexOf('const authLink=readAuthLink();') > 0 && js.indexOf('const authLink=readAuthLink();') < js.indexOf('sb=window.supabase.createClient('), 'the link is read before the client consumes it');
+  const read = new Function('window', extractFunctions(js, ['readAuthLink']) + ';return readAuthLink();');
+  const at = (hash, search = '') => read({ location: { hash, search } });
+  assert.deepEqual(at('#access_token=abc&refresh_token=r&type=recovery'), { recovery: true, error: '' });
+  assert.deepEqual(at('#access_token=abc&type=signup'), { recovery: false, error: '' }, 'a sign-up confirmation is not a reset');
+  assert.deepEqual(at('#type=recovery'), { recovery: false, error: '' }, 'no session, no dialog');
+  assert.deepEqual(at('#error=access_denied&error_code=otp_expired&error_description=x'), { recovery: false, error: 'otp_expired' });
+  assert.deepEqual(at('', '?error=server_error'), { recovery: false, error: 'server_error' });
+  assert.deepEqual(at(''), { recovery: false, error: '' });
+  assert.match(js, /if\(link\.recovery&&currentUser\)\{clearAuthLink\(\);authMode='login';showScreen\('account'\);openPasswordDialog\(\);return;\}/);
+  assert.match(js, /history\.replaceState\(null,'',window\.location\.pathname\)/);
+  // The dialog: named, labelled fields, password-manager friendly, wired through the action allowlist.
+  const dialog = shell.slice(shell.indexOf('<dialog id="passwordDialog"'), shell.indexOf('<dialog id="resetProgressDialog"'));
+  assert.match(dialog, /<dialog id="passwordDialog" class="app-dialog" aria-labelledby="passwordDialogTitle" aria-describedby="passwordDialogText">/);
+  assert.match(dialog, /<form data-submit="saveNewPassword">/);
+  assert.match(dialog, /<label for="resetNewPassword">New password<\/label>\s*<input id="resetNewPassword" name="password" type="password" required minlength="8" maxlength="72" autocomplete="new-password" aria-describedby="newPasswordHint"/);
+  assert.match(dialog, /<label for="resetConfirmPassword">Repeat new password<\/label>\s*<input id="resetConfirmPassword"[^>]*autocomplete="new-password">/);
+  assert.match(dialog, /autocomplete="username" readonly/, 'password managers can tell which account the new password belongs to');
+  assert.match(dialog, /id="passwordDialogMessage" role="alert"/);
+  for (const id of ['resetNewPassword', 'resetConfirmPassword', 'passwordDialogMessage']) assert.equal(count(shell + js + await readRaw('plus.js'), new RegExp('id="' + id + '"', 'g')), 1, id + ' is unique (Sync & security has its own password fields)');
+  // Saving: checked locally first, then sent; other devices are signed out; errors are plain sentences.
+  const problem = new Function('currentUser', "const PASSWORD_MIN=8,PASSWORD_MAX=72,PASSWORD_MISMATCH='The two passwords do not match.';" + extractFunctions(js, ['passwordProblem']) + ';return passwordProblem;')({ email: 'Lifter@Example.com' });
+  assert.equal(problem('short', 'short'), 'Use at least 8 characters.');
+  assert.equal(problem('x'.repeat(73), 'x'.repeat(73)), 'Use 72 characters or fewer.');
+  assert.equal(problem('lifter@example.com', 'lifter@example.com'), 'Your password cannot be your email address.');
+  assert.equal(problem('correct horse', 'correct horsE'), 'The two passwords do not match.');
+  assert.equal(problem('correct horse', 'correct horse'), '');
+  const save = extractFunctions(js, ['saveNewPassword', 'passwordErrorText']);
+  assert.ok(save.indexOf('passwordProblem(') < save.indexOf('sb.auth.updateUser({password})'), 'nothing is sent until the passwords pass the local checks');
+  assert.match(save, /await sb\.auth\.signOut\(\{scope:'others'\}\)\.catch\(\(\)=>\{\}\);/);
+  assert.match(save, /code==='same_password'/);
+  assert.doesNotMatch(save, /textContent=\s*(e|r\.error)\.message|console\.log\(/, 'raw server messages and passwords never reach the page or the console');
+  assert.doesNotMatch(js + await readRaw('plus.js'), /localStorage\.setItem\([^)]*[Pp]assword(?!Reset)/, 'passwords are never stored on the device');
+  // Styles and docs.
+  assert.match(css, /\.btn\.auth-link\{[^}]*color:var\(--brand-text\)[^}]*text-decoration:underline/);
+  assert.match(css, /\.app-dialog \.password-error\{[^}]*color:var\(--danger\)/);
+  assert.match(readme, /"Forgot your\s+password\?" on the Log in form emails the reset link/);
+  assert.ok(Number((await readRaw('sw.js')).match(/gymplified-shell-v(\d+)/)[1]) >= 35);
+});
+
+test('DX14: strength goals, training weights, volume breakdown and highlights are sanitized, escaped and owner-only', async () => {
+  const shell = await readRaw('index.html'), dx = await readRaw('deluxe.js'), js = await readRaw('app.js'), css = await readRaw('app.css');
+  // Goals live in synced state, so they go through the sanitizer and follow an exercise when it is renamed or merged.
+  assert.match(js, /goals:GymLib\.sanitizeGoals\(rawDeluxe\.goals\),/);
+  assert.match(js, /target\.deluxe\.goals\.forEach\(fix\);target\.deluxe\.goals=GymLib\.sanitizeGoals\(target\.deluxe\.goals\);/);
+  // Saving a goal validates the number, the date and the limit before touching state.
+  const save = extractFunctions(dx, ['saveGoal']);
+  assert.match(save, /if \(!\(shown > 0\) \|\| targetKg > 1000\)/);
+  assert.match(save, /if \(by && \(!GymLib\.isDay\(by\) \|\| by <= ctx\.today\)\)/);
+  assert.match(save, /goals\.length >= GymLib\.GOAL_LIMIT/);
+  assert.ok(save.indexOf('GymLib.GOAL_LIMIT') < save.indexOf('goals.push('), 'the limit is checked before a goal is added');
+  assert.match(dx, /showToast\(message, \{ actionLabel: 'Undo'/, 'removing a goal can be undone');
+  // Everything typed by the user is escaped, and the form only renders for an owner (never in a preview).
+  for (const field of ['goal.name', 'l.name', 'r.use', 'dxGoalSentence(p)']) assert.ok(dx.includes('esc(' + field), field + ' is escaped');
+  assert.match(dx, /const form = ctx\.sample \? '' : '<div class="dx-goal-form">/);
+  assert.match(dx, /if \(ctx\.sample \|\| !goals\.some\(/);
+  assert.match(dx, /<label for="dxGoalTarget">[^<]*<\/label><input id="dxGoalTarget" type="number" inputmode="decimal"/);
+  assert.match(dx, /<label for="dxGoalBy">Reach it by \(optional\)<\/label><input id="dxGoalBy" type="date"/);
+  assert.match(dx, /role="img" aria-label="' \+ p\.pct \+ ' percent of the way to the goal"/, 'the progress bar has a text alternative');
+  // Status is always a word, never colour alone.
+  for (const status of ['done', 'ontrack', 'behind', 'overdue', 'open']) assert.match(dx, new RegExp(status + ": '[^']+'"), status + ' has a label');
+  assert.match(css, /\.dx-goal-item\{[^}]*min-height:44px/);
+  // The new blocks are in the tools and described on the sales cards.
+  assert.match(dx, /dxGoalMarkup\(ctx, lift, history, best, target\) \+ dxGoalListMarkup\(ctx, lift\) \+/);
+  assert.match(dx, /dxTrainingWeightsMarkup\(best\) \+/);
+  assert.match(dx, /dxVolumeSplitMarkup\(ctx, from\)/);
+  assert.match(dx, /dxHighlightsMarkup\(ctx\)/);
+  assert.match(dx, /A general guide, not a prescription\./);
+  assert.match(shell, /<li>Strength goals with a progress bar and an honest finish date<\/li><li>Training weights for every intensity, ready to load<\/li>/);
+  assert.match(shell, /<li>Where your volume goes, lift by lift<\/li><li>All-time highlights and weekly-goal streaks<\/li>/);
+});

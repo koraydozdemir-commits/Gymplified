@@ -956,6 +956,7 @@ function sanitizeStateSnapshot(raw){
   theme:rawDeluxe.theme==='light'?'light':'dark',
   skin:['obsidian','aurora','ember','glacier'].includes(rawDeluxe.skin)?rawDeluxe.skin:'',
   confetti:['gold','power'].includes(rawDeluxe.confetti)?rawDeluxe.confetti:'classic',
+  goals:GymLib.sanitizeGoals(rawDeluxe.goals),
   nutrition:{goal:GymLib.CALORIE_GOALS.includes(rawDeluxe.nutrition&&rawDeluxe.nutrition.goal)?rawDeluxe.nutrition.goal:'maintain',rate:Math.round(safeStateNumber(rawDeluxe.nutrition&&rawDeluxe.nutrition.rate,0,1,0.5)*100)/100}
  };
  if(settings.theme==='light'||settings.theme==='dark')state.settings.theme=settings.theme;
@@ -2888,6 +2889,7 @@ function renameExerciseEverywhere(target,from,to,muscle){
  (target.sessions||[]).forEach(s=>{(s.exercises||[]).forEach(fix);if(Array.isArray(s.names))s.names=s.names.map(x=>String(x).trim().toLowerCase()===key?to:x);(s.prs||[]).forEach(fix);});
  (target.routines||[]).forEach(r=>(r.exercises||[]).forEach(fix));
  ((target.deluxe&&target.deluxe.plans)||[]).forEach(p=>(p.days||[]).forEach(d=>(d.exercises||[]).forEach(fix)));
+ if(target.deluxe&&Array.isArray(target.deluxe.goals)){target.deluxe.goals.forEach(fix);target.deluxe.goals=GymLib.sanitizeGoals(target.deluxe.goals);}
  Object.values(target.dailyHistory||{}).forEach(d=>(d.workouts||[]).forEach(fix));
  if(target.lastSummary){(target.lastSummary.prs||[]).forEach(fix);if(Array.isArray(target.lastSummary.names))target.lastSummary.names=target.lastSummary.names.map(x=>String(x).trim().toLowerCase()===key?to:x);}
  if(target.lastKg)Object.keys(target.lastKg).forEach(k=>{if(k.trim().toLowerCase()===key){target.lastKg[to]=target.lastKg[k];if(k!==to)delete target.lastKg[k];}});
@@ -3082,6 +3084,19 @@ function initDeluxeControls(){
 const SUPABASE_URL='https://ouwvujtsrnotnwtbvqhc.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_3iqgTv1xyZgxhnD8iV1uMQ_DcrlHxPj';
 let sb=null,currentUser=null,currentProfile=null,authMode='signup',friendRequests=[],friendProfiles={},searchTimer=null,socialBusy=false,pendingVerificationEmail='';
+// Password reset: the emailed link lands back here with type=recovery (or an error) in the address.
+// It is read before the Supabase client starts, because the client clears it while signing the person in.
+let passwordResetEmail='',passwordResetSentAt=0,authNotice='';
+const PASSWORD_MIN=8,PASSWORD_MAX=72,PASSWORD_RESET_COOLDOWN_MS=60000;
+function readAuthLink(){
+ const out={recovery:false,error:''};
+ try{const hash=new URLSearchParams(String(window.location.hash||'').replace(/^#/,'')),query=new URLSearchParams(window.location.search||'');
+  out.recovery=hash.get('type')==='recovery'&&!!hash.get('access_token');
+  out.error=String(hash.get('error_code')||query.get('error_code')||hash.get('error')||query.get('error')||'').slice(0,60);
+ }catch(_){}
+ return out;
+}
+function clearAuthLink(){try{if(/(^|[#&?])(error|error_code|access_token|type)=/.test(window.location.hash+window.location.search))history.replaceState(null,'',window.location.pathname);}catch(_){}}
 window.getGymplifiedSupabaseClient=function(){return sb;};
 function avatarMarkup(p,small){
  const c='account-avatar'+(small?' small':'');
@@ -3096,10 +3111,12 @@ function avatarMarkup(p,small){
 function socialError(e){const m=e&&(e.message||e.error_description)?(e.message||e.error_description):'Something went wrong. Please try again.';showToast(m.length>110?m.slice(0,107)+'…':m);return m;}
 async function initSocial(){
  const host=$('friendStatus');if(!window.supabase||!window.supabase.createClient){host.textContent='Account services could not load. Refresh and try again.';return;}
+ const authLink=readAuthLink();
  sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  const r=await sb.auth.getSession();if(r.error)socialError(r.error);currentUser=r.data&&r.data.session?r.data.session.user:null;
  if(currentUser&&!currentUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;authMode='signup';renderAuthPanel('Please verify your email address before using your Gymplified account.');}
  if(currentUser){const syncMode=prepareLocalAccountState(currentUser.id);await loadMyProfile();if(syncMode===true)showLegacyLocalDataDialog();else await syncUserAppState(syncMode==='cloud');loadSupportTickets();}renderFriends();refreshDeluxeAccess();
+ handleAuthLink(authLink);
  sb.auth.onAuthStateChange(function(_event,session){setTimeout(async function(){const nextUser=session?session.user:null;if(nextUser&&!nextUser.email_confirmed_at){await sb.auth.signOut();currentUser=null;renderAuthPanel('Please verify your email address before using Gymplified.');return;}const changed=(currentUser&&currentUser.id)!==(nextUser&&nextUser.id);let syncMode=false;if(changed){resetCloudSaveQueue();cloudSyncUserId=null;cloudSyncLoadingUserId=null;if(currentUser&&nextUser){if(pendingLegacyAccountId===currentUser.id){try{localStorage.setItem(ACCOUNT_STATE_PREFIX+'unassigned',JSON.stringify(state));}catch(_){}pendingLegacyAccountId=null;}else saveAccountLocalSnapshot(currentUser.id);}if(nextUser)syncMode=prepareLocalAccountState(nextUser.id);else if(currentUser)releaseLocalAccountState(currentUser.id);}currentUser=nextUser;currentProfile=null;if(currentUser){await loadMyProfile();if(changed&&syncMode!==true)await syncUserAppState(syncMode==='cloud');if(syncMode===true)showLegacyLocalDataDialog();loadSupportTickets();}else{resetCloudSaveQueue();cloudSyncUserId=null;$('supportTicketList').innerHTML='<p class="sub">Sign in to see your support requests.</p>';renderAll();}friendRequests=[];friendProfiles={};renderFriends();refreshDeluxeAccess();},0);});
 }
 // ===== Batch 11: the account is its own place (top bar, Account screen, dashboard nudge), not part of Friends =====
@@ -3182,22 +3199,115 @@ async function replyToSupportTicket(){
 }
 
 function renderAuthPanel(message){
+ // A notice from an emailed link survives the re-renders that follow sign-in checks, until the person acts.
+ message=message||authNotice;
+ if(authMode==='reset')return renderPasswordResetPanel(message);
  const up=authMode==='signup';
  $('friendStatus').innerHTML='<div class="section-title">Your Gymplified account</div><p class="account-hint">Create your profile, connect with friends and sync your progress across devices. We verify email addresses to help protect accounts.</p>'+
  '<div class="account-tabs"><button class="btn '+(up?'active':'')+'" data-action="switchAuthMode" data-arg="signup">Create account</button><button class="btn '+(!up?'active':'')+'" data-action="switchAuthMode" data-arg="login">Log in</button></div>'+
  '<form class="account-form" data-submit="handleAuthSubmit">'+
  (up?'<div class="field"><label for="authUsername">Username</label><input id="authUsername" name="username" required minlength="3" maxlength="20" pattern="[A-Za-z0-9_]+" autocomplete="username" placeholder="e.g. johnny_fitness"><div class="account-hint">3–20 characters. Letters, numbers and underscores only.</div></div><div class="field"><label for="authDisplayName">Display name</label><input id="authDisplayName" name="displayName" maxlength="32" placeholder="How should friends see you?"></div>':'')+
  '<div class="field"><label for="authEmail">Email address</label><input id="authEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com"></div><div class="field"><label for="authPassword">Password</label><input id="authPassword" name="password" type="password" required minlength="8" autocomplete="'+(up?'new-password':'current-password')+'" placeholder="At least 8 characters"></div>'+
- '<button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p><button class="st-64 btn" id="resendVerification" type="button" data-action="resendSignupConfirmation">Resend verification email</button></form>'+
+ '<div class="auth-submit-row"><button class="btn btn-primary" id="authSubmit" type="submit">'+(up?'Create account':'Log in')+'</button>'+(up?'':'<button class="btn auth-link" type="button" data-action="showPasswordReset">Forgot your password?</button>')+'</div><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p><button class="st-64 btn" id="resendVerification" type="button" data-action="resendSignupConfirmation">Resend verification email</button></form>'+
  '<p class="account-hint">When you sign in, your workouts, nutrition, personal records and goals sync securely across your devices.</p>';
 }
-function switchAuthMode(mode){authMode=mode==='login'?'login':'signup';renderAuthPanel('');}
+// Forgot password, step 1: ask for the address and email a one-time link.
+function renderPasswordResetPanel(message){
+ $('friendStatus').innerHTML='<div class="section-title">Reset your password</div><p class="account-hint">Enter the email address you signed up with. We will email you a link to choose a new password. Your workouts and progress stay exactly as they are.</p>'+
+ '<form class="account-form" data-submit="requestPasswordReset"><div class="field"><label for="resetEmail">Email address</label><input id="resetEmail" name="email" type="email" required autocomplete="email" placeholder="you@example.com" value="'+esc(passwordResetEmail)+'"></div>'+
+ '<div class="auth-submit-row"><button class="btn btn-primary" id="resetSubmit" type="submit">Email me a reset link</button><button class="btn auth-link" type="button" data-action="switchAuthMode" data-arg="login">Back to log in</button></div><p class="account-message" id="authMessage" role="status">'+esc(message||'')+'</p></form>';
+}
+function showPasswordReset(){
+ const typed=$('authEmail');if(typed&&typed.value.trim())passwordResetEmail=typed.value.trim().slice(0,254);
+ authMode='reset';authNotice='';renderAuthPanel('');const f=$('resetEmail');if(f)f.focus();
+}
+// The answer is the same whether or not the address has an account, so the form cannot be used to find out who has one.
+const PASSWORD_RESET_SENT='If an account uses that address, a reset link is on its way. Check your inbox and spam folder. The link works once and expires after an hour.';
+async function requestPasswordReset(event){
+ event.preventDefault();if(!sb||socialBusy)return;
+ const form=event.target&&event.target.closest?event.target.closest('form'):null;if(!form||!form.email)return;
+ const email=form.email.value.trim(),msg=$('authMessage'),button=$('resetSubmit');
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||email.length>254){msg.textContent='Enter the email address you signed up with.';form.email.focus();return;}
+ const wait=PASSWORD_RESET_COOLDOWN_MS-(Date.now()-passwordResetSentAt);
+ if(email===passwordResetEmail&&wait>0){msg.textContent='A link was just sent. Give it a minute to arrive, then you can ask for another in '+Math.ceil(wait/1000)+' seconds.';return;}
+ socialBusy=true;button.disabled=true;button.textContent='Sending…';
+ try{
+  const r=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin+window.location.pathname});
+  if(r.error)throw r.error;
+  passwordResetEmail=email;passwordResetSentAt=Date.now();msg.textContent=PASSWORD_RESET_SENT;
+ }catch(e){
+  msg.textContent=Number(e&&e.status)===429||/rate limit|security purposes|too many/i.test(String(e&&e.message||''))?'Too many reset emails were requested. Wait a minute, then try again.':navigator.onLine===false?'You seem to be offline. Connect to the internet and try again.':'The reset email could not be sent. Please try again in a moment.';
+ }finally{socialBusy=false;if(button.isConnected){button.disabled=false;button.textContent=passwordResetSentAt?'Send another link':'Email me a reset link';}}
+}
+// Forgot password, step 2: the emailed link signed the person in, so they choose the new password here.
+// (Changing a known password while signed in lives under Sync & security on the Account screen.)
+function handleAuthLink(link){
+ if(!link)return;
+ if(link.recovery&&currentUser){clearAuthLink();authMode='login';showScreen('account');openPasswordDialog();return;}
+ if(!link.error)return;
+ clearAuthLink();
+ if(currentUser){showToast('That email link has expired or was already used.');return;}
+ authMode='login';authNotice=/expired|otp|denied/i.test(link.error)?'That email link has expired or was already used. Log in, or choose “Forgot your password?” for a fresh link.':'That email link did not work. Log in, or ask for a new link.';
+ showScreen('account');renderAuthPanel('');
+}
+function openPasswordDialog(){
+ const dialog=$('passwordDialog');if(!dialog||!currentUser)return;
+ $('passwordDialogEmail').value=currentUser.email||'';$('resetNewPassword').value='';$('resetConfirmPassword').value='';$('showNewPassword').checked=false;togglePasswordVisibility(false);
+ $('passwordDialogMessage').textContent='';updatePasswordHint();
+ const save=$('savePasswordButton');save.disabled=false;save.textContent='Save password';
+ if(!dialog.open)dialog.showModal();$('resetNewPassword').focus();
+}
+function closePasswordDialog(){
+ const dialog=$('passwordDialog');if(dialog&&dialog.open)dialog.close();
+ showToast('Password not changed. You are signed in: set a new one under Sync & security on this screen.');
+}
+function togglePasswordVisibility(show){['resetNewPassword','resetConfirmPassword'].forEach(id=>{const f=$(id);if(f)f.type=show?'text':'password';});}
+const PASSWORD_MISMATCH='The two passwords do not match.';
+function passwordProblem(password,confirm){
+ if(password.length<PASSWORD_MIN)return 'Use at least '+PASSWORD_MIN+' characters.';
+ if(password.length>PASSWORD_MAX)return 'Use '+PASSWORD_MAX+' characters or fewer.';
+ if(currentUser&&currentUser.email&&password.toLowerCase()===currentUser.email.toLowerCase())return 'Your password cannot be your email address.';
+ if(password!==confirm)return PASSWORD_MISMATCH;
+ return '';
+}
+function updatePasswordHint(){
+ const hint=$('newPasswordHint'),n=($('resetNewPassword')||{value:''}).value.length;if(!hint)return;
+ hint.textContent=n===0?'At least '+PASSWORD_MIN+' characters. A few unrelated words make a strong password.':n<PASSWORD_MIN?(PASSWORD_MIN-n)+' more character'+(PASSWORD_MIN-n===1?'':'s')+' needed.':n>PASSWORD_MAX?'Too long: use '+PASSWORD_MAX+' characters or fewer.':'✓ Long enough.';
+}
+function passwordErrorText(e){
+ const code=String(e&&e.code||''),m=String(e&&e.message||'');
+ if(code==='same_password'||/different from the old/i.test(m))return 'That is your current password. Choose a different one.';
+ if(code==='weak_password'||/weak|pwned|known to be/i.test(m))return 'That password is too easy to guess. Try a longer one, or a few unrelated words.';
+ if(code==='session_not_found'||code==='session_expired'||/session.*(missing|expired|not found)/i.test(m))return 'Your reset link has expired. Close this, then use “Forgot your password?” for a fresh one.';
+ if(Number(e&&e.status)===429||/rate limit|too many/i.test(m))return 'Too many attempts. Wait a minute, then try again.';
+ return navigator.onLine===false?'You seem to be offline. Connect to the internet and try again.':'Your password could not be changed. Please try again in a moment.';
+}
+async function saveNewPassword(event){
+ event.preventDefault();if(!sb||!currentUser||socialBusy)return;
+ const password=$('resetNewPassword').value,msg=$('passwordDialogMessage'),button=$('savePasswordButton'),problem=passwordProblem(password,$('resetConfirmPassword').value);
+ if(problem){msg.textContent=problem;$(problem===PASSWORD_MISMATCH?'resetConfirmPassword':'resetNewPassword').focus();return;}
+ socialBusy=true;button.disabled=true;button.textContent='Saving…';msg.textContent='';
+ try{
+  const r=await sb.auth.updateUser({password});
+  if(r.error){
+   // With "secure password change" on, an older sign-in must be confirmed by email first.
+   if(r.error.code==='reauthentication_needed'||/reauthenticat/i.test(r.error.message||'')){const sent=await sb.auth.resetPasswordForEmail(currentUser.email,{redirectTo:window.location.origin+window.location.pathname});msg.textContent=sent.error?'For your security this needs a fresh sign-in. Sign out, then use “Forgot your password?”.':'For your security we emailed you a link to confirm it is you. Open it to choose your new password.';return;}
+   throw r.error;
+  }
+  // Anyone still signed in elsewhere with the old password is signed out; this device stays signed in.
+  await sb.auth.signOut({scope:'others'}).catch(()=>{});
+  $('resetNewPassword').value='';$('resetConfirmPassword').value='';const dialog=$('passwordDialog');if(dialog.open)dialog.close();
+  showToast('Password updated. You are signed in on this device.');
+ }catch(e){msg.textContent=passwordErrorText(e);}
+ finally{socialBusy=false;if(button.isConnected){button.disabled=false;button.textContent='Save password';}}
+}
+function switchAuthMode(mode){authMode=mode==='login'?'login':'signup';authNotice='';renderAuthPanel('');if(authMode==='login'&&passwordResetEmail&&$('authEmail'))$('authEmail').value=passwordResetEmail;}
 async function handleAuthSubmit(event){
  event.preventDefault();if(!sb||socialBusy)return;
  // The submit arrives through the delegated data-submit listener (bound on the document), so find the form from the event target.
  const form=event.target&&event.target.closest?event.target.closest('form'):null;if(!form||!form.email)return;const email=form.email.value.trim(),password=form.password.value;
  const username=form.username?form.username.value.trim().toLowerCase():'';const displayName=form.displayName?form.displayName.value.trim():username;
- const msg=$('authMessage'),button=$('authSubmit'),resend=$('resendVerification');socialBusy=true;button.disabled=true;button.textContent=authMode==='signup'?'Creating account…':'Logging in…';pendingVerificationEmail=email;if(resend)resend.style.display='none';
+ const msg=$('authMessage'),button=$('authSubmit'),resend=$('resendVerification');authNotice='';socialBusy=true;button.disabled=true;button.textContent=authMode==='signup'?'Creating account…':'Logging in…';pendingVerificationEmail=email;if(resend)resend.style.display='none';
  try{
   if(authMode==='signup'){
    if(!/^[a-z0-9_]{3,20}$/.test(username))throw new Error('Choose a username with 3–20 letters, numbers or underscores.');
@@ -3409,12 +3519,12 @@ function toggleDeluxeDemo(){
 }
 function openDeluxeDemo(){if(!deluxeEnabled()){previewDeluxeFeature('Advanced analytics');return;}$('deluxeTools')?.scrollIntoView({behavior:reducedMotion()?'auto':'smooth',block:'start'});}
 const DELUXE_PREVIEW_COPY={
- 'Advanced analytics':'Weekly volume with a trend line, every number compared with the period before, your training rhythm and how often you hit your weekly goal.',
+ 'Advanced analytics':'Weekly volume with a trend line, every number compared with the period before, where your volume goes, your training rhythm and your all-time highlights.',
  'Smart training insights':'Notes on what is working and what has stalled, a muscle balance map and the momentum of every lift you train.',
  'Workout planner':'Pick a proven programme or build your own. Each target checks how your last session went: up after a hit, repeat after a miss, and today’s session waits on your dashboard.',
  'Nutrition coach':'Your real maintenance calories, worked out from your food log and weigh-ins, with a target and macros for losing, keeping or gaining weight at a safe pace.',
  'Friend challenges':'Start a workout or volume challenge and invite your friends. They join for free, and the standings respect everyone’s privacy settings.',
- 'Performance lab':'A strength curve for every exercise, a projection of your next milestone and a rep-max table.',
+ 'Performance lab':'A strength curve for every exercise, strength goals with an honest finish date, training weights for every intensity and a rep-max table.',
  'Complete data tools':'A progress card to share, a print-ready training report and analysis-ready spreadsheets.',
  'Deluxe customisation':'Signature themes that restyle the whole app, celebration styles and a Deluxe badge for your profile.'
 };
@@ -3526,7 +3636,9 @@ const UI_ACTIONS=Object.freeze({
  resolveLegacyLocalData:el=>resolveLegacyLocalData(el.dataset.arg==='true'),
  // account, profile, support, friends
  switchAuthMode:el=>switchAuthMode(el.dataset.arg==='signup'?'signup':'login'),handleAuthSubmit:(el,e)=>handleAuthSubmit(e),resendSignupConfirmation:()=>resendSignupConfirmation(),
- signOutAccount:()=>signOutAccount(),saveProfile:()=>saveProfile(),pickAvatarFile:()=>$('avatarFile').click(),uploadAvatar:el=>uploadAvatar(el.files&&el.files[0]),
+ showPasswordReset:()=>showPasswordReset(),requestPasswordReset:(el,e)=>requestPasswordReset(e),closePasswordDialog:()=>closePasswordDialog(),
+  saveNewPassword:(el,e)=>saveNewPassword(e),updatePasswordHint:()=>updatePasswordHint(),togglePasswordVisibility:el=>togglePasswordVisibility(!!el.checked),
+  signOutAccount:()=>signOutAccount(),saveProfile:()=>saveProfile(),pickAvatarFile:()=>$('avatarFile').click(),uploadAvatar:el=>uploadAvatar(el.files&&el.files[0]),
  closeAccountDialogs:()=>closeAccountDialogs(),deleteGymplifiedAccount:()=>deleteGymplifiedAccount(),confirmDeleteGymplifiedAccount:()=>confirmDeleteGymplifiedAccount(),updateDeleteAccountConfirm:()=>updateDeleteAccountConfirm(),
  submitSupportTicket:(el,e)=>submitSupportTicket(e),openSupportTicket:el=>openSupportTicket(el.dataset.id),replyToSupportTicket:()=>replyToSupportTicket(),
  searchFriends:el=>searchFriends(el.value),sendFriendRequest:el=>sendFriendRequest(el.dataset.id),removeFriend:el=>removeFriend(el.dataset.id),

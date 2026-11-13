@@ -8,8 +8,9 @@ folder, so after changing a file here, paste it in again.
 | `confirmation.html` | Authentication → Emails → Templates → **Confirm signup** | `Confirm your Gymplified account` |
 | `reset-password.html` | Authentication → Emails → Templates → **Reset password** | `Reset your Gymplified password` |
 
-The app sends only the sign-up confirmation today (and its "Resend" button). The reset template is ready
-for when a "Forgot password" flow is added, and for resets sent from the Supabase dashboard.
+The app sends the sign-up confirmation (and its "Resend" button) and the password reset: "Forgot your
+password?" on the Log in form emails the reset link, and the link opens the app on a "Choose a new password"
+dialog. Signed-in members change a password they know under Account → Sync & security.
 
 ## Make the email come from Gymplified
 The sender name and address are not part of the templates. They come from custom SMTP:
@@ -25,3 +26,8 @@ The sender name and address are not part of the templates. They come from custom
 - The logo loads from `https://gymplified.com/gymplified-app-icon.jpg`, so keep that file published.
 - The button lands where Authentication → URL Configuration allows: set Site URL to `https://gymplified.com`
   and add `https://gymplified.com/**` and `https://www.gymplified.com/**` to Redirect URLs.
+- The reset link must come back to the app with `type=recovery` in the address, which is what
+  `{{ .ConfirmationURL }}` does. If the redirect URL is not on the list above, Supabase sends people to the
+  Site URL instead, and the new-password dialog still opens there.
+- Reset emails are rate limited by Supabase (one per address per minute by default, plus the project's hourly
+  email limit under Authentication → Rate Limits). The app shows a plain "wait a minute" message when that hits.

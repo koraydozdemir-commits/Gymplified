@@ -431,3 +431,59 @@ test('DX12/DX13: one tip at a time with a cooldown, and challenge standings', as
   assert.deepEqual(ranked.map(r => [r.user_id, r.rank, r.pct, r.done]), [['b', 1, 100, true], ['d', 1, 100, true], ['a', 3, 80, false], ['c', null, 0, false]]);
   assert.deepEqual(plain(L.CHALLENGE_METRICS), ['workouts', 'volume']);
 });
+
+test('DX14: strength goals, training weights, highlights and the volume breakdown', async () => {
+  const L = await loadLib(), sessions = [];
+  // Ten Mondays of squats (80 → 102.5 kg × 5) and curls; the warm-up never counts.
+  for (let w = 0; w < 10; w++) sessions.push({ date: L.addDays('2026-09-07', w * 7), mins: 50 + w, exercises: [{ name: 'Squat', sets: [{ kg: 40, reps: 5, type: 'warmup' }, { kg: 80 + w * 2.5, reps: 5 }] }, { name: 'Curl', sets: [{ kg: 20, reps: 10 }] }] });
+  const history = L.exerciseHistory(sessions, 'squat'), today = '2026-11-13';
+  // An open goal with a deadline: progress is measured from where it started, and the pace decides the status.
+  const open = L.goalProgress({ targetKg: 130, startKg: 100, createdAt: '2026-10-01', by: '2026-12-31' }, history, today);
+  assert.deepEqual([open.done, open.pct, open.current, open.status, open.daysLeft], [false, 65, 119.6, 'ontrack', 48]);
+  assert.ok(open.eta && open.eta <= '2026-12-31' && open.perWeek > 0 && open.needPerWeek > 0 && open.needPerWeek < open.perWeek);
+  assert.equal(L.goalProgress({ targetKg: 130, startKg: 100, createdAt: '2026-10-01', by: '2026-11-20' }, history, today).status, 'behind');
+  assert.equal(L.goalProgress({ targetKg: 130, startKg: 100, createdAt: '2026-10-01', by: '2026-11-01' }, history, today).status, 'overdue');
+  assert.equal(L.goalProgress({ targetKg: 130, startKg: 100, createdAt: '2026-10-01' }, history, today).status, 'open');
+  // Reached: the first day at or above the target after the goal was set.
+  const done = L.goalProgress({ targetKg: 110, startKg: 100, createdAt: '2026-10-01' }, history, today);
+  assert.deepEqual([done.done, done.pct, done.remaining, done.reachedOn, done.status], [true, 100, 0, '2026-10-19', 'done']);
+  assert.equal(L.goalProgress({ targetKg: 110, startKg: 100, createdAt: '2026-11-12' }, history, today).done, false, 'a best from before the goal was set does not reach it');
+  const empty = L.goalProgress({ targetKg: 100, startKg: 0 }, [], today);
+  assert.deepEqual([empty.done, empty.pct, empty.current, empty.remaining, empty.eta], [false, 0, 0, 100, '']);
+  assert.equal(L.goalProgress({ targetKg: 130, startKg: 200 }, history, today).pct, 0, 'a start above the target never divides by zero or goes negative');
+  // The sanitizer keeps one goal per lift, drops junk and caps the list.
+  const clean = plain(L.sanitizeGoals([{ name: ' Squat ', targetKg: 100, by: 'soon' }, { name: 'squat', targetKg: 5 }, { name: '', targetKg: 5 }, null, { name: 'Zero', targetKg: 0 }, { id: '<x>', name: 'Bench', targetKg: '90', startKg: 80, createdAt: '2026-01-01', by: '2026-02-30' }]));
+  assert.deepEqual(clean, [{ id: 'goal-0', name: 'Squat', targetKg: 100, startKg: 0, createdAt: '', by: '' }, { id: 'goal-5', name: 'Bench', targetKg: 90, startKg: 80, createdAt: '2026-01-01', by: '' }]);
+  assert.equal(L.sanitizeGoals(Array.from({ length: 80 }, (_, i) => ({ name: 'Lift ' + i, targetKg: 50 }))).length, L.GOAL_LIMIT);
+  assert.deepEqual(plain(L.sanitizeGoals('nope')), []);
+  assert.equal(L.sanitizeGoals([{ name: 'Big', targetKg: 99999 }])[0].targetKg, 1000);
+  // Training weights: loadable numbers, heaviest first, reps from the same formula as the estimate.
+  const tw = L.trainingWeights(120, 2.5);
+  assert.deepEqual(plain(tw.map(r => [r.pct, r.kg, r.reps])), [[95, 115, 1], [90, 107.5, 3], [85, 102.5, 5], [80, 95, 7], [75, 90, 10], [70, 85, 12], [65, 77.5, 16], [60, 72.5, 20]]);
+  for (const r of tw) assert.ok(L.e1rm(120 * r.pct / 100, r.reps) <= 120 + 1e-6, r.pct + '% for ' + r.reps + ' never predicts more than the best');
+  assert.deepEqual(plain(L.trainingWeights(0, 2.5)), []);
+  assert.equal(L.trainingWeights(3, 2.5).every(r => r.kg >= 2.5), true, 'never rounds a weight down to nothing');
+  // Highlights come from the whole log.
+  const hl = L.trainingHighlights(sessions, today, 'mon', 1);
+  assert.deepEqual(plain(hl.bestWeek), { week: '2026-11-09', vol: 712.5, workouts: 1 });
+  assert.deepEqual(plain(hl.bestSession), { date: '2026-11-09', vol: 712.5 });
+  assert.deepEqual(plain(hl.longestSession), { date: '2026-11-09', mins: 59 });
+  assert.deepEqual(plain(hl.bestMonth), { month: '2026-10', workouts: 4, vol: 2675 });
+  assert.deepEqual([hl.workouts, hl.volume, hl.firstDate], [10, 6562.5, '2026-09-07']);
+  assert.deepEqual(plain(hl.streak), { best: 10, current: 10, goal: 1 });
+  // A missed week ends a streak; the week in progress never does.
+  const gap = sessions.filter(s => s.date !== '2026-10-05');
+  assert.deepEqual(plain(L.trainingHighlights(gap, today, 'mon', 1).streak), { best: 5, current: 5, goal: 1 });
+  assert.deepEqual(plain(L.trainingHighlights(sessions.slice(0, 9), today, 'mon', 1).streak), { best: 9, current: 9, goal: 1 }, 'nothing logged yet this week keeps the streak alive');
+  assert.deepEqual(plain(L.trainingHighlights(sessions, today, 'mon', 2).streak), { best: 0, current: 0, goal: 2 });
+  const none = L.trainingHighlights([], today, 'mon', 3);
+  assert.deepEqual([none.workouts, none.bestWeek, none.streak.best], [0, null, 0]);
+  // Volume breakdown: shares add up, the tail is grouped, the range is respected.
+  const split = L.volumeByExercise(sessions, '2026-01-01', today, 1);
+  assert.deepEqual(plain(split), { total: 6562.5, exercises: 2, rows: [{ name: 'Squat', vol: 4562.5, sets: 10, share: 69.5 }], other: { count: 1, vol: 2000, share: 30.5 } });
+  assert.equal(L.volumeByExercise(sessions, '2026-11-09', today, 6).rows.length, 2);
+  assert.equal(L.volumeByExercise(sessions, '2026-11-09', today, 6).other, null);
+  assert.deepEqual(plain(L.volumeByExercise(sessions, '2027-01-01', '2027-02-01', 6)), { total: 0, exercises: 0, rows: [], other: null });
+  // Weekly set guidance never says "too much".
+  assert.deepEqual([0, 3, 5, 9.9, 10, 40].map(L.setRangeStatus), ['none', 'low', 'mid', 'mid', 'in', 'in']);
+});

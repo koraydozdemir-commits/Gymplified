@@ -119,6 +119,7 @@ const EX_FAV_MAX = 100;
 const KG_PER_LB = 0.45359237, KM_PER_MI = 1.609344, CM_PER_IN = 2.54;
 const BACKUP_REMINDER_DAYS = 30;
 // Gamification
+const DAILY_XP_GOALS = [50, 100, 150, 200], DAILY_XP_GOAL_DEFAULT = 100, DAILY_CHEST_XP = 30;
 const STREAK_FREEZE_MAX = 2, STREAK_FREEZE_EVERY = 7, STREAK_NUDGE_HOUR = 18, XP_LOG_MAX = 60;
 const EMPTY_PROFILE = { heightCm: 0, weightKg: 0, age: 0, sex: '', goal: '', activity: '' };
 // What accepted friends may see. Everything is shared unless switched off; 'leaderboard: false' is private mode.
@@ -166,6 +167,7 @@ function showToast(message, options) {
   toast.className = 'toast';
   const text = document.createElement('span');
   text.textContent = message;
+  if (options && options.icon && typeof art === 'function') { const pic = document.createElement('span'); pic.className = 'toast-art'; pic.setAttribute('aria-hidden', 'true'); pic.innerHTML = art(options.icon); toast.appendChild(pic); toast.classList.add('toast-xp'); }
   toast.appendChild(text);
   const action = options && typeof options.onAction === 'function' ? options : null;
   let closed = false;
@@ -404,6 +406,7 @@ function renderDashboard() {
   if (state.workouts.length === 0) {
     container.innerHTML = `
       <div class="empty-box">
+        <span class="empty-art">${mascot('sleepy')}</span>
         <p>No workouts logged today. Add exercises using the direct log or Training tab.</p>
         <button class="btn btn-primary" data-action="goToTraining">Open Training Log</button>
       </div>`;
@@ -930,7 +933,7 @@ function sanitizeStateSnapshot(raw){
  if(raw.history&&typeof raw.history==='object'&&!Array.isArray(raw.history))Object.keys(raw.history).filter(k=>safeStateDay(k,'')===k).sort().slice(-365).forEach(k=>{const x=raw.history[k]||{};history[k]={cal:safeStateNumber(x.cal,0,100000,0),water:safeStateNumber(x.water,0,20,0),done:safeStateNumber(x.done,0,1000,0)};});
  if(raw.dailyHistory&&typeof raw.dailyHistory==='object'&&!Array.isArray(raw.dailyHistory))Object.keys(raw.dailyHistory).filter(k=>safeStateDay(k,'')===k).sort().slice(-365).forEach(k=>{const x=raw.dailyHistory[k]||{};dailyHistory[k]={cal:safeStateNumber(x.cal,0,100000,0),protein:safeStateNumber(x.protein,0,10000,0),carbs:safeStateNumber(x.carbs,0,10000,0),fat:safeStateNumber(x.fat,0,10000,0),water:safeStateNumber(x.water,0,20,0),workouts:list(x.workouts,1000).map((w,i)=>cleanWorkout(w,i,k)).filter(Boolean),foods:list(x.foods,5000).map((f,i)=>cleanFood(f,i,k)).filter(Boolean),waterEntries:list(x.waterEntries,10000).map((w,i)=>cleanWater(w,i,k)).filter(Boolean)};});
  const settings=raw.settings&&typeof raw.settings==='object'?raw.settings:{};
- const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:[...new Set(list(rawGame.badges,200).map(x=>safeStateText(x,'',40)).filter(Boolean))].slice(0,100),day:gameDay,streakFreezes:Math.round(safeStateNumber(rawGame.streakFreezes,0,STREAK_FREEZE_MAX,0)),frozenDays:[...new Set(list(rawGame.frozenDays,2000).filter(k=>safeStateDay(k,'')===k))].sort().slice(-90),freezeTier:Math.round(safeStateNumber(rawGame.freezeTier,0,10000,0)),bestDaily:Math.round(safeStateNumber(rawGame.bestDaily,0,100000,0)),weekXp:rawGame.weekXp&&typeof rawGame.weekXp==='object'&&safeStateDay(rawGame.weekXp.week,'')?{week:rawGame.weekXp.week,xp:Math.round(safeStateNumber(rawGame.weekXp.xp,0,100000,0))}:null,streakNow:rawGame.streakNow&&typeof rawGame.streakNow==='object'&&safeStateDay(rawGame.streakNow.day,'')?{day:rawGame.streakNow.day,n:Math.round(safeStateNumber(rawGame.streakNow.n,0,100000,0))}:null,daily:rawGame.daily&&typeof rawGame.daily==='object'&&safeStateDay(rawGame.daily.day,'')===today?{day:today,ex:Math.round(safeStateNumber(rawGame.daily.ex,0,1000,0)),meal:Math.round(safeStateNumber(rawGame.daily.meal,0,1000,0)),pr:Math.round(safeStateNumber(rawGame.daily.pr,0,1000,0)),session:Math.round(safeStateNumber(rawGame.daily.session,0,1000,0))}:{day:today,ex:0,meal:0,pr:0,session:0}};
+ const game={xp:safeStateNumber(rawGame.xp,0,1000000000,0),total:safeStateNumber(rawGame.total,0,10000000,0),waterWon:safeStateText(rawGame.waterWon,'',10),claimed:{},badges:[...new Set(list(rawGame.badges,200).map(x=>safeStateText(x,'',40)).filter(Boolean))].slice(0,100),day:gameDay,streakFreezes:Math.round(safeStateNumber(rawGame.streakFreezes,0,STREAK_FREEZE_MAX,0)),frozenDays:[...new Set(list(rawGame.frozenDays,2000).filter(k=>safeStateDay(k,'')===k))].sort().slice(-90),freezeTier:Math.round(safeStateNumber(rawGame.freezeTier,0,10000,0)),bestDaily:Math.round(safeStateNumber(rawGame.bestDaily,0,100000,0)),weekXp:rawGame.weekXp&&typeof rawGame.weekXp==='object'&&safeStateDay(rawGame.weekXp.week,'')?{week:rawGame.weekXp.week,xp:Math.round(safeStateNumber(rawGame.weekXp.xp,0,100000,0))}:null,streakNow:rawGame.streakNow&&typeof rawGame.streakNow==='object'&&safeStateDay(rawGame.streakNow.day,'')?{day:rawGame.streakNow.day,n:Math.round(safeStateNumber(rawGame.streakNow.n,0,100000,0))}:null,daily:rawGame.daily&&typeof rawGame.daily==='object'&&safeStateDay(rawGame.daily.day,'')===today?{day:today,ex:Math.round(safeStateNumber(rawGame.daily.ex,0,1000,0)),meal:Math.round(safeStateNumber(rawGame.daily.meal,0,1000,0)),pr:Math.round(safeStateNumber(rawGame.daily.pr,0,1000,0)),session:Math.round(safeStateNumber(rawGame.daily.session,0,1000,0)),xp:Math.round(safeStateNumber(rawGame.daily.xp,0,100000,0))}:{day:today,ex:0,meal:0,pr:0,session:0,xp:0},dailyGoal:DAILY_XP_GOALS.includes(Number(rawGame.dailyGoal))?Number(rawGame.dailyGoal):DAILY_XP_GOAL_DEFAULT};
  // Quest claims are date-stamped (d_YYYY-MM-DD_id / w_YYYY-MM-DD_id). Old ones are dropped before the size cap so current claims always survive.
  const claimCutoff=(()=>{const d=new Date(today+'T12:00:00');d.setDate(d.getDate()-8);return dayKey(d);})();
  if(rawGame.claimed&&typeof rawGame.claimed==='object'&&!Array.isArray(rawGame.claimed))Object.keys(rawGame.claimed).filter(k=>/^[a-zA-Z0-9_-]{1,60}$/.test(k)).filter(k=>{const m=/^[dw]_(\d{4}-\d{2}-\d{2})_/.exec(k);return !m||m[1]>=claimCutoff;}).slice(0,200).forEach(k=>{game.claimed[k]=!!rawGame.claimed[k];});
@@ -1043,7 +1046,8 @@ function shiftDay(key,delta){const d=new Date(key+'T12:00:00');d.setDate(d.getDa
 function normalizeGame(g){
  if(!g.claimed||typeof g.claimed!=='object')g.claimed={};if(!Array.isArray(g.badges))g.badges=[];
  if(!Array.isArray(g.frozenDays))g.frozenDays=[];g.streakFreezes=Math.max(0,Math.min(STREAK_FREEZE_MAX,Math.round(Number(g.streakFreezes)||0)));g.freezeTier=Math.max(0,Math.round(Number(g.freezeTier)||0));g.bestDaily=Math.max(0,Math.round(Number(g.bestDaily)||0));
- const today=dayKey();if(!g.daily||g.daily.day!==today)g.daily={day:today,ex:0,meal:0,pr:0,session:0};
+ const today=dayKey();if(!g.daily||g.daily.day!==today)g.daily={day:today,ex:0,meal:0,pr:0,session:0,xp:0};
+ g.daily.xp=Math.max(0,Math.round(Number(g.daily.xp)||0));if(!DAILY_XP_GOALS.includes(Number(g.dailyGoal)))g.dailyGoal=DAILY_XP_GOAL_DEFAULT;
  return g;
 }
 
@@ -1077,7 +1081,7 @@ function settleStreak(){
  // The friends leaderboard reads this; the server treats it as lapsed after two days without an update.
  if(!g.streakNow||g.streakNow.day!==today||g.streakNow.n!==streak)g.streakNow={day:today,n:streak};
  if(tier<g.freezeTier)g.freezeTier=tier;
- else if(tier>g.freezeTier){g.freezeTier=tier;if(g.streakFreezes<STREAK_FREEZE_MAX){g.streakFreezes++;celebrate({icon:'❄',title:'Streak freeze earned',text:'A '+streak+'-day streak earned you a freeze. It is used automatically if you miss a day. You can hold '+STREAK_FREEZE_MAX+'.'});}}
+ else if(tier>g.freezeTier){g.freezeTier=tier;if(g.streakFreezes<STREAK_FREEZE_MAX){g.streakFreezes++;celebrate({icon:'❄',art:art('freeze'),title:'Streak freeze earned',text:'A '+streak+'-day streak earned you a freeze. It is used automatically if you miss a day. You can hold '+STREAK_FREEZE_MAX+'.'});}}
  return streak;
 }
 
@@ -1087,16 +1091,32 @@ function xpAllowance(kind){const g=normalizeGame(state.game);if(g.daily[kind]>=X
 function xpLogKey(){return 'gymplified_xp_log_v1:'+(state.accountOwnerId||'local');}
 function readXpLog(){try{const a=JSON.parse(localStorage.getItem(xpLogKey())||'[]');return Array.isArray(a)?a.filter(x=>x&&Number.isFinite(Number(x.t))&&Number.isFinite(Number(x.n))).slice(0,XP_LOG_MAX):[];}catch(e){return [];}}
 function xpLogAdd(n,why){try{const log=readXpLog();log.unshift({t:Date.now(),n:Number(n)||0,why:String(why||'').slice(0,80)});localStorage.setItem(xpLogKey(),JSON.stringify(log.slice(0,XP_LOG_MAX)));}catch(e){}}
+// Pure: a kept streak adds a bonus to everything earned (3 days +10%, 7 days +20%, 30 days +30%).
+function streakBonusPct(streak){const n=Number(streak)||0;return n>=30?30:n>=7?20:n>=3?10:0;}
+function dailyXpGoal(){const n=Number(state.game&&state.game.dailyGoal);return DAILY_XP_GOALS.includes(n)?n:DAILY_XP_GOAL_DEFAULT;}
+// XP gains that land together (finishing a workout can trigger six) are shown as one toast, not a pile.
+let xpToastBatch=null;
+function queueXpToast(n,why,goalReached){
+ if(!xpToastBatch){xpToastBatch={n:0,why:[],goal:false};setTimeout(flushXpToast,280);}
+ xpToastBatch.n+=n;if(goalReached)xpToastBatch.goal=true;if(!xpToastBatch.why.includes(why))xpToastBatch.why.push(why);
+}
+function xpToastText(batch){const more=batch.why.length-2;return '+'+batch.n+' XP · '+batch.why.slice(0,2).join(' · ')+(more>0?' · +'+more+' more':'')+(batch.goal?' · Daily goal reached!':'');}
+function flushXpToast(){const batch=xpToastBatch;xpToastBatch=null;if(batch)showToast(xpToastText(batch),{icon:'bolt'});}
 function gainXP(n,why){
- const g=state.game,before=lvl(g.xp);g.xp+=n;xpLogAdd(n,why);
+ const g=normalizeGame(state.game),before=lvl(g.xp),goal=dailyXpGoal(),hadGoal=g.daily.xp>=goal;
+ let streak=0;try{streak=dailyStreak();}catch(e){}
+ const bonus=Math.round(n*streakBonusPct(streak)/100),total=n+bonus;
+ g.xp+=total;g.daily.xp+=total;xpLogAdd(total,why+(bonus?' (streak bonus +'+bonus+')':''));
  // XP earned this leaderboard week (Monday start), read by the friends leaderboard.
- const week=leaderboardWeekKey();if(!g.weekXp||g.weekXp.week!==week)g.weekXp={week,xp:0};g.weekXp.xp=Math.min(100000,g.weekXp.xp+n);showToast('+'+n+' XP · '+why);
- const after=lvl(g.xp);if(after>before){celebrate({icon:'🎉',title:'Level '+after+' — '+levelTitle(after),text:'You reached level '+after+'. '+(50*after*after-g.xp)+' XP to level '+(after+1)+'.'});confetti();}
+ const week=leaderboardWeekKey();if(!g.weekXp||g.weekXp.week!==week)g.weekXp={week,xp:0};g.weekXp.xp=Math.min(100000,g.weekXp.xp+total);
+ queueXpToast(total,why,!hadGoal&&g.daily.xp>=goal);
+ const after=lvl(g.xp);if(after>before){celebrate({icon:'🎉',art:rankShield(after),title:'Level '+after+' — '+levelTitle(after),text:'You reached level '+after+'. '+(50*after*after-g.xp)+' XP to level '+(after+1)+'.'});confetti();}
 }
 
 // --- D5: celebration dialog (native <dialog>: focus is trapped, Esc closes, focus returns) ---
 let celebrationQueue=[];
-function celebrate(item){celebrationQueue.push(item);if(celebrationQueue.length<=2)showToast(item.icon+' '+item.title);scheduleCelebration();}
+// While a workout is running the dialog waits, so a short toast says what was earned.
+function celebrate(item){celebrationQueue.push(item);if(state.session&&celebrationQueue.length<=2)showToast(item.icon+' '+item.title);scheduleCelebration();}
 let celebrationTimer=null;
 function scheduleCelebration(){clearTimeout(celebrationTimer);celebrationTimer=setTimeout(showCelebration,350);}
 function showCelebration(){
@@ -1104,19 +1124,20 @@ function showCelebration(){
  // Never interrupt a workout in progress or another open dialog: the queue is shown afterwards.
  if(!dialog||!celebrationQueue.length||state.session||dialog.open||document.querySelector('dialog[open]')||typeof dialog.showModal!=='function')return;
  const items=celebrationQueue.splice(0,celebrationQueue.length),one=items.length===1;
- $('celebrationIcon').textContent=one?items[0].icon:'🎉';
+ // item.art is markup built by art.js (never user text); plain icons are escaped.
+ $('celebrationIcon').innerHTML=one?(items[0].art||esc(items[0].icon)):mascot('cheer');
  $('celebrationTitle').textContent=one?items[0].title:items.length+' new achievements';
  $('celebrationText').textContent=one?items[0].text:'';
- $('celebrationList').innerHTML=one?'':items.map(x=>'<li><span aria-hidden="true">'+esc(x.icon)+'</span> <strong>'+esc(x.title)+'</strong><br><span class="sub">'+esc(x.text)+'</span></li>').join('');
+ $('celebrationList').innerHTML=one?'':items.map(x=>'<li><span class="celebration-item-art" aria-hidden="true">'+(x.art||esc(x.icon))+'</span><strong>'+esc(x.title)+'</strong><br><span class="sub">'+esc(x.text)+'</span></li>').join('');
  try{dialog.showModal();}catch(e){return;}
  confetti();
 }
 
 // --- D7: daily and weekly quests ---
 const QUESTS=[
- {id:'ex3',t:'Complete 3 exercises',n:3,v:()=>state.workouts.filter(w=>w.done).length},
- {id:'h2o',t:'Reach your water goal',n:1,v:()=>state.water>=state.waterGoal?1:0},
- {id:'meal2',t:'Log 2 meals',n:2,v:()=>state.foods.length}];
+ {id:'ex3',art:'dumbbell',t:'Complete 3 exercises',n:3,v:()=>state.workouts.filter(w=>w.done).length},
+ {id:'h2o',art:'drop',t:'Reach your water goal',n:1,v:()=>state.water>=state.waterGoal?1:0},
+ {id:'meal2',art:'apple',t:'Log 2 meals',n:2,v:()=>state.foods.length}];
 const DAILY_QUEST_XP=25,WEEKLY_QUEST_XP=60;
 function weekStats(){
  const today=dayKey(),start=wkKey(new Date()),days=sessionDaySet(),stats={trainDays:0,sets:0,waterDays:0,foodDays:0,proteinDays:0,activeDays:0,prs:0};
@@ -1134,13 +1155,13 @@ function weekStats(){
  return stats;
 }
 const WEEKLY_QUEST_POOL=[
- {id:'sets',t:()=>'Complete 40 sets',n:()=>40,v:w=>w.sets},
- {id:'water4',t:()=>'Reach your water goal on 4 days',n:()=>4,v:w=>w.waterDays},
- {id:'food5',t:()=>'Log food on 5 days',n:()=>5,v:w=>w.foodDays},
- {id:'protein5',t:()=>'Hit your protein target on 5 days',n:()=>5,v:w=>w.proteinDays,when:()=>Number(state.nutritionTargets&&state.nutritionTargets.protein)>0},
- {id:'active6',t:()=>'Be active on 6 days',n:()=>6,v:w=>w.activeDays},
- {id:'pr1',t:()=>'Set a new personal record',n:()=>1,v:w=>w.prs}];
-const WEEKLY_TRAIN_QUEST={id:'train',t:()=>'Train on '+state.weeklyGoal+' day'+(state.weeklyGoal===1?'':'s'),n:()=>state.weeklyGoal,v:w=>w.trainDays};
+ {id:'sets',art:'dumbbell',t:()=>'Complete 40 sets',n:()=>40,v:w=>w.sets},
+ {id:'water4',art:'drop',t:()=>'Reach your water goal on 4 days',n:()=>4,v:w=>w.waterDays},
+ {id:'food5',art:'apple',t:()=>'Log food on 5 days',n:()=>5,v:w=>w.foodDays},
+ {id:'protein5',art:'apple',t:()=>'Hit your protein target on 5 days',n:()=>5,v:w=>w.proteinDays,when:()=>Number(state.nutritionTargets&&state.nutritionTargets.protein)>0},
+ {id:'active6',art:'flame',t:()=>'Be active on 6 days',n:()=>6,v:w=>w.activeDays},
+ {id:'pr1',art:'trophy',t:()=>'Set a new personal record',n:()=>1,v:w=>w.prs}];
+const WEEKLY_TRAIN_QUEST={id:'train',art:'target',t:()=>'Train on '+state.weeklyGoal+' day'+(state.weeklyGoal===1?'':'s'),n:()=>state.weeklyGoal,v:w=>w.trainDays};
 // Pure: the weekly goal quest plus two that rotate with the week.
 function pickWeeklyQuests(pool,weekKey,count){
  const index=Math.floor(new Date(weekKey+'T12:00:00').getTime()/(7*864e5)),out=[];
@@ -1202,13 +1223,15 @@ function rewards(){
   QUESTS.forEach(q=>{if(g.claimed[q.id])g.claimed[questKey('d',q.id)]=1;});pruneQuestClaims(g);
   state.workouts.forEach(w=>{if(w.done&&!w.xp){w.xp=1;if(xpAllowance('ex')){g.total++;gainXP(20,'Exercise done');}}});
   state.foods.forEach(f=>{if(!f.xp){f.xp=1;if(xpAllowance('meal'))gainXP(5,'Meal logged');state.recent=[f].concat(state.recent.filter(r=>r.name!==f.name)).slice(0,12).map(r=>({name:r.name,cal:r.cal,protein:r.protein,carbs:r.carbs,fat:r.fat,grams:Number(r.grams)||0,portion:r.portion||''}));}});
-  state.prs.forEach(p=>{if(!p.xp){p.xp=1;if(xpAllowance('pr')){gainXP(50,'New PR 🏆');celebrate({icon:'🏆',title:'New personal record!',text:(p.name||'Your lift')+': '+fmtWeight(p.weight,2)+' × '+(Number(p.reps)||1)+'. All that work is paying off.'});}}});
+  state.prs.forEach(p=>{if(!p.xp){p.xp=1;if(xpAllowance('pr')){gainXP(50,'New PR 🏆');celebrate({icon:'🏆',art:art('trophy'),title:'New personal record!',text:(p.name||'Your lift')+': '+fmtWeight(p.weight,2)+' × '+(Number(p.reps)||1)+'. All that work is paying off.'});}}});
   if(state.water>=state.waterGoal&&g.waterWon!==dayKey()){g.waterWon=dayKey();gainXP(30,'Water goal');}
   QUESTS.forEach(q=>{const k=questKey('d',q.id);if(q.v()>=q.n&&!g.claimed[k]){g.claimed[k]=1;gainXP(DAILY_QUEST_XP,'Daily quest: '+q.t);}});
+  // All daily quests done opens the daily chest (once a day).
+  const chestKey=questKey('d','chest');if(!g.claimed[chestKey]&&QUESTS.every(q=>g.claimed[questKey('d',q.id)])){g.claimed[chestKey]=1;gainXP(DAILY_CHEST_XP,'Daily chest opened');}
   const week=weekStats();
   weeklyQuests().forEach(q=>{const k=questKey('w',q.id);if(q.v(week)>=q.n()&&!g.claimed[k]){g.claimed[k]=1;gainXP(WEEKLY_QUEST_XP,'Weekly quest: '+q.t());}});
   settleStreak();
-  BADGES.forEach(b=>{if(!g.badges.includes(b.id)&&badgeProgress(b)>=b.target){g.badges.push(b.id);celebrate({icon:b.icon,title:'Badge unlocked: '+b.name,text:b.desc+'.'});}});
+  BADGES.forEach(b=>{if(!g.badges.includes(b.id)&&badgeProgress(b)>=b.target){g.badges.push(b.id);celebrate({icon:b.icon,art:badgeArt(b.id,true),title:'Badge unlocked: '+b.name,text:b.desc+'.'});}});
 }
 
 // --- D1/D2/D4/D6/D7/D8 rendering ---
@@ -1218,26 +1241,50 @@ function renderStreakNudge(){
  const el=$('streakNudge');if(!el)return;const due=streakAtRisk();el.hidden=!due;
  if(due){const s=dailyStreak(),f=state.game.streakFreezes||0;$('streakNudgeText').textContent='Your '+s+'-day streak ends at midnight. Log a workout, a meal or reach your water goal to keep it.'+(f?' You have '+f+' streak freeze'+(f===1?'':'s')+', so one missed day is covered.':'');}
 }
+// A quest row: picture, name, progress bar and the XP it pays. "✓" marks a finished quest, so it is not colour alone.
+function questCardMarkup(icon,done,text,value,target,xp){
+ const have=Math.min(value,target);
+ return '<div class="quest-card'+(done?' ok':'')+'"><span class="quest-icon">'+art(done?'check':icon)+'</span><div class="quest-main"><strong>'+esc(text)+'</strong>'+
+  '<div class="progress-bar quest-bar" role="progressbar" aria-label="'+esc(text)+'" aria-valuemin="0" aria-valuemax="'+target+'" aria-valuenow="'+have+'"><i data-w="'+Math.round(have/target*100)+'"></i></div></div>'+
+  '<span class="quest-reward"><span class="quest-count">'+have+'/'+target+'</span><span class="xp-chip'+(done?' ok':'')+'">'+(done?'✓ earned':'+'+xp+' XP')+'</span></span></div>';
+}
+// Pure: up to `count` badges for the shelf — the newest unlocked first, then the locked ones closest to unlocking.
+function pickShelfBadges(badges,unlockedIds,progressOf,count){
+ const got=unlockedIds.map(id=>badges.find(b=>b.id===id)).filter(Boolean).reverse().slice(0,Math.ceil(count/2));
+ const next=badges.filter(b=>!unlockedIds.includes(b.id)).map(b=>({b,share:progressOf(b)/b.target})).sort((x,y)=>y.share-x.share).slice(0,count-got.length).map(x=>x.b);
+ return got.concat(next);
+}
 function gamePanelMarkup(){
  const g=normalizeGame(state.game),L=lvl(g.xp),lo=50*(L-1)**2,hi=50*L*L,xp=Math.round((g.xp-lo)/(hi-lo)*100),wi=weekInfo(),streak=dailyStreak(),frozen=new Set(g.frozenDays),days=sessionDaySet();
  const strip=[];for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=dayKey(d),on=i===0?todayIsActive():historyDayIsActive(k,days),ice=!on&&frozen.has(k),label=d.toLocaleDateString(undefined,{weekday:'long'})+(on?': active':ice?': streak freeze used':': no activity');
-  strip.push('<span class="wd '+(on?'on':ice?'frozen':'')+'" role="img" aria-label="'+label+'" title="'+label+'">'+(ice?'❄':on?'✓':d.toLocaleDateString(undefined,{weekday:'narrow'}))+'</span>');}
- const quest=(done,text,value,target,xp)=>'<div class="quest '+(done?'ok':'')+'"><span>'+(done?'✅ ':'⬜ ')+esc(text)+'</span><span>'+Math.min(value,target)+'/'+target+' · '+(done?'earned':'+'+xp+' XP')+'</span></div>';
- const week=weekStats(),unlocked=BADGES.filter(b=>g.badges.includes(b.id)).length,log=readXpLog();
- return '<div class="section-title"><span>Your Progress</span></div><div class="stat-row">'+
-  '<div class="stat"><b><span class="streak-flame flame-'+flameTier(streak)+'" aria-hidden="true">🔥</span> '+streak+'</b><span>day streak'+(g.bestDaily>streak?' · best '+g.bestDaily:'')+'</span></div>'+
-  '<div class="stat"><b>❄ '+g.streakFreezes+'/'+STREAK_FREEZE_MAX+'</b><span>streak freezes</span></div>'+
-  '<div class="stat"><b>🗓 '+wi.n+'/'+wi.g+'</b><span>weekly goal · '+wi.st+'-week streak</span></div>'+
-  '<div class="stat"><b>Lv '+L+'</b><span>'+esc(levelTitle(L))+' · '+g.xp.toLocaleString()+' XP</span></div></div>'+
-  '<div class="progress-bar" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+xp+'"><i data-w="'+xp+'"></i></div>'+
-  '<div class="meta-row"><span>'+(hi-g.xp)+' XP to level '+(L+1)+' ('+esc(levelTitle(L+1))+')</span><span>'+xp+'%</span></div>'+
-  '<p class="sub streak-help">Your day streak grows with any workout, logged meal or water goal. Every '+STREAK_FREEZE_EVERY+' days earns a freeze (up to '+STREAK_FREEZE_MAX+') that covers a missed day automatically. Rest days never break your weekly streak — it only needs your weekly goal.</p>'+
-  weeklyRecapMarkup()+'<div class="sub-h">Last 7 days</div><div class="week">'+strip.join('')+'</div>'+
-  '<div class="sub-h">Daily quests <span class="quest-reset">resets in '+formatCountdown(msToMidnight())+'</span></div>'+QUESTS.map(q=>quest(!!g.claimed[questKey('d',q.id)]||q.v()>=q.n,q.t,q.v(),q.n,DAILY_QUEST_XP)).join('')+
-  '<div class="sub-h">Weekly quests <span class="quest-reset">resets in '+formatCountdown(msToWeekEnd())+'</span></div>'+weeklyQuests().map(q=>quest(!!g.claimed[questKey('w',q.id)]||q.v(week)>=q.n(),q.t(),q.v(week),q.n(),WEEKLY_QUEST_XP)).join('')+
-  '<details class="game-details" id="badgeGallery"><summary>Badges · '+unlocked+' of '+BADGES.length+' unlocked</summary><div class="badge-grid">'+BADGES.map(b=>{const got=g.badges.includes(b.id),v=got?b.target:badgeProgress(b),pct=Math.round(v/b.target*100),show=x=>b.fmt?b.fmt(x):Number(x).toLocaleString();
-    return '<div class="badge-card'+(got?' got':'')+'"><div class="badge-icon" aria-hidden="true">'+b.icon+'</div><div class="badge-body"><strong>'+esc(b.name)+'</strong><span class="sub">'+esc(b.desc)+'</span><div class="progress-bar" role="progressbar" aria-label="'+esc(b.name)+' progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i data-w="'+pct+'"></i></div><span class="badge-state">'+(got?'✓ Unlocked':'🔒 Locked · '+esc(show(v))+' / '+esc(show(b.target)))+'</span></div></div>';}).join('')+'</div></details>'+
-  '<details class="game-details" id="xpHistory"><summary>How XP is earned · recent history</summary><p class="sub">Exercise done 20 · meal 5 · PR 50 · water goal 30 · workout 40 · weekly goal 50 · daily quest '+DAILY_QUEST_XP+' · weekly quest '+WEEKLY_QUEST_XP+'. Each record earns XP once. Per day, XP is given for up to '+XP_DAILY_CAPS.ex+' exercises, '+XP_DAILY_CAPS.meal+' meals, '+XP_DAILY_CAPS.pr+' PRs and '+XP_DAILY_CAPS.session+' workouts. Level N needs 50 × (N−1)² XP.</p>'+
+  strip.push('<span class="wd '+(on?'on':ice?'frozen':'')+(i===0?' today':'')+'" role="img" aria-label="'+label+'" title="'+label+'"><span class="wd-dot">'+(ice?art('freeze'):on?art('flame'):'')+'</span><span class="wd-name">'+d.toLocaleDateString(undefined,{weekday:'narrow'})+'</span></span>');}
+ const week=weekStats(),unlocked=BADGES.filter(b=>g.badges.includes(b.id)).length,log=readXpLog(),goal=dailyXpGoal(),bonus=streakBonusPct(streak);
+ const chip=(picture,value,label)=>'<div class="game-chip"><span class="game-chip-art">'+picture+'</span><div><b>'+value+'</b><span>'+label+'</span></div></div>';
+ const dailyDone=QUESTS.filter(q=>!!g.claimed[questKey('d',q.id)]||q.v()>=q.n).length,chestOpen=!!g.claimed[questKey('d','chest')]||dailyDone===QUESTS.length;
+ const shelf=pickShelfBadges(BADGES,g.badges,badgeProgress,6);
+ return '<div class="game-head">'+
+   '<div class="level-ring" role="progressbar" aria-label="XP to next level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+xp+'">'+ringArt(xp)+'<span class="level-ring-core">'+rankShield(L)+'</span></div>'+
+   '<div class="level-info"><div class="eyebrow">Level '+L+'</div><h2 class="hero-title">'+esc(levelTitle(L))+'</h2>'+
+    '<p class="level-xp"><strong>'+g.xp.toLocaleString()+' XP</strong> · '+(hi-g.xp)+' XP to level '+(L+1)+' ('+esc(levelTitle(L+1))+')</p>'+
+    '<div class="daily-goal"><div class="meta-row"><span>'+art('bolt','art-inline')+' Today: <strong>'+Math.min(g.daily.xp,99999).toLocaleString()+' / '+goal+' XP</strong></span><span>'+(g.daily.xp>=goal?'✓ Goal reached':(goal-g.daily.xp)+' XP to go')+'</span></div>'+
+     '<div class="progress-bar xp-bar" role="progressbar" aria-label="Daily XP goal" aria-valuemin="0" aria-valuemax="'+goal+'" aria-valuenow="'+Math.min(g.daily.xp,goal)+'"><i data-w="'+Math.min(100,Math.round(g.daily.xp/goal*100))+'"></i></div></div></div></div>'+
+  '<div class="game-chips">'+
+   chip('<span class="streak-flame flame-'+flameTier(streak)+'" aria-hidden="true">'+art('flame')+'</span>',streak,'day streak'+(g.bestDaily>streak?' · best '+g.bestDaily:'')+(bonus?' · +'+bonus+'% XP':''))+
+   chip(art('freeze'),g.streakFreezes+'/'+STREAK_FREEZE_MAX,'streak freezes')+
+   chip(art('target'),wi.n+'/'+wi.g,'weekly goal · '+wi.st+'-week streak')+'</div>'+
+  '<div class="sub-h">Last 7 days</div><div class="week">'+strip.join('')+'</div>'+
+  '<div class="sub-h">Daily quests <span class="quest-reset">resets in '+formatCountdown(msToMidnight())+'</span></div>'+QUESTS.map(q=>questCardMarkup(q.art,!!g.claimed[questKey('d',q.id)]||q.v()>=q.n,q.t,q.v(),q.n,DAILY_QUEST_XP)).join('')+
+  '<div class="quest-card chest-card'+(chestOpen?' ok':'')+'"><span class="quest-icon">'+art(chestOpen?'chestOpen':'chest')+'</span><div class="quest-main"><strong>'+(chestOpen?'Daily chest opened':'Daily chest')+'</strong><span class="sub">'+(chestOpen?'All '+QUESTS.length+' daily quests done. Come back tomorrow for the next one.':'Finish all '+QUESTS.length+' daily quests to open it.')+'</span></div>'+
+   '<span class="quest-reward"><span class="quest-count">'+dailyDone+'/'+QUESTS.length+'</span><span class="xp-chip'+(chestOpen?' ok':'')+'">'+(chestOpen?'✓ earned':'+'+DAILY_CHEST_XP+' XP')+'</span></span></div>'+
+  '<div class="sub-h">Weekly quests <span class="quest-reset">resets in '+formatCountdown(msToWeekEnd())+'</span></div>'+weeklyQuests().map(q=>questCardMarkup(q.art,!!g.claimed[questKey('w',q.id)]||q.v(week)>=q.n(),q.t(),q.v(week),q.n(),WEEKLY_QUEST_XP)).join('')+
+  weeklyRecapMarkup()+
+  '<div class="sub-h">Badges <span class="quest-reset">'+unlocked+' of '+BADGES.length+' unlocked</span></div><div class="badge-shelf">'+shelf.map(b=>{const got=g.badges.includes(b.id);return '<div class="shelf-badge'+(got?' got':'')+'" role="img" aria-label="'+esc(b.name)+(got?': unlocked':': locked')+'" title="'+esc(b.name+' — '+b.desc)+'">'+badgeArt(b.id,got)+'<small aria-hidden="true">'+esc(b.name)+'</small></div>';}).join('')+'</div>'+
+  '<details class="game-details" id="badgeGallery"><summary>All badges · '+unlocked+' of '+BADGES.length+' unlocked</summary><div class="badge-grid">'+BADGES.map(b=>{const got=g.badges.includes(b.id),v=got?b.target:badgeProgress(b),pct=Math.round(v/b.target*100),show=x=>b.fmt?b.fmt(x):Number(x).toLocaleString();
+    return '<div class="badge-card'+(got?' got':'')+'"><div class="badge-icon" aria-hidden="true">'+badgeArt(b.id,got)+'</div><div class="badge-body"><strong>'+esc(b.name)+'</strong><span class="sub">'+esc(b.desc)+'</span><div class="progress-bar" role="progressbar" aria-label="'+esc(b.name)+' progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><i data-w="'+pct+'"></i></div><span class="badge-state">'+(got?'✓ Unlocked':'🔒 Locked · '+esc(show(v))+' / '+esc(show(b.target)))+'</span></div></div>';}).join('')+'</div></details>'+
+  '<details class="game-details" id="xpHistory"><summary>How XP and streaks work · daily goal · history</summary>'+
+   '<div class="sub-h">Daily XP goal</div><div class="row-wrap" role="group" aria-label="Daily XP goal">'+DAILY_XP_GOALS.map((n,i)=>'<button type="button" class="btn range-btn" data-xp-goal="'+n+'" aria-pressed="'+(n===goal)+'">'+['Easy','Regular','Serious','Intense'][i]+' · '+n+' XP</button>').join('')+'</div>'+
+   '<p class="sub streak-help">Your day streak grows with any workout, logged meal or water goal. Every '+STREAK_FREEZE_EVERY+' days earns a freeze (up to '+STREAK_FREEZE_MAX+') that covers a missed day automatically. Rest days never break your weekly streak — it only needs your weekly goal. A streak also adds bonus XP to everything you earn: 3 days +10%, 7 days +20%, 30 days +30%.</p>'+
+   '<p class="sub">Exercise done 20 · meal 5 · PR 50 · water goal 30 · workout 40 · weekly goal 50 · daily quest '+DAILY_QUEST_XP+' · daily chest '+DAILY_CHEST_XP+' · weekly quest '+WEEKLY_QUEST_XP+'. Each record earns XP once. Per day, XP is given for up to '+XP_DAILY_CAPS.ex+' exercises, '+XP_DAILY_CAPS.meal+' meals, '+XP_DAILY_CAPS.pr+' PRs and '+XP_DAILY_CAPS.session+' workouts. Level N needs 50 × (N−1)² XP.</p>'+
    (log.length?'<ul class="xp-log">'+log.slice(0,25).map(x=>'<li><strong>+'+Number(x.n)+' XP</strong> <span>'+esc(x.why)+'</span> <time class="sub">'+esc(new Date(Number(x.t)).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}))+'</time></li>').join('')+'</ul><p class="sub">History is kept on this device.</p>':'<p class="sub">No XP earned on this device yet.</p>')+'</details>';
 }
 function renderGamePanel(){
@@ -1251,6 +1298,8 @@ function renderGamePanel(){
 function initGameControls(){
  $('celebrationDialog')?.addEventListener('close',()=>{if(celebrationQueue.length)scheduleCelebration();});
  $('celebrationClose')?.addEventListener('click',()=>$('celebrationDialog').close());
+ $('gamePanel')?.addEventListener('click',e=>{const b=e.target.closest('[data-xp-goal]');if(!b)return;const n=Number(b.dataset.xpGoal);if(!DAILY_XP_GOALS.includes(n))return;
+  state.game.dailyGoal=n;saveState();showToast('Daily goal set to '+n+' XP');$('gamePanel').querySelector('[data-xp-goal="'+n+'"]')?.focus();});
  $('streakNudge')?.addEventListener('click',e=>{const a=e.target.closest('button')?.dataset.nudgeAction;if(!a)return;if(a==='train')goToTraining();else{streakNudgeDismissedDay=dayKey();renderStreakNudge();}});
 }
 
@@ -1258,7 +1307,7 @@ function reducedMotion(){return !!(state.settings&&state.settings.motion==='redu
 const CONFETTI_SETS={classic:['🎉','✨','💪','🔥'],gold:['🥇','✨','🏆','⭐'],power:['⚡','💥','🔥','💪']};
 function confetti(){if(reducedMotion())return;
   const bits=(deluxeEnabled()&&state.deluxe&&CONFETTI_SETS[state.deluxe.confetti])||CONFETTI_SETS.classic;
-  for(let i=0;i<36;i++){const e=document.createElement('i');e.className='cf';e.textContent=bits[i%4];e.setAttribute('aria-hidden','true');e.style.cssText='left:'+Math.random()*100+'vw;animation-delay:'+Math.random()*.4+'s';document.body.appendChild(e);setTimeout(()=>e.remove(),2500);}}
+  for(let i=0;i<48;i++){const e=document.createElement('i'),paper=i%3!==0;e.className=paper?'cf cf-paper cf-c'+(i%6)+(i%2?' cf-round':''):'cf';if(!paper)e.textContent=bits[i%4];e.setAttribute('aria-hidden','true');e.style.cssText='left:'+Math.random()*100+'vw;animation-delay:'+Math.random()*.4+'s';document.body.appendChild(e);setTimeout(()=>e.remove(),2500);}}
 function waterUnit(){return state.settings&&state.settings.waterUnit==='floz'?'floz':'ml';}
 function waterUnitLabel(){return waterUnit()==='floz'?'fl oz':'ml';}
 function waterMlToDisplay(ml){return waterUnit()==='floz'?Math.round(ml/ML_PER_US_FL_OZ*10)/10:Math.round(ml);}
@@ -1293,7 +1342,7 @@ function weeklyRecapMarkup(){
  const w=weeklyRecapData(),delta=w.current.length-w.previous.length;
  const comparison=delta>0?'↑ '+delta+' more than last week':delta<0?'↓ '+Math.abs(delta)+' fewer than last week':'Same number as last week';
  return '<div class="sub-h">Your weekly recap · this week (from '+(weekStartsSunday()?'Sunday':'Monday')+')</div>'+
- '<div class="stat-row"><div class="stat"><b>'+w.current.length+'</b><span>workouts</span></div><div class="stat"><b>'+w.sets+'</b><span>sets completed</span></div><div class="stat"><b>'+volumeNumber(w.volume)+'</b><span>'+weightUnit()+' volume</span></div><div class="stat"><b>'+w.minutes+'</b><span>minutes</span></div></div>'+
+ '<div class="game-chips recap-chips">'+[['dumbbell',w.current.length,'workouts'],['check',w.sets,'sets completed'],['plate',volumeNumber(w.volume),weightUnit()+' volume'],['timer',w.minutes,'minutes']].map(x=>'<div class="game-chip"><span class="game-chip-art">'+art(x[0])+'</span><div><b>'+x[1]+'</b><span>'+x[2]+'</span></div></div>').join('')+'</div>'+
  '<div class="meta-row"><span>'+comparison+'</span><span>'+w.weekCount+'/'+w.goal+' weekly goal</span></div><div class="st-11 row-wrap"><button class="btn" type="button" data-action="shareWeeklyRecap">Share weekly recap</button></div>';
 }
 function renderRoutineLibrary(){
@@ -1324,6 +1373,7 @@ function renderWaterSummary(){
   $('dashWater').textContent=formatWaterTotal(state.water);$('dashWaterGoal').textContent=formatWaterTotal(goal);$('dashWaterUnit').textContent=waterTotalUnitLabel();
   $('dashWaterBar').style.width=wp+'%';$('waterMeta').textContent='Goal: '+formatWaterTotal(goal)+' '+waterTotalUnitLabel()+' · '+wp+'%';
   setBar('dashWaterBar',wp,'Hydration progress');
+  const glass=$('dashWaterGlass');if(glass)glass.innerHTML=waterGlassArt(wp);
 }
 function renderWaterButtons(){
   const host=$('waterBtns');if(!host)return;
@@ -1841,7 +1891,7 @@ function renderWorkoutHero(){
  if(state.session){title='Workout in progress';sub='<span id="heroClock">'+clock()+'</span> · '+t.setsDone+'/'+t.setsTotal+' sets · '+fmtVolume(t.volume);buttons='<button type="button" class="btn btn-primary hero-btn" data-hero-action="resume">▶ Resume workout</button>';}
  else if(done){title='Done today ✓';sub=(done.mins||0)+' min · '+fmtVolume(done.vol||0)+' · '+(done.sets||0)+' sets · '+wi.n+'/'+wi.g+' workouts this week';buttons='<button type="button" class="btn btn-primary hero-btn" data-hero-action="summary">View summary</button><button type="button" class="btn" data-hero-action="start">Start another workout</button>';}
  else{const today=deluxeEnabled()&&!(state.workouts||[]).length?planDayForDate(state.deluxe&&state.deluxe.plans,new Date()):null;title='Ready to train?';sub=wi.n+'/'+wi.g+' workouts this week · '+wi.st+'-week streak'+(today?' · today\'s plan: '+esc(today.plan.name)+' — '+esc(today.day.day)+planWeekLabel(today.plan):'');buttons=(today?'<button type="button" class="btn btn-primary hero-btn" data-hero-action="plan">▶ Start today\'s plan</button><button type="button" class="btn" data-hero-action="start">Start an empty workout</button>':'<button type="button" class="btn btn-primary hero-btn" data-hero-action="start">▶ Start workout</button>');}
- host.innerHTML='<div><div class="eyebrow">Today\'s workout</div><h2 class="hero-title">'+title+'</h2><p class="sub">'+sub+'</p></div><div class="row-wrap">'+buttons+'</div>';
+ host.innerHTML='<span class="hero-mascot">'+mascot(state.session?'focused':done?'cheer':'happy')+'</span><div class="hero-text"><div class="eyebrow">Today\'s workout</div><h2 class="hero-title">'+title+'</h2><p class="sub">'+sub+'</p></div><div class="row-wrap hero-actions">'+buttons+'</div>';
 }
 function startWorkoutNow(){
  if(!state.session){state.session={start:Date.now(),xpStart:Number(state.game.xp)||0};saveState();showToast('Workout started — good luck! 💪');}
@@ -1883,8 +1933,8 @@ function sessionSummaryMarkup(){
  const m=state.lastSummary;if(!m)return '';
  const wi=weekInfo(),i=(state.sessions||[]).findIndex(s=>s.id&&s.id===m.id),p=state.sessions[(i>=0?i:0)+1],prs=m.prs||[],muscles=m.muscles||[];
  const stat=(value,label)=>'<div class="stat"><b>'+value+'</b><span>'+label+'</span></div>';
- return '<div class="st-1 panel summary-panel" tabindex="-1" role="region" aria-label="Workout summary"><div class="section-title"><span>🎉 '+esc(pickLine(['Workout complete. Great job!','Session done. You showed up!','Workout complete. Strong work today!'],(state.sessions||[]).length))+'</span><span class="row-wrap"><button type="button" class="btn btn-primary" data-summary-action="share">Share</button><button type="button" class="btn" data-summary-action="dismiss">Dismiss</button></span></div>'+
-  '<div class="stat-row">'+stat(Number(m.mins)+' min','duration')+stat(fmtVolume(m.vol),'total volume')+stat(Number(m.sets),'sets')+stat(Number(m.reps),'reps')+stat(Number(m.ex),'exercises')+stat('+'+Number(m.xp||0),'XP earned')+'</div>'+
+ return '<div class="st-1 panel summary-panel" tabindex="-1" role="region" aria-label="Workout summary"><span class="summary-mascot">'+mascot('cheer')+'</span><div class="section-title"><span>'+esc(pickLine(['Workout complete. Great job!','Session done. You showed up!','Workout complete. Strong work today!'],(state.sessions||[]).length))+'</span><span class="row-wrap"><button type="button" class="btn btn-primary" data-summary-action="share">Share</button><button type="button" class="btn" data-summary-action="dismiss">Dismiss</button></span></div>'+
+  '<div class="stat-row">'+stat(Number(m.mins)+' min','duration')+stat(fmtVolume(m.vol),'total volume')+stat(Number(m.sets),'sets')+stat(Number(m.reps),'reps')+stat(Number(m.ex),'exercises')+'<div class="stat stat-xp"><b>'+art('bolt','art-inline')+' +'+Number(m.xp||0)+'</b><span>XP earned</span></div>'+'</div>'+
   '<div class="sub-h">PRs hit</div>'+(prs.length?'<div class="tag-list">'+prs.map(x=>'<span class="tag primary">🏆 '+esc(x.name)+' · '+esc(fmtWeight(x.kg,2))+' × '+esc(Number(x.reps))+'</span>').join('')+'</div>':'<p class="sub">No new PRs this time — beat a previous best set to earn one.</p>')+
   (m.plan&&m.plan.planned?'<div class="sub-h">Plan</div><p class="plan-result">📋 '+esc(m.plan.name||'Plan')+(m.plan.day?' · '+esc(m.plan.day):'')+': <strong>'+Number(m.plan.completed)+' of '+Number(m.plan.planned)+'</strong> exercise'+(m.plan.planned===1?'':'s')+' done as planned'+(m.plan.completed===m.plan.planned?' ✓':'')+'</p>':'')+
   '<div class="sub-h">Muscles worked</div>'+(muscles.length?'<div class="tag-list">'+muscles.map(x=>'<span class="tag">'+esc(x)+'</span>').join('')+'</div>':'<p class="sub">No muscle groups recorded.</p>')+
@@ -2214,7 +2264,7 @@ function renderLeaderboard(){
   body=(leaderboardRows.length<2?'<p class="sub">Add friends to compete. Only you and your accepted friends appear here — never strangers.</p>':'')+
    '<ol class="lb-list" id="lbList" role="tabpanel" aria-labelledby="lbTab-'+tab.key+'">'+ranked.map(r=>{const value=r[tab.field],hidden=value===null||value===undefined;
     return '<li><button type="button" class="lb-row'+(r.is_self?' me':'')+'" data-friend-profile="'+esc(r.user_id)+'" aria-label="'+esc((r.rank?'Rank '+r.rank+': ':'')+personName(r)+(r.is_self?' (you)':'')+', '+(hidden?'not shared':tab.show(value))+'. Open profile')+'">'+
-     '<span class="lb-rank" aria-hidden="true">'+(r.rank?(r.rank<=3?['🥇','🥈','🥉'][r.rank-1]:r.rank):'–')+'</span>'+avatarMarkup(r,true)+
+     '<span class="lb-rank" aria-hidden="true">'+(r.rank?(r.rank<=3?medalArt(r.rank):r.rank):'–')+'</span>'+avatarMarkup(r,true)+
      '<span class="lb-name"><strong>'+esc(personName(r))+(r.is_self?' (you)':'')+'</strong>'+(typeof friendBadgeMarkup==='function'?friendBadgeMarkup(r.user_id):'')+'<small>@'+esc(r.username||'')+(r.is_self&&r.is_private?' · hidden from friends':'')+'</small></span>'+
      '<span class="lb-value'+(hidden?' sub':'')+'" aria-hidden="true">'+(hidden?'Not shared':esc(tab.show(value)))+'</span></button></li>';}).join('')+'</ol>'+
    (me&&me.is_private?'<p class="sub">You are in private mode, so friends do not see you here. Change this in Settings → Privacy.</p>':'');
@@ -2269,7 +2319,7 @@ async function openFriendProfile(userId,trigger){
  const badges=(has('badges')?(p.badges||[]):[]).map(badgeById).filter(Boolean);
  $('friendProfileBody').innerHTML='<div class="friend-profile-head">'+avatarMarkup(p,false)+'<div><div class="sub">@'+esc(p.username||'')+'</div>'+(has('level')?'<strong>Level '+Number(p.level)+' · '+esc(levelTitle(Number(p.level)))+'</strong>':'')+'</div></div>'+
   '<div class="stat-row">'+stat('day streak',has('streak')?'🔥 '+Number(p.streak):hidden)+stat('workouts this week',has('workouts_week')?Number(p.workouts_week):hidden)+stat('volume this week',has('volume_week_kg')?esc(fmtVolume(p.volume_week_kg)):hidden)+stat('workouts in total',has('workouts_total')?Number(p.workouts_total):hidden)+'</div>'+
-  '<div class="sub-h">Badges</div>'+(has('badges')?(badges.length?'<ul class="friend-badges">'+badges.map(b=>'<li><span aria-hidden="true">'+b.icon+'</span> '+esc(b.name)+'</li>').join('')+'</ul>':'<p class="sub">No badges yet. Your first one is closer than you think!</p>'):'<p class="sub">Not shared.</p>')+
+  '<div class="sub-h">Badges</div>'+(has('badges')?(badges.length?'<ul class="friend-badges">'+badges.map(b=>'<li><span class="friend-badge-art" aria-hidden="true">'+badgeArt(b.id,true)+'</span> '+esc(b.name)+'</li>').join('')+'</ul>':'<p class="sub">No badges yet. Your first one is closer than you think!</p>'):'<p class="sub">Not shared.</p>')+
   '<div class="sub-h">Recent personal records</div>'+(has('recent_prs')?((p.recent_prs||[]).length?'<ul class="friend-prs">'+p.recent_prs.map(x=>'<li><strong>'+esc(x.name||'Exercise')+'</strong> '+esc(fmtWeight(Number(x.weight_kg)||0,2))+' × '+Number(x.reps||0)+' <span class="sub">'+esc(relativeDay(String(x.date||'')))+'</span></li>').join('')+'</ul>':'<p class="sub">No PRs yet.</p>'):'<p class="sub">Not shared.</p>');
 }
 function renderPrivacySettings(){

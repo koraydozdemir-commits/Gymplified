@@ -117,7 +117,7 @@ function challengeCardMarkup(c, preview) {
   const today = dayKey(), status = challengeStatus(c, today), ranked = GymLib.rankChallenge(c.members || [], c.target);
   const rows = ranked.map(m => {
     const name = m.is_self ? 'You' : personName(m), value = !m.joined ? 'Invited' : m.progress === null || m.progress === undefined ? 'Not shared' : challengeValue(c.metric, m.progress) + (m.done ? ' ✓' : '');
-    return '<li class="challenge-row' + (m.is_self ? ' me' : '') + '"><span class="lb-rank" aria-hidden="true">' + (m.rank ? (m.rank <= 3 ? ['🥇', '🥈', '🥉'][m.rank - 1] : m.rank) : '–') + '</span>' +
+    return '<li class="challenge-row' + (m.is_self ? ' me' : '') + '"><span class="lb-rank" aria-hidden="true">' + (m.rank ? (m.rank <= 3 ? medalArt(m.rank) : m.rank) : '–') + '</span>' +
       '<span class="challenge-who"><strong>' + esc(name) + '</strong>' + (preview ? '' : friendBadgeMarkup(m.user_id)) + '<span class="progress-bar" aria-hidden="true"><i data-w="' + m.pct + '"></i></span></span>' +
       '<span class="challenge-value' + (m.rank ? '' : ' sub') + '">' + esc(value) + '</span><span class="sr">' + (m.rank ? ', rank ' + m.rank + ', ' + m.pct + ' percent of the goal' : '') + '</span></li>';
   }).join('');

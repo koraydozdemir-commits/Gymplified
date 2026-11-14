@@ -1915,3 +1915,30 @@ test('Right to erasure: self-service deletion function, settings entry point and
   assert.doesNotMatch(privacy, /records an account identifier when signed in/);
   assert.match(terms, /privacy\.html#erasure/);
 });
+
+test('Reps and weight fields: text inputs with a numeric keyboard, sanitised without rewriting what is typed', async () => {
+  const js = await readRaw('app.js');
+  assert.match(js, /type="text" inputmode="numeric" pattern="\[0-9\]\*" maxlength="4"[\s\S]*?enterkeyhint="next"[\s\S]*?data-set-field="reps"/);
+  assert.match(js, /type="text" inputmode="decimal" maxlength="7"[\s\S]*?enterkeyhint="next"[\s\S]*?data-set-field="kg"/);
+  // A re-render restores the half-typed value and selection instead of rebuilding it from saved state.
+  assert.match(js, /const typing=focused&&focused\.dataset\.setField/);
+  assert.match(js, /again\.value=typing\.value/);
+  // setVal never overwrites a field that still has focus.
+  assert.match(js, /input!==document\.activeElement&&\(input\.value===''\|\|input===el\)/);
+  const clean = new Function(extractFunctions(js, ['sanitizeSetInput']) + ';return sanitizeSetInput;')();
+  const field = (setField, value) => ({ dataset: { setField }, value, selectionStart: value.length, setSelectionRange() {} });
+  const reps = field('reps', '1a2'); clean(reps); assert.equal(reps.value, '12');
+  const weight = field('kg', '62,5'); clean(weight); assert.equal(weight.value, '62.5');
+  const twoDots = field('kg', '6.2.5'); clean(twoDots); assert.equal(twoDots.value, '6.25');
+  const ok = field('reps', '120'); clean(ok); assert.equal(ok.value, '120');
+});
+
+test('Set entry: select on focus, Enter moves to the next field, repeat last set, live PR badge', async () => {
+  const js = await readRaw('app.js');
+  assert.match(js, /t\.select\(\)/);
+  assert.match(js, /e\.key==='Enter'&&e\.target\.dataset&&e\.target\.dataset\.setField/);
+  assert.match(js, /data-ex-card-action="repeat-set"/);
+  assert.match(js, /exCardAction==='repeat-set'|b\.dataset\.exCardAction==='repeat-set'/);
+  assert.match(js, /function isLivePR\(/);
+  assert.match(js, /' · Last: '/);
+});

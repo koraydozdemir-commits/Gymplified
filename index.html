@@ -612,7 +612,12 @@
         <div class="settings-group">
           <h3>Your account</h3>
           <p>Sign-in, your profile, username and avatar are on the Account screen (the person button at the top).</p>
-          <div class="row-wrap"><button class="btn" type="button" data-settings-action="open-account">Open account</button><button class="st-33 btn" data-action="deleteGymplifiedAccount">Delete my account permanently</button></div>
+          <div class="row-wrap"><button class="btn" type="button" data-settings-action="open-account">Open account</button></div>
+        </div>
+        <div class="settings-group" id="set-erasure">
+          <h3>Your data rights</h3>
+          <p>You can download a copy of your data with the backup and CSV export tools in Settings → Data. You can also erase your account yourself, at any time, without contacting us. This is your right to erasure ("right to be forgotten"). Erasure is immediate and permanent. See the <a href="./privacy.html#erasure" target="_blank" rel="noopener">Privacy policy</a> for what is deleted and what is not.</p>
+          <div class="row-wrap"><button class="st-33 btn" data-action="deleteGymplifiedAccount">Delete my account permanently</button></div>
         </div>
         </section>
         <section class="settings-section" id="set-help" aria-labelledby="set-help-h">
@@ -780,7 +785,7 @@
 </dialog>
 <dialog id="deleteAccountDialog" class="app-dialog" aria-labelledby="deleteAccountTitle" aria-describedby="deleteAccountDescription">
   <h2 id="deleteAccountTitle">Permanently delete your account?</h2>
-  <p id="deleteAccountDescription">This removes your account, profile, synced progress, support requests and avatar. This cannot be undone. Type DELETE to confirm.</p>
+  <p id="deleteAccountDescription">This immediately and permanently erases your account, profile, synced progress, friend connections, support requests, Deluxe record on Gymplified and avatar, and clears the Gymplified data stored on this device. It cannot be undone. Deleting your account is not a refund request. Stripe keeps its own payment records as the law requires. Export a backup first if you want a copy. Type DELETE to confirm.</p>
   <label for="deleteAccountConfirm">Type DELETE</label>
   <input id="deleteAccountConfirm" type="text" autocomplete="off" maxlength="6" spellcheck="false" data-input="updateDeleteAccountConfirm">
   <div class="app-dialog-actions"><button class="btn" type="button" data-action="closeAccountDialogs">Cancel</button><button class="btn" id="confirmDeleteAccountButton" type="button" disabled data-action="confirmDeleteGymplifiedAccount">Delete permanently</button></div>

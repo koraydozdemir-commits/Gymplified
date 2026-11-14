@@ -66,7 +66,8 @@ This is the working release plan. A checklist item is only marked complete when 
 - Browser notifications are not treated as reliable scheduled background reminders. Native push needs platform permissions, a push service and backend delivery.
 - HealthKit and Health Connect require native platform integrations and explicit health-data permissions; they are not safely simulated in a web page.
 - The current product is a PWA. A store submission requires a deliberate native packaging/client strategy and platform-specific review/testing.
-- Account deletion is deployed as `gymplified-delete-account` with JWT verification. It has not yet been exercised against a real disposable test account.
+- Account deletion (right to erasure) is deployed as `gymplified-delete-account` with JWT verification; its source is in `supabase/functions/gymplified-delete-account/`. The owner has tested it end to end on disposable accounts. Settings → Account → Your data rights links to the privacy policy section `#erasure`. Database rows cascade from `auth.users` (profiles, user_app_state, support_tickets and messages, friend_requests, friend_activity_reactions, deluxe_entitlements); the function removes avatar files and analytics rows. If you add a table that references a user, give it `ON DELETE CASCADE` or extend the function.
+- Privacy policy and Terms updated 14 Nov 2026 (legal bases, rights, erasure, retention, age 16+). Still a draft: have a lawyer or DPO-service review it before launch.
 - The privacy and terms pages are starter drafts, not legal advice or a claim of regulatory compliance.
 
  

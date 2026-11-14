@@ -1899,3 +1899,19 @@ test('XP1: streak bonus, daily goal, daily chest and one combined XP toast', asy
   assert.match(js, /role="progressbar" aria-label="Daily XP goal"/);
   assert.doesNotMatch(css, /mascot-bob/, 'the emblem does not bounce');
 });
+
+test('Right to erasure: self-service deletion function, settings entry point and privacy policy agree', async () => {
+  const fn = await read('supabase/functions/gymplified-delete-account/index.ts');
+  assert.match(fn, /body\.confirmation !== "DELETE"/);
+  assert.match(fn, /auth\.admin\.deleteUser\(userId\)/);
+  assert.match(fn, /from\("analytics_events"\)\.delete\(\)\.eq\("user_id", userId\)/);
+  assert.match(fn, /storage\.from\("avatars"\)/);
+  assert.match(fn, /replace\(\/\^Bearer\\s\+\/i, ""\)/);
+  const html = await read('index.html'), privacy = await read('privacy.html'), terms = await read('terms.html');
+  assert.match(html, /id="set-erasure"[\s\S]*data-action="deleteGymplifiedAccount"/);
+  assert.match(html, /href="\.\/privacy\.html#erasure"/);
+  assert.match(privacy, /<h2 id="erasure">/);
+  for (const phrase of ['Legal bases \\(GDPR\\)', 'Data Protection Commission', 'within one month', 'aged 16 or over', 'Withdraw consent|withdraw consent']) assert.match(privacy, new RegExp(phrase));
+  assert.doesNotMatch(privacy, /records an account identifier when signed in/);
+  assert.match(terms, /privacy\.html#erasure/);
+});

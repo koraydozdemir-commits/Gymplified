@@ -1547,12 +1547,12 @@ function reuseRoutine(){if(!state.lastSession.length)return showToast('No previo
 function applySetField(x,field,value){if(value===''||value==null)return false;const n=Number(value);if(!Number.isFinite(n)||n<0)return false;x[field]=field==='reps'?Math.max(1,Math.min(1000,Math.round(n)||1)):Math.min(1000,Math.round(displayToKg(n)*1000)/1000);x.auto=false;return true;}
 // Field edits save and refresh totals only; the inputs are never re-rendered while the user is typing or tabbing.
 function setVal(i,j,k,v,el){const w=state.workouts[i],x=w&&w.setList[j];if(!x)return;applySetField(x,k,v);syncW(w);flushDraftSave();persistLocalState();queueCloudStateSave();
- const row=el&&el.closest('.setrow');if(row){row.classList.remove('set-auto');row.querySelectorAll('input[data-set-field]').forEach(input=>{if(input.value===''||input===el)input.value=input.dataset.setField==='kg'?kgToDisplay(x.kg,2):x.reps;});}
- updateTrainingTotals();}
+ const row=el&&el.closest('.setrow');if(row){row.classList.remove('set-auto');row.querySelectorAll('input[data-set-field]').forEach(input=>{if(input!==document.activeElement&&(input.value===''||input===el))input.value=input.dataset.setField==='kg'?kgToDisplay(x.kg,2):x.reps;else if(input===el&&el.value!==''&&el.dataset.setField==='reps')el.value=x.reps;});}
+ refreshSetEstimate(i,j);updateTrainingTotals();}
 let justTicked=null;
 const EXERCISE_DONE_LINES=['Exercise done. Great work! 💪','That’s a wrap on that one. Nice!','All sets done. Strong work!','Nailed it. On to the next!'];
 function toggleSet(i,j){const w=state.workouts[i],x=w&&w.setList[j];if(!x)return;x.done=!x.done;justTicked=x.done?{i,j,at:Date.now()}:null;if(x.done){x.auto=false;state.lastKg[w.name]=x.kg;}syncW(w);flushDraftSave();saveState();
- if(x.done){try{navigator.vibrate&&navigator.vibrate(15);}catch(e){}const r=restFor(w.name);if(r>0&&GymLib.restDueAfterSet(state.workouts,i))startRest(r);else if(r>0)showToast('Superset: go straight to '+state.workouts[i+1].name);if(w.setList.every(s=>s.done))showToast(pickLine(EXERCISE_DONE_LINES,(state.sessions||[]).length+i));}}
+ if(x.done){const pr=isLivePR(w,x);try{navigator.vibrate&&navigator.vibrate(pr?[30,50,30,50,60]:15);}catch(e){}if(pr)showToast('🏆 New PR on '+w.name+': '+fmtWeight(x.kg,2)+' × '+Number(x.reps));const r=restFor(w.name);if(r>0&&GymLib.restDueAfterSet(state.workouts,i))startRest(r);else if(r>0)showToast('Superset: go straight to '+state.workouts[i+1].name);if(w.setList.every(s=>s.done))showToast(pickLine(EXERCISE_DONE_LINES,(state.sessions||[]).length+i));}}
 function addSet(i){const w=state.workouts[i];if(!w)return;if(w.setList.length>=50)return showToast('An exercise can have up to 50 sets');const l=w.setList[w.setList.length-1]||{kg:0,reps:10};const type=setTypeOf(l);w.setList.push({kg:l.kg,reps:l.reps,type:type==='warmup'?'normal':type,done:false,auto:true});syncW(w);refreshTraining();}
 function removeSet(i,j){const w=state.workouts[i];if(!w)return;if(w.setList.length<=1)return showToast('Keep one set, or remove the exercise');const removed=w.setList.splice(j,1)[0];syncW(w);flushDraftSave();saveState();
  // Sets live inside their exercise (no separate tombstone), so undo puts the same set back while the exercise still exists.
@@ -1572,8 +1572,29 @@ function previousExercisePerformance(name){
 }
 function bestPreviousSet(sets){return (sets||[]).reduce((best,x)=>!best||calculate1RM(x.kg,x.reps)>calculate1RM(best.kg,best.reps)?x:best,null);}
 function applyPreviousBest(i){const w=state.workouts[i],p=previousExercisePerformance(w&&w.name);if(!w||!p)return showToast('No previous performance for this exercise yet');const best=bestPreviousSet(p.sets.filter(x=>setTypeOf(x)!=='warmup'))||bestPreviousSet(p.sets);if(!best)return;w.setList.forEach(x=>{if(x.done)return;x.kg=Number(best.kg);x.reps=Number(best.reps);x.auto=false;});syncW(w);flushDraftSave();saveState();showToast('Previous best applied to remaining sets');}
-function setEstimateMarkup(i,j,x){return '<div class="set-estimate" id="setEstimate-'+i+'-'+j+'">Est. 1RM: '+format1RM(x.kg,x.reps)+'</div>';}
-function updateSetEstimate(i,j,field,value){const x=state.workouts[i]?.setList?.[j];if(!x)return;if(applySetField(x,field,value))scheduleDraftSave();const el=$('setEstimate-'+i+'-'+j);if(el)el.textContent='Est. 1RM: '+format1RM(x.kg,x.reps);}
+// Live PR badge: a finished, non-warm-up set that beats every earlier record for the exercise (first-ever logs are not PRs).
+function isLivePR(w,x){if(!x||!x.done||setTypeOf(x)==='warmup'||!(Number(x.kg)>0)||!(Number(x.reps)>0))return false;const before=exerciseRecordE1RM(w.name);return before>0&&calculate1RM(x.kg,x.reps)>before;}
+function setEstimateText(w,j,x){
+ const prev=previousExercisePerformance(w.name),p=prev&&prev.sets[j];
+ return 'Est. 1RM: '+format1RM(x.kg,x.reps)+(p?' · Last: '+fmtWeight(p.kg,2)+' × '+Number(p.reps):'')+(isLivePR(w,x)?' · 🏆 New PR':'');
+}
+function setEstimateMarkup(i,j,x){const w=state.workouts[i];return '<div class="set-estimate" id="setEstimate-'+i+'-'+j+'">'+esc(w?setEstimateText(w,j,x):'Est. 1RM: '+format1RM(x.kg,x.reps))+'</div>';}
+function refreshSetEstimate(i,j){const w=state.workouts[i],x=w&&w.setList[j],el=$('setEstimate-'+i+'-'+j);if(x&&el)el.textContent=setEstimateText(w,j,x);}
+function updateSetEstimate(i,j,field,value){const x=state.workouts[i]?.setList?.[j];if(!x)return;if(applySetField(x,field,value))scheduleDraftSave();refreshSetEstimate(i,j);}
+// Keeps only what a weight or rep field can hold, preserving the caret so typing is never disturbed.
+function sanitizeSetInput(input){
+ const reps=input.dataset.setField==='reps',raw=input.value;
+ let clean=raw.replace(',','.').replace(reps?/[^0-9]/g:/[^0-9.]/g,'');
+ if(!reps){const dot=clean.indexOf('.');if(dot>=0)clean=clean.slice(0,dot+1)+clean.slice(dot+1).replace(/\./g,'');}
+ if(clean===raw)return;
+ const caret=Math.max(0,(input.selectionStart==null?raw.length:input.selectionStart)-(raw.length-clean.length));
+ input.value=clean;try{input.setSelectionRange(caret,caret);}catch(e){}
+}
+function focusNextSetField(input){
+ const fields=[...document.querySelectorAll('#trainingLogList input[data-set-field]')],next=fields[fields.indexOf(input)+1];
+ if(next)next.focus({preventScroll:false});else input.blur();
+}
+function repeatLastSet(i){const w=state.workouts[i];if(!w)return;if(w.setList.length>=50)return showToast('An exercise can have up to 50 sets');const l=w.setList[w.setList.length-1];if(!l)return addSet(i);const type=setTypeOf(l);w.setList.push({kg:l.kg,reps:l.reps,type:type==='warmup'?'normal':type,done:false,auto:false});syncW(w);refreshTraining();showToast('Set '+w.setList.length+' copied from set '+(w.setList.length-1));}
 function exerciseHistoryMarkup(name){
  const key=String(name||'').trim().toLowerCase();
  const rows=[];
@@ -1673,8 +1694,9 @@ function renderTrainingLog(){
   $('liveStats').innerHTML=liveStatsMarkup();
   const listHost=$('trainingLogList'),focused=document.activeElement&&listHost.contains(document.activeElement)?document.activeElement:null;
   const focusKey=focused&&focused.dataset.i!==undefined?(focused.dataset.setAction?'[data-set-action="'+focused.dataset.setAction+'"]':focused.dataset.setField?'[data-set-field="'+focused.dataset.setField+'"]':focused.dataset.exCardAction?'[data-ex-card-action="'+focused.dataset.exCardAction+'"]':'')+'[data-i="'+focused.dataset.i+'"]'+(focused.dataset.j!==undefined?'[data-j="'+focused.dataset.j+'"]':''):'';
+  const typing=focused&&focused.dataset.setField?{value:focused.value,start:focused.selectionStart,end:focused.selectionEnd}:null;
   listHost.innerHTML=state.workouts.length?state.workouts.map(exerciseCardMarkup).join(''):'<div class="empty-box"><p><span aria-hidden="true">🏋️ </span>Your workout starts here. Search the library above and tap “+ Add”. Even one exercise counts.</p></div>';
-  if(focusKey&&focusKey[0]==='['&&!focusKey.startsWith('[data-i')){const again=listHost.querySelector(focusKey);if(again)again.focus({preventScroll:true});}
+  if(focusKey&&focusKey[0]==='['&&!focusKey.startsWith('[data-i')){const again=listHost.querySelector(focusKey);if(again){again.focus({preventScroll:true});if(typing&&again.dataset.setField){again.value=typing.value;try{again.setSelectionRange(typing.start,typing.end);}catch(e){}}}}
   $('sessionSummary').innerHTML=sessionSummaryMarkup();
   syncRestSettingsUI();renderSessionChrome();
   $('sessionHistory').innerHTML=state.sessions.length?state.sessions.map((x,i)=>'<details class="st-53 history-session"><summary class="st-54"><strong>'+esc(x.date)+' · '+(x.mins||0)+' min</strong><span class="sub">'+(x.ex||0)+' exercises · '+fmtVolume(x.vol||0)+' · '+(x.sets||0)+' sets</span></summary><div class="st-3"><div class="st-55 row-wrap"><label class="st-52 sub">Workout date & start time<input type="datetime-local" value="'+localDateTimeValue(x.startedAt?new Date(x.startedAt).getTime():new Date((x.date||dayKey())+'T12:00').getTime())+'" data-change="editHistoryTime" data-i="'+i+'"></label><label class="st-52 sub">Duration (minutes)<input type="number" min="1" max="1440" value="'+(x.mins||1)+'" data-change="editHistoryDuration" data-i="'+i+'"></label></div>'+(typeof historyToolsMarkup==='function'?historyToolsMarkup(x,i):'')+((x.exercises||[]).length?(x.exercises||[]).map((ex,exIndex)=>'<div class="st-56"><div class="st-57"><strong>'+esc(ex.name)+'</strong><button class="btn" data-action="viewExerciseHistoryForSession" data-i="'+i+'" data-j="'+exIndex+'">Exercise history</button></div><div class="st-58 sub">'+(ex.sets||[]).map(sessionSetSummary).join(' · ')+'</div></div>').join(''):'<p class="sub">This older workout summary was saved before detailed exercise history was available.</p>')+'</div></details>').join(''):'<p class="sub">Your finished workouts will collect here. Every one is a step forward.</p>';}
@@ -1816,8 +1838,8 @@ function setRowMarkup(w,i,j,x){
  const shown=kgToDisplay(x.kg,2),hint=auto?', suggested '+shown+' '+weightUnitName()+' for '+Number(x.reps)+' reps':'';
  return '<div class="setrow'+(type!=='normal'?' set-'+type:'')+(auto?' set-auto':'')+(activeStepRow&&activeStepRow.i===i&&activeStepRow.j===j?' is-editing':'')+'">'+
   '<button type="button" class="set-type-btn" data-set-action="type"'+at+' aria-label="Set '+n+' type: '+info.label+'. Change set type" title="'+info.label+' — tap to change">'+(info.short||n)+'</button>'+
-  '<input type="number" inputmode="decimal" min="0" step="0.5" value="'+(auto?'':shown)+'" placeholder="'+(auto&&shown>0?shown:weightUnit())+'" data-set-field="kg"'+at+' aria-label="'+esc(w.name)+' set '+n+' weight in '+weightUnitName()+hint+'">'+
-  '<input type="number" inputmode="numeric" min="1" step="1" value="'+(auto?'':Number(x.reps))+'" placeholder="'+(auto?Number(x.reps):'reps')+'" data-set-field="reps"'+at+' aria-label="'+esc(w.name)+' set '+n+' reps'+hint+'">'+
+  '<input type="text" inputmode="decimal" maxlength="7" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next" value="'+(auto?'':shown)+'" placeholder="'+(auto&&shown>0?shown:weightUnit())+'" data-set-field="kg"'+at+' aria-label="'+esc(w.name)+' set '+n+' weight in '+weightUnitName()+hint+'">'+
+  '<input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next" value="'+(auto?'':Number(x.reps))+'" placeholder="'+(auto?Number(x.reps):'reps')+'" data-set-field="reps"'+at+' aria-label="'+esc(w.name)+' set '+n+' reps'+hint+'">'+
   '<button type="button" class="check-btn '+(x.done?'done':'')+(x.done&&justTicked&&justTicked.i===i&&justTicked.j===j&&Date.now()-justTicked.at<1500?' just-done':'')+'" data-set-action="done"'+at+' aria-pressed="'+!!x.done+'" aria-label="Set '+n+' done'+(auto?' — accept suggested values':'')+'">'+(x.done?'✓':'')+'</button>'+
   '<button type="button" class="btn btn-icon-only" data-set-action="remove"'+at+' aria-label="Remove set '+n+'">−</button>'+setEstimateMarkup(i,j,x)+(typeof setRowExtras==='function'?setRowExtras(w,i,j,x,n):'')+setStepsMarkup(i,j,n)+'</div>';
 }
@@ -1828,7 +1850,7 @@ function exerciseCardMarkup(w,i){
  return '<div class="st-14 panel ex-card'+(w.group?' in-superset':'')+'">'+(typeof supersetLabelMarkup==='function'?supersetLabelMarkup(w,i):'')+'<div class="section-title"><span>'+(i+1)+'. '+esc(w.name)+' <small class="sub">'+esc(w.muscle)+'</small></span><span class="row-wrap"><button type="button" class="btn" data-ex-card-action="details" data-i="'+i+'" aria-label="Details for '+esc(w.name)+'">ⓘ<span class="card-btn-label"> Details</span></button>'+(w.setList.some(s=>s.done)?'':'<button type="button" class="btn" data-ex-card-action="swap" data-i="'+i+'" aria-label="Swap '+esc(w.name)+' for another exercise">⇄<span class="card-btn-label"> Swap</span></button>')+'<button type="button" class="btn" data-ex-card-action="add-set" data-i="'+i+'">+ Set</button><button type="button" class="st-7 btn btn-icon-only" aria-label="Remove '+esc(w.name)+'" data-ex-card-action="remove" data-i="'+i+'">✕</button></span></div>'+
   '<div class="setrow sub" aria-hidden="true"><span>Set</span><span>'+weightUnit()+'</span><span>Reps</span><span>Done</span><span></span></div>'+
   planLineMarkup(w)+w.setList.map((x,j)=>setRowMarkup(w,i,j,x)).join('')+
-  '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+exerciseRestMarkup(w,i)+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
+  '<div class="set-tools"><small>'+lastLine+'</small><span class="row-wrap">'+exerciseRestMarkup(w,i)+(w.setList.length?'<button type="button" class="btn" data-ex-card-action="repeat-set" data-i="'+i+'" aria-label="Repeat the last set of '+esc(w.name)+' as a new set">⧉ Repeat last set</button>':'')+(pending?'<button type="button" class="btn" data-ex-card-action="accept" data-i="'+i+'">✓ Use suggested values</button>':'')+(best?'<button type="button" class="btn" data-ex-card-action="best" data-i="'+i+'">↺ Use previous best</button>':'')+'</span></div>'+
   (typeof exerciseCardExtras==='function'?exerciseCardExtras(w,i):'')+
   '<div class="st-59 sub">Volume: <span id="exVolume-'+i+'">'+volumeNumber(vol(w))+'</span> '+weightUnit()+' <span class="sub">· warm-up sets (W) are not counted</span></div></div>';
 }
@@ -2027,12 +2049,15 @@ function initWorkoutControls(){
   list.addEventListener('click',e=>{
    const b=e.target.closest('button');if(!b||!list.contains(b))return;const i=Number(b.dataset.i),j=Number(b.dataset.j);
    if(b.dataset.setAction==='type')cycleSetType(i,j);else if(b.dataset.setAction==='done')toggleSet(i,j);else if(b.dataset.setAction==='remove')removeSet(i,j);else if(b.dataset.setAction==='step')stepSet(i,j,b.dataset.field,Number(b.dataset.delta),b);
-   else if(b.dataset.exCardAction==='add-set')addSet(i);else if(b.dataset.exCardAction==='remove')deleteWorkout(i);else if(b.dataset.exCardAction==='accept')acceptSuggestedSets(i);else if(b.dataset.exCardAction==='details')openExerciseSheet(state.workouts[i]&&state.workouts[i].name);else if(b.dataset.exCardAction==='swap')openExerciseSheet(state.workouts[i]&&state.workouts[i].name,{swapIndex:i});else if(b.dataset.exCardAction==='best')applyPreviousBest(i);
+   else if(b.dataset.exCardAction==='add-set')addSet(i);else if(b.dataset.exCardAction==='repeat-set')repeatLastSet(i);else if(b.dataset.exCardAction==='remove')deleteWorkout(i);else if(b.dataset.exCardAction==='accept')acceptSuggestedSets(i);else if(b.dataset.exCardAction==='details')openExerciseSheet(state.workouts[i]&&state.workouts[i].name);else if(b.dataset.exCardAction==='swap')openExerciseSheet(state.workouts[i]&&state.workouts[i].name,{swapIndex:i});else if(b.dataset.exCardAction==='best')applyPreviousBest(i);
   });
-  list.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.setField;if(f)updateSetEstimate(Number(e.target.dataset.i),Number(e.target.dataset.j),f,e.target.value);});
+  list.addEventListener('input',e=>{const f=e.target.dataset&&e.target.dataset.setField;if(!f)return;sanitizeSetInput(e.target);updateSetEstimate(Number(e.target.dataset.i),Number(e.target.dataset.j),f,e.target.value);});
+  list.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.dataset&&e.target.dataset.setField&&!e.isComposing){e.preventDefault();const t=e.target;if(t.value!=='')setVal(Number(t.dataset.i),Number(t.dataset.j),t.dataset.setField,t.value,t);focusNextSetField(t);}});
   list.addEventListener('change',e=>{const d=e.target.dataset||{};if(d.setField)setVal(Number(d.i),Number(d.j),d.setField,e.target.value,e.target);else if(d.exRest!==undefined)setExerciseRest(Number(d.i),e.target.value);});
   // The − / + buttons follow the set being edited (tapping a button does not move focus on every phone, so this is tracked explicitly).
   list.addEventListener('focusin',e=>{if(e.target.matches&&e.target.matches('input[data-set-field]'))markStepRow(e.target.closest('.setrow'));});
+  // Select the whole value on focus so the next keystrokes replace it instead of appending to it.
+  list.addEventListener('focusin',e=>{const t=e.target;if(t.matches&&t.matches('input[data-set-field]'))setTimeout(()=>{if(document.activeElement===t)try{t.select();}catch(err){}},0);});
  }
  const results=$('exResults');
  if(results){
